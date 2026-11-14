@@ -1,0 +1,112 @@
+import json
+from scipy import stats
+import numpy as np
+
+O = json.load(open('orders_prepared.json'))
+for o in O:
+    o['has_code'] = 1 if o['code'] else 0
+
+def med(a):
+    a=sorted(a); n=len(a)
+    return a[n//2] if n%2 else (a[n//2-1]+a[n//2])/2
+
+results = {}
+
+# ===== KHI2 #1 : moyen de paiement (carte/paypal) x utilisation d'un code promo
+print("=== Khi² 1 : moyen de paiement (carte/paypal) x code promo utilisé ===")
+sub = [o for o in O if o['pay'] in ('card','paypal')]
+table = [[sum(1 for o in sub if o['pay']==p and o['has_code']==c) for c in (1,0)] for p in ('card','paypal')]
+print("  table (lignes=carte/paypal, colonnes=avec code/sans code):", table)
+chi2, p, dof, exp = stats.chi2_contingency(table)
+print(f"  chi2={chi2:.3f} dof={dof} p={p:.4f}")
+n_tot = sum(sum(r) for r in table)
+cramers_v = (chi2/(n_tot*min(len(table)-1, len(table[0])-1)))**0.5
+print(f"  n={n_tot} V de Cramér={cramers_v:.3f}")
+results['khi2_paiement_code'] = {'table':table,'chi2':round(chi2,3),'dof':dof,'p':round(p,4),'n':n_tot,'v':round(cramers_v,3)}
+
+# ===== KHI2 #2 : consentement email x client récurrent
+print("\n=== Khi² 2 : consentement e-mail x client récurrent (2+ commandes) ===")
+cust_first = {}
+for o in O:
+    if o['key'] and (o['key'] not in cust_first):
+        cust_first[o['key']] = o
+rows = list(cust_first.values())
+for o in rows: o['is_recurrent'] = 1 if (o['cust_freq'] or 1) >= 2 else 0
+tbl2 = [[sum(1 for o in rows if o['accepts_email']==e and o['is_recurrent']==r) for r in (1,0)] for e in ('yes','no')]
+print("  table (lignes=accepte email/n'accepte pas, colonnes=récurrent/non):", tbl2)
+chi2b, pb, dofb, _ = stats.chi2_contingency(tbl2)
+n2 = sum(sum(r) for r in tbl2)
+vb = (chi2b/(n2*min(len(tbl2)-1,len(tbl2[0])-1)))**0.5
+print(f"  chi2={chi2b:.3f} dof={dofb} p={pb:.4f} n={n2} V={vb:.3f}")
+results['khi2_email_recurrent'] = {'table':tbl2,'chi2':round(chi2b,3),'dof':dofb,'p':round(pb,4),'n':n2,'v':round(vb,3)}
+
+# ===== TEST T #1 : panier carte vs paypal
+print("\n=== Test t 1 : panier (carte vs paypal) ===")
+a = [o['tot'] for o in O if o['pay']=='card']
+b = [o['tot'] for o in O if o['pay']=='paypal']
+t,p = stats.ttest_ind(a,b,equal_var=False)
+print(f"  carte: n={len(a)} moy={np.mean(a):.2f} médiane={med(a):.2f} | paypal: n={len(b)} moy={np.mean(b):.2f} médiane={med(b):.2f}")
+print(f"  Welch t={t:.3f} p={p:.4f}")
+results['t_carte_paypal'] = {'n_a':len(a),'mean_a':round(np.mean(a),2),'med_a':round(med(a),2),
+                              'n_b':len(b),'mean_b':round(np.mean(b),2),'med_b':round(med(b),2),
+                              't':round(t,3),'p':round(p,4)}
+
+# ===== TEST T #2 : panier 1re commande vs commandes suivantes
+print("\n=== Test t 2 : panier (1re commande vs commandes suivantes) ===")
+a2 = [o['tot'] for o in O if o.get('rank')==1]
+b2 = [o['tot'] for o in O if o.get('rank') and o['rank']>1]
+t2,p2 = stats.ttest_ind(a2,b2,equal_var=False)
+print(f"  1re cmd: n={len(a2)} moy={np.mean(a2):.2f} | suivantes: n={len(b2)} moy={np.mean(b2):.2f}")
+print(f"  Welch t={t2:.3f} p={p2:.6f}")
+results['t_premiere_suivante'] = {'n_a':len(a2),'mean_a':round(np.mean(a2),2),
+                                   'n_b':len(b2),'mean_b':round(np.mean(b2),2),
+                                   't':round(t2,3),'p':round(p2,6)}
+
+# ===== ANOVA #1 : panier selon jour de semaine
+print("\n=== ANOVA 1 : panier selon le jour de semaine ===")
+groups_wd = [[o['tot'] for o in O if o['weekday']==d] for d in range(7)]
+F, pF = stats.f_oneway(*groups_wd)
+ss_between = sum(len(g)*(np.mean(g)-np.mean([o['tot'] for o in O]))**2 for g in groups_wd)
+ss_total = sum((o['tot']-np.mean([o['tot'] for o in O]))**2 for o in O)
+eta2 = ss_between/ss_total
+print(f"  moyennes par jour:", [round(np.mean(g),1) for g in groups_wd])
+print(f"  F={F:.3f} p={pF:.4f} eta²={eta2:.4f}")
+results['anova_jour'] = {'means':[round(np.mean(g),2) for g in groups_wd],'ns':[len(g) for g in groups_wd],
+                          'F':round(F,3),'p':round(pF,4),'eta2':round(eta2,4)}
+
+# ===== ANOVA #2 : panier selon moyen de paiement
+print("\n=== ANOVA 2 : panier selon moyen de paiement ===")
+pays = ['card','paypal','bancontact','klarna','card_present']
+groups_pay = [[o['tot'] for o in O if o['pay']==p] for p in pays]
+groups_pay_f = [g for g in groups_pay if len(g)>=5]
+F2, pF2 = stats.f_oneway(*groups_pay_f)
+print(f"  moyennes:", {p:round(np.mean(g),1) for p,g in zip(pays,groups_pay) if len(g)>=5})
+print(f"  F={F2:.3f} p={pF2:.6f}")
+results['anova_paiement'] = {'labels':[p for p,g in zip(pays,groups_pay) if len(g)>=5],
+                              'means':[round(np.mean(g),2) for g in groups_pay_f],'ns':[len(g) for g in groups_pay_f],
+                              'F':round(F2,3),'p':round(pF2,6)}
+
+# ===== CORRELATIONS
+print("\n=== Corrélations ===")
+qty = [o['qty'] for o in O]; tot = [o['tot'] for o in O]
+r1,p1 = stats.pearsonr(qty, tot)
+print(f"  quantité d'articles <-> montant: r={r1:.3f} p={p1:.2e}")
+disc = [o['disc'] for o in O]
+r2,p2b = stats.pearsonr(disc, tot)
+print(f"  remise <-> montant: r={r2:.3f} p={p2b:.4f}")
+# fréquence client vs panier moyen PAR client (pas par commande, pour éviter la circularité)
+by_cust = {}
+for o in O:
+    if not o['key']: continue
+    by_cust.setdefault(o['key'], []).append(o['tot'])
+freqs = [len(v) for v in by_cust.values()]
+avgbask = [np.mean(v) for v in by_cust.values()]
+r3,p3 = stats.pearsonr(freqs, avgbask)
+print(f"  fréquence d'achat <-> panier moyen du client: r={r3:.3f} p={p3:.4f} (n={len(freqs)})")
+results['corr'] = {
+ 'qty_tot': {'r':round(r1,3),'p':p1},
+ 'disc_tot': {'r':round(r2,3),'p':round(p2b,4)},
+ 'freq_basket': {'r':round(r3,3),'p':round(p3,4),'n':len(freqs)},
+}
+
+json.dump(results, open('b1_bivarie.json','w'), ensure_ascii=False, default=str)

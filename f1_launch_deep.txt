@@ -1,0 +1,93 @@
+# encoding: utf-8
+"""Approfondit le test 'acheteurs de lancement' : au lieu d'un oui/non de réachat,
+on regarde (a) uniquement les lancements matures (assez de recul), et (b) pour ceux
+qui reviennent, leur fréquence et leur valeur par rapport aux clients organiques."""
+import csv, json
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+import numpy as np
+
+orders = []
+cur = None
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total']:
+        cur = {'r': row, 'items': []}; orders.append(cur)
+    if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['d'] = o['r']['Created at'][:10]
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o: o['d'])
+
+REF = datetime(2026, 9, 21)
+MATURE_LAUNCHES = {'2025-09-07', '2025-11-01'}   # >= 10 mois de recul : fiable pour juger la fidélité
+RECENT_LAUNCHES = {'2026-09-06', '2026-09-20'}
+
+def build(keys_first_date_filter):
+    launch, organic = [], []
+    for k, os_ in cust.items():
+        first = os_[0]
+        if keys_first_date_filter(first['d']):
+            launch.append(os_)
+        else:
+            organic.append(os_)
+    return launch, organic
+
+# ---- 1) UNIQUEMENT les lancements matures (>=10 mois de recul), comparés aux clients "organiques" ayant le même recul minimum
+launch_m, organic_m = [], []
+for k, os_ in cust.items():
+    first = os_[0]
+    recul = (REF - datetime.strptime(first['d'], '%Y-%m-%d')).days
+    if recul < 300:  # >= ~10 mois, comparable au recul des lancements matures
+        continue
+    if first['d'] in MATURE_LAUNCHES:
+        launch_m.append(os_)
+    elif first['d'] not in MATURE_LAUNCHES | RECENT_LAUNCHES:
+        organic_m.append(os_)
+
+rep_launch_m = sum(1 for os_ in launch_m if len(os_) >= 2)
+rep_organic_m = sum(1 for os_ in organic_m if len(os_) >= 2)
+tbl = [[rep_launch_m, len(launch_m)-rep_launch_m], [rep_organic_m, len(organic_m)-rep_organic_m]]
+chi2, p, dof, _ = stats.chi2_contingency(tbl)
+print(f"=== Lancements MATURES seuls (recul >= 300j, n_launch={len(launch_m)}, n_organic={len(organic_m)}) ===")
+print(f"  réachat lancement: {rep_launch_m}/{len(launch_m)} = {rep_launch_m/len(launch_m)*100:.1f}%")
+print(f"  réachat organique: {rep_organic_m}/{len(organic_m)} = {rep_organic_m/len(organic_m)*100:.1f}%")
+print(f"  chi2={chi2:.3f} p={p:.4f}")
+
+# ---- 2) Pour ceux qui REVIENNENT : fréquence totale et valeur totale, lancement vs organique (même filtre de recul)
+freq_launch = [len(os_) for os_ in launch_m if len(os_) >= 2]
+freq_organic = [len(os_) for os_ in organic_m if len(os_) >= 2]
+mon_launch = [sum(o['tot'] for o in os_) for os_ in launch_m if len(os_) >= 2]
+mon_organic = [sum(o['tot'] for o in os_) for os_ in organic_m if len(os_) >= 2]
+print(f"\n=== Parmi ceux qui reviennent (recul >= 300j) : fréquence et valeur totale ===")
+if len(freq_launch) >= 5:
+    u, pu = stats.mannwhitneyu(freq_launch, freq_organic, alternative='two-sided')
+    print(f"  fréquence (nb commandes total) -- lancement: n={len(freq_launch)} médiane={np.median(freq_launch):.0f} moyenne={np.mean(freq_launch):.2f} | organique: n={len(freq_organic)} médiane={np.median(freq_organic):.0f} moyenne={np.mean(freq_organic):.2f}")
+    print(f"  Mann-Whitney U={u:.1f} p={pu:.4f}")
+    tm, pm = stats.ttest_ind(mon_launch, mon_organic, equal_var=False)
+    print(f"  valeur totale -- lancement: moyenne={np.mean(mon_launch):.2f}€ | organique: moyenne={np.mean(mon_organic):.2f}€")
+    print(f"  Welch t={tm:.3f} p={pm:.4f}")
+else:
+    u=pu=tm=pm=None
+    print(f"  Trop peu de clients de lancement revenus avec ce recul (n={len(freq_launch)}) pour un test fiable.")
+
+json.dump({
+ 'mature': {'n_launch': len(launch_m), 'n_organic': len(organic_m),
+            'rep_launch': rep_launch_m, 'rep_organic': rep_organic_m,
+            'rate_launch': round(rep_launch_m/len(launch_m)*100,1), 'rate_organic': round(rep_organic_m/len(organic_m)*100,1),
+            'chi2': round(chi2,3), 'p': round(p,4)},
+ 'among_returners': None if len(freq_launch)<5 else {
+   'n_launch': len(freq_launch), 'n_organic': len(freq_organic),
+   'freq_med_launch': float(np.median(freq_launch)), 'freq_med_organic': float(np.median(freq_organic)),
+   'freq_mean_launch': round(float(np.mean(freq_launch)),2), 'freq_mean_organic': round(float(np.mean(freq_organic)),2),
+   'mannwhitney_u': round(float(u),1), 'mannwhitney_p': round(float(pu),4),
+   'mon_mean_launch': round(float(np.mean(mon_launch)),2), 'mon_mean_organic': round(float(np.mean(mon_organic)),2),
+   'welch_t': round(float(tm),3), 'welch_p': round(float(pm),4),
+ }
+}, open('f1_launch_deep.json','w'), ensure_ascii=False)

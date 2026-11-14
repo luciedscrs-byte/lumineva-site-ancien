@@ -1,0 +1,67 @@
+import csv, json, math
+from collections import defaultdict
+
+# ---- 1) Table code postal -> (lat, lon) moyenne, et ville la plus fréquente
+zips = defaultdict(list)
+zip_city = defaultdict(lambda: defaultdict(int))
+with open('geonames_fr/FR.txt', encoding='utf-8') as f:
+    for row in csv.reader(f, delimiter='\t'):
+        cp = row[1].strip().zfill(5)
+        city = row[2]
+        lat, lon = float(row[9]), float(row[10])
+        zips[cp].append((lat, lon))
+        zip_city[cp][city] += 1
+zip_latlon = {cp: (sum(a for a,_ in v)/len(v), sum(b for _,b in v)/len(v)) for cp,v in zips.items()}
+zip_bestcity = {cp: max(c.items(), key=lambda kv: kv[1])[0] for cp,c in zip_city.items()}
+print("codes postaux connus:", len(zip_latlon))
+
+# ---- 2) Commandes Lumineva : agréger par code postal (France, hors annulées)
+import re
+orders = []
+cur = None
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    for row in r:
+        if row['Total']:
+            cur = row
+            orders.append(row)
+orders = [o for o in orders if not o.get('Cancelled at')]
+print("commandes non annulées:", len(orders))
+
+agg = defaultdict(lambda: {'n':0,'ca':0.0})
+country_count = defaultdict(int)
+unmatched = defaultdict(int)
+for o in orders:
+    country = (o.get('Shipping Country') or o.get('Billing Country') or '').strip()
+    country_count[country or '(vide)'] += 1
+    if country != 'FR':
+        continue
+    zip_ = (o.get('Shipping Zip') or o.get('Billing Zip') or '').strip()
+    zip_ = re.sub(r'\D','',zip_).zfill(5)[:5]
+    if len(zip_) != 5 or zip_ not in zip_latlon:
+        unmatched[zip_] += 1
+        continue
+    agg[zip_]['n'] += 1
+    agg[zip_]['ca'] += float(o['Total'])
+
+print("pays:", dict(country_count))
+matched_orders = sum(v['n'] for v in agg.values())
+fr_orders = country_count.get('FR',0)
+print(f"commandes FR geocodees: {matched_orders}/{fr_orders} ({matched_orders*100.0/fr_orders:.1f}%)")
+print("codes postaux FR non trouves (top 10):", sorted(unmatched.items(), key=lambda x:-x[1])[:10])
+
+points = []
+for cp, v in agg.items():
+    lat, lon = zip_latlon[cp]
+    points.append({
+        'cp': cp, 'ville': zip_bestcity.get(cp,''),
+        'lat': lat, 'lon': lon,
+        'n': v['n'], 'panier': round(v['ca']/v['n'], 2), 'ca': round(v['ca'],2)
+    })
+points.sort(key=lambda p:-p['n'])
+print("points (codes postaux distincts):", len(points))
+print("top 5:", points[:5])
+
+json.dump({'points': points, 'matched_orders': matched_orders, 'fr_orders': fr_orders,
+           'countries': country_count, 'unmatched_zip_count': sum(unmatched.values())},
+          open('map_points.json','w'), ensure_ascii=False)

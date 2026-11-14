@@ -1,0 +1,185 @@
+# encoding: utf-8
+"""Page HTML « Plan Lumineva » : contexte, besoins, trois sections de décisions, recommandations non chiffrables.
+Page autonome (un seul fichier), même direction artistique que le site (Bitter, rose / vert / crème)."""
+import os
+
+CSS = '''
+:root{--bg:#FFFAEB;--surface:#fff;--ink:#0B3B2A;--muted:#4A6B5E;--brand:#0A714E;--brand-dark:#064E36;--rose:#FF9999;--rose-soft:#FFE3E0;--cream:#FFF3C2;--line:#EBDDB0;--bad:#B5383F}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Bitter',Georgia,'Times New Roman',serif;font-size:17px;line-height:1.6}
+a{color:var(--brand)}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:24px}
+.topnav{background:var(--brand);position:sticky;top:0;z-index:10;border-bottom:4px solid var(--rose)}
+.topnav .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:4px 18px;padding-block:11px}
+.topnav b{font-size:19px;color:var(--cream);margin-right:auto}.topnav a{color:var(--cream);text-decoration:none;font-size:15px;padding:5px 10px;border-radius:99px}
+.topnav a:hover{background:rgba(255,243,194,.18)}
+.hero{background:var(--rose-soft);border-bottom:1px solid var(--line)}.hero .wrap{padding-block:44px 34px}
+.kicker{font-size:13px;letter-spacing:.09em;text-transform:uppercase;color:var(--brand);font-weight:700;margin:0 0 8px}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.15;margin:0 0 12px;color:var(--brand-dark)}
+.lead{font-size:19px;max-width:66ch;margin:0}
+h2{font-size:28px;margin:0 0 6px;color:var(--brand-dark)}h3{font-size:19px;margin:0 0 6px;color:var(--brand-dark)}
+section.bloc{padding-block:42px 8px}section.bloc>.sous{color:var(--muted);margin:0 0 20px;max-width:70ch}
+.num{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--rose);color:#3A0F0F;font-weight:700;font-size:16px;margin-right:10px;vertical-align:2px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 15px}.kpi.h{background:var(--brand);border-color:var(--brand);color:#fff}
+.kpi .v{display:block;font-size:26px;font-weight:700;line-height:1.2}.kpi .l{font-size:13.5px;opacity:.9}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.card p{margin:4px 0;max-width:none}.card ul{margin:6px 0 0;padding-left:19px}.card li{margin:4px 0}
+.note{border-left:5px solid var(--rose);background:var(--surface);padding:12px 18px;border-radius:0 10px 10px 0;margin:16px 0}
+table{border-collapse:collapse;width:100%;font-size:15.5px;margin:12px 0}
+th{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:0 12px 8px 0;border-bottom:1px solid var(--line)}
+td{padding:9px 12px 9px 0;border-bottom:1px solid var(--line);vertical-align:top}.tw{overflow-x:auto}
+.pill{display:inline-block;font-size:12.5px;font-weight:700;padding:2px 10px;border-radius:99px;border:1px solid var(--line);white-space:nowrap;vertical-align:1px}
+.p-fait{background:var(--brand);border-color:var(--brand);color:#fff}.p-afaire{background:var(--cream);color:var(--brand-dark)}.p-conseil{background:var(--rose);border-color:var(--rose);color:#3A0F0F}
+.p-ch{background:#fff;color:var(--muted)}
+.q{display:flex;flex-direction:column;gap:8px}
+.q .qt{font-weight:700;color:var(--brand-dark);font-size:18px;line-height:1.35}
+.q .tags{display:flex;gap:6px;flex-wrap:wrap}
+.q .ligne{font-size:15.5px}.q .ligne b{color:var(--brand-dark)}
+.fait{font-size:15px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px;margin-top:2px}
+.reco{background:var(--surface);border:2px solid var(--brand);border-radius:14px;padding:14px 20px;margin:14px 0}
+.reco h3{color:var(--brand)}
+footer{margin-top:50px;border-top:1px solid var(--line);background:var(--rose-soft)}footer .wrap{padding-block:20px;font-size:14.5px;color:var(--muted)}
+@media (max-width:640px){body{font-size:16px}.topnav b{width:100%}}
+'''
+
+def pill(kind, txt): return '<span class="pill p-%s">%s</span>' % (kind, txt)
+def carte(titre, statut, type_, ligne, fait=''):
+    st = {'fait': ('fait', 'Déjà analysé'), 'afaire': ('afaire', 'À faire'), 'conseil': ('conseil', 'Conseil')}[statut]
+    f = '<div class="fait">%s</div>' % fait if fait else ''
+    return ('<div class="card q"><div class="qt">%s</div><div class="tags">%s<span class="pill p-ch">%s</span></div><div class="ligne">%s</div>%s</div>'
+            % (titre, pill(*st), type_, ligne, f))
+
+# ------------------------------------------------------------------ données (chiffres repris des analyses du site)
+CHIFFRES = [('1 438', 'commandes en 15 mois', True), ('90 721 €', 'chiffre d’affaires facturé', False), ('63 €', 'panier moyen', False),
+            ('3 sur 10', 'clients qui reviennent', False), ('71 %', 'du CA vient des bougies (marge 50 %)', False), ('684', 'réels Instagram analysés', False)]
+kpis = ''.join('<div class="kpi%s"><span class="v">%s</span><span class="l">%s</span></div>' % (' h' if h else '', v, l) for v, l, h in CHIFFRES)
+
+glance = [
+    ('Produits', 'Quels parfums garder à l’année, lesquels arrêter ?', 'fait'),
+    ('Produits', 'Quel produit suggérer au panier, et pour atteindre les 79 € ?', 'fait'),
+    ('Produits', 'Un lancement vend-il en plus ou à la place des autres produits ?', 'fait'),
+    ('Produits', 'La formation vaut-elle d’être développée ?', 'fait'),
+    ('Communication', 'Quels réels marchent, et pourquoi ?', 'fait'),
+    ('Communication', 'Quel budget de sponsoring ?', 'conseil'),
+    ('Communication', 'Quel programme de fidélité ?', 'conseil'),
+    ('Communication', 'Un programme d’influenceurs est-il pertinent ?', 'fait'),
+    ('Automatisations', 'Faut-il une relance après la 1re commande, et quand ?', 'fait'),
+    ('Automatisations', 'Que rapportent les relances panier et paiement ? Un 2e rappel ?', 'fait'),
+    ('Automatisations', 'Faut-il une alerte de retour en stock ou de lancement ?', 'afaire'),
+    ('Automatisations', 'Comment automatiser la retouche photo ?', 'conseil'),
+]
+lab = {'fait': 'Déjà analysé', 'afaire': 'À faire', 'conseil': 'Conseil'}
+tab = ''.join('<tr><td>%s</td><td>%s</td><td>%s</td></tr>' % (s, q, pill(k, lab[k])) for s, q, k in glance)
+
+html = '''<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Plan Lumineva</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&display=swap"><style>''' + CSS + '''</style></head><body>
+<nav class="topnav"><div class="wrap"><b>Lumineva · plan</b><a href="#contexte">Contexte</a><a href="#besoins">Besoins</a><a href="#produits">Produits</a><a href="#communication">Communication</a><a href="#automatisations">Automatisations</a><a href="#recommandations">Recommandations</a></div></nav>
+<header class="hero"><div class="wrap"><p class="kicker">Smart Data Marketing · M2 MOD · plan de travail</p><h1>Ce que Lumineva cherche, et ce que nous étudions</h1>
+<p class="lead">À partir des données de la boutique, proposer des solutions concrètes à trois grands domaines : les produits, la communication et les automatisations.</p></div></header>
+<main class="wrap">
+
+<section class="bloc"><h2>En un coup d’œil</h2><p class="sous">Les 12 sujets, rangés par section. « Déjà analysé » : le résultat est dans le site. « À faire » : on le construit. « Conseil » : une recommandation, sans preuve chiffrée possible.</p>
+<div class="tw"><table><tr><th>Section</th><th>Question</th><th>Où on en est</th></tr>''' + tab + '''</table></div></section>
+
+<section class="bloc" id="contexte"><h2><span class="num">1</span>Contexte</h2><p class="sous">Qui est Lumineva, et ce que disent ses chiffres.</p>
+<div class="cols">
+<div class="card"><h3>La boutique</h3><ul><li>Bougies, fondants, parfums d’intérieur et de voiture, vendus en ligne (Shopify).</li><li>Pas de boutique physique. Expédition en France, Belgique, Suisse et à La Réunion.</li><li>Environ deux ans et demi d’existence. Une gamme permanente de 8 parfums et des collections saisonnières.</li></ul></div>
+<div class="card"><h3>Comment elle vend</h3><ul><li>Par « sorties » : la demande se concentre sur quelques jours de lancement (60 commandes le 6 septembre 2026, 38 % du chiffre d’affaires du mois).</li><li>Un pic de septembre à décembre : 37 % des commandes.</li><li>Des creux liés à des pauses d’activité annoncées et aux vacances.</li></ul></div>
+<div class="card"><h3>Ses clients</h3><ul><li>Environ 3 clients sur 10 recommandent ; les plus fidèles (18 % des clients) font 53 % du chiffre d’affaires.</li><li>Deuxième commande en médiane au bout de 64 jours.</li><li>Une clientèle surtout dans de petites villes, avec un fort ancrage autour de la boutique (Pyrénées-Atlantiques).</li></ul></div>
+<div class="card"><h3>Ses outils et son équipe</h3><ul><li>Pas de compte Instagram propre à Lumineva (compte personnel de la gérante). Pas de Google Analytics.</li><li>E-mails : 19 newsletters et 7 automatisations (relances de panier…). Pas de SMS (trop cher).</li><li>Capacité de production non saturée (jusqu’à environ le double). Objectif : augmenter le chiffre d’affaires et embaucher.</li></ul></div>
+</div>
+<div class="kpis">''' + kpis + '''</div>
+<div class="note"><b>Les données.</b> Sept exports (commandes, clients, paiements, versements, produits, stock, Instagram) du 27 juin 2025 au 20 septembre 2026, pseudonymisés, plus les résultats d’e-mailing. La marge connue : 50 % sur les bougies. Marge des autres produits et coût d’un colis : inconnus.</div></section>
+
+<section class="bloc" id="besoins"><h2><span class="num">2</span>Besoins et interrogations de Lumineva</h2><p class="sous">Ce que la gérante a dit vouloir comprendre ou faire, lors de la séance de questions.</p>
+<div class="cols">
+<div class="card"><h3>Comprendre ses réseaux</h3><ul><li>Pourquoi tel réel explose et pas un autre ; ce que les réels viraux ont en commun.</li><li>Si les réels qui explosent font vendre, et en combien de temps.</li><li>Sponsoriser (elle est d’accord, mais ne l’a jamais fait) ; un programme d’influenceuses.</li></ul></div>
+<div class="card"><h3>Comprendre ses produits</h3><ul><li>Quel produit marche, lesquels n’ont plus d’intérêt.</li><li>Quels produits se vendent ensemble, lesquels sont complémentaires ; suggérer un autre produit au panier.</li><li>Les ventes selon les saisons ; développer les formations (400 inscrits, 14 vendues).</li></ul></div>
+<div class="card"><h3>Comprendre ses clients</h3><ul><li>Leurs habitudes d’achat : quel jour, quelle heure ; le lien avec la météo.</li><li>Une analyse complète de la clientèle.</li><li>Développer le programme de fidélité, aujourd’hui peu mis en avant.</li></ul></div>
+<div class="card"><h3>Gagner du temps</h3><ul><li>Automatiser la relance de paniers abandonnés.</li><li>Retoucher les photos plus facilement : aujourd’hui une par une, dans un outil d’IA, pour corriger les ombres.</li><li>Raconter une histoire ; structurer la gamme permanente et les collections.</li></ul></div>
+</div>
+<div class="note"><b>Ses contraintes.</b> Pas de SMS (trop cher), pas de Google Analytics ni Clarity (manque de temps), TikTok Shop essayé sans succès, pas de compte Instagram propre à Lumineva pour l’instant. Instagram pénalise les liens de redirection dans les publications.</div></section>
+
+<section class="bloc" id="produits"><h2><span class="num">3</span>Section Produits</h2><p class="sous">Quoi vendre, avec quoi, et quoi arrêter.</p>
+<div class="cols">''' + carte('Quels parfums garder à l’année, lesquels arrêter ?', 'fait', 'Décision chiffrée',
+        'On regarde quels parfums se vendent tous les mois, et lesquels seulement au lancement.',
+        '<b>Résultat :</b> 9 parfums se vendent toute l’année (Fleur de coton, Linge propre, Vanille des Îles, Balineva, Citron meringue, Adoucissant, Citron verveine, Baby love, Musc) ; 28 produits actifs n’ont rien vendu depuis 6 mois (1 358 € de stock au prix de vente).') \
+ + carte('Quel produit suggérer au panier, et pour atteindre les 79 € de livraison offerte ?', 'fait', 'Décision chiffrée',
+        'On regarde les produits achetés ensemble, l’écart entre le panier et 79 €, et si le seuil est rentable.',
+        '<b>Résultat :</b> viser les 79 € avec un produit à moins de 12-17 € fait perdre de l’argent ; suggérer un complément lié au produit rapporte 400 à 580 € de marge par an si 5 % des commandes acceptent.') \
+ + carte('Un lancement vend-il en plus, ou à la place des autres produits ?', 'fait', 'Décision chiffrée',
+        'La « concurrence entre produits » : ce qui arrive aux produits existants pendant la semaine de sortie.',
+        '<b>Résultat :</b> dans le panier, le produit lancé remplace environ 40 % des articles habituels ; dans la boutique, les produits existants se vendent autant ou plus.') \
+ + carte('La formation vaut-elle d’être développée ?', 'fait', 'Décision chiffrée',
+        'Conversion des inscrits en ventes, valeur d’un inscrit, lien avec les clients et avec les e-mails de lancement.',
+        '<b>Résultat :</b> 9 des 12 ventes payantes suivent un e-mail de près ; 6 inscrits sur 306 ont acheté (2 %) ; 2 402 € payés.') + '''
+</div><div class="note"><b>Déjà analysé, hors de ces questions.</b> Jour de la semaine : aucun effet net sur les commandes. Les jours de pluie, les commandes montent d’environ 31 %. Le pic de 10 h et le poids du dimanche viennent des jours de lancement.</div></section>
+
+<section class="bloc" id="communication"><h2><span class="num">4</span>Section Communication</h2><p class="sous">Se faire connaître et fidéliser. Elle n’a jamais sponsorisé : pour le sponsoring et la fidélité, on conseille plutôt qu’on ne prouve.</p>
+<div class="cols">''' + carte('Quels réels marchent, et pourquoi ?', 'fait', 'Décision chiffrée',
+        'On compare la durée, l’heure et la légende des 684 réels, puis le lien avec les ventes.',
+        '<b>Résultat :</b> un réel de 30 à 60 secondes touche 1,7 fois plus de monde ; une question dans la légende : 1,5 fois. Pas de ventes le jour même ; un effet modeste et retardé jusqu’à 14 jours.') \
+ + carte('Quel budget de sponsoring ?', 'conseil', 'Recommandation chiffrée (plafond)',
+        'On calcule le prix maximal à payer pour acquérir un client sans perdre d’argent, puis un budget de test avec une règle d’arrêt.',
+        '<b>Recommandation rédigée :</b> test de 150 € maximum, plafond de 21 à 29 € par nouveau client, règle d’arrêt. À confirmer avec le coût réel d’une publicité (inconnu).') \
+ + carte('Quel programme de fidélité ?', 'conseil', 'Recommandation',
+        'On propose un programme (quoi récompenser, quand, avec quel plafond) plutôt qu’une preuve : il n’existe pas de données d’usage.',
+        '<b>Recommandation rédigée :</b> livraison offerte sur la 2e commande à J+45 et accès anticipé aux lancements à la 3e commande ; un widget « Récompenses » existe déjà mais se voit peu.') \
+ + carte('Un programme d’influenceurs est-il pertinent ?', 'fait', 'Décision chiffrée (peu de données)',
+        'On regarde les codes promo au nom de personnes : commandes apportées, remise accordée.',
+        '<b>Résultat :</b> 79 commandes sous les autres codes (1 349 € de remise), mais seulement 27 nouveaux clients en 15 mois, à environ 17 € de remise chacun.') + '''
+</div></section>
+
+<section class="bloc" id="automatisations"><h2><span class="num">5</span>Section Automatisations</h2><p class="sous">Les e-mails et les tâches qui peuvent partir tout seuls.</p>
+<div class="cols">''' + carte('Faut-il une relance après la 1re commande, et quand l’envoyer ?', 'fait', 'Décision chiffrée',
+        'On regarde le délai avant la 2e commande, les clients visés et ce que la relance pourrait rapporter.',
+        '<b>Résultat :</b> relance conseillée à J+45, sans remise : environ 590 à 830 € de marge par an si elle fait revenir 5 points de plus.') \
+ + carte('Que rapportent les relances panier et paiement ? Un 2e rappel ?', 'fait', 'Décision chiffrée',
+        'On compare ce que rapporte un e-mail de relance à une newsletter.',
+        '<b>Résultat :</b> 722 e-mails de relance, 7 commandes, 842 € : 1 167 € pour 1 000 e-mails, contre 67 € pour les newsletters. Il manque le nombre de paniers abandonnés pour savoir quelle part est récupérée.') \
+ + carte('Faut-il une alerte de retour en stock ou de lancement ?', 'afaire', 'Décision chiffrée',
+        'On regarde les produits épuisés vite et les ventes qu’une liste d’attente aurait pu capter.',
+        '<b>Départ :</b> la Pumpkin Spice Latte est vendue au-delà du stock (−7) et 40 commandes n’étaient pas encore expédiées le 20 septembre.') \
+ + carte('Comment automatiser la retouche photo ?', 'conseil', 'Conseil oral',
+        'Aujourd’hui, les ombres sont corrigées photo par photo dans un outil d’IA. On propose des façons de le faire plus vite (voir les recommandations).') + '''
+</div><div class="note"><b>Déjà analysé : les newsletters.</b> Aucune caractéristique de style (photos, gras, bouton) ne se démontre sur 12 envois. La liste se fatigue quand on envoie trop vite (environ 0,5 point de clic perdu à chaque envoi en septembre-octobre).</div></section>
+
+<section class="bloc" id="recommandations"><h2><span class="num">6</span>Recommandations</h2><p class="sous">Ce que nous conseillons sans pouvoir le chiffrer avec les données actuelles : des conseils fondés sur le bon sens et sur ce que montrent les chiffres, à tester ensuite.</p>
+<div class="reco"><h3>Retouche photo : gagner du temps</h3><ul>
+<li><b>Corriger les ombres à la source</b> : un éclairage doux et constant (boîte à lumière ou fenêtre), toujours au même endroit. Moins d’ombres à retoucher, des photos plus homogènes.</li>
+<li><b>Traiter les photos par lots</b> plutôt qu’une par une : des préréglages appliqués à un dossier entier dans un logiciel de retouche, ou une consigne unique donnée à un outil qui accepte plusieurs images.</li>
+<li><b>Garder un rendu naturel.</b> La gérante a constaté que ses vidéos marchent mieux depuis qu’elle n’utilise plus l’IA : même logique pour les photos, on ne corrige que les ombres.</li>
+<li><b>Tester sur un petit lot</b>, mesurer le temps gagné, puis généraliser. Pour chiffrer le gain : nombre de photos par mois et minutes par photo (à lui demander).</li></ul></div>
+<div class="reco"><h3>Programme de fidélité : le développer</h3><ul>
+<li><b>Mieux le mettre en avant</b> : un encart sur les fiches produit et dans les e-mails de confirmation, une page qui l’explique en une phrase, un widget qui ne recouvre pas le bas de page.</li>
+<li><b>Récompenser la deuxième commande</b>, qui arrive en médiane au bout de 64 jours : un message autour de 45 à 60 jours.</li>
+<li><b>Préférer des avantages qui coûtent peu</b> : accès anticipé aux lancements (ils s’épuisent vite), cadeau, plutôt qu’une remise permanente. Le plafond de dépense est donné par la marge d’un client qui revient.</li>
+<li><b>Mesurer</b> : garder un petit groupe sans le programme pour voir si les clients inscrits reviennent plus.</li></ul></div>
+<div class="reco"><h3>Sponsoring et influenceurs : démarrer petit</h3><ul>
+<li><b>Commencer par un test</b> de quelques semaines, sur 2 ou 3 réels qui marchent déjà (30 à 60 secondes), avec un budget plafonné et une règle d’arrêt (par exemple : stop si le coût par client acquis dépasse le plafond calculé).</li>
+<li><b>Suivre les résultats</b> avec le rapport Shopify « sessions par référent » daté, et un code ou un lien dédié par action.</li>
+<li><b>Influenceurs</b> : démarrer avec quelques personnes, un code personnel par personne, un bilan par code (commandes, remise, nouveaux clients).</li></ul></div>
+<div class="reco"><h3>Raconter une histoire</h3><ul>
+<li>Un fil par saison ou par collection (l’histoire du parfum, la fabrication, la sortie), en réels de 30 à 60 secondes qui se terminent par une question. Le choix du récit est créatif : les données disent seulement quel format porte le mieux.</li></ul></div>
+<div class="reco"><h3>Mesurer mieux dès maintenant</h3><ul>
+<li><b>Tenir un journal des actions</b> (dates des publications sponsorisées, e-mails, promotions, lancements) : sans lui, on ne peut pas relier une action à ses ventes.</li>
+<li><b>Utiliser les rapports déjà dans Shopify</b> (sessions par appareil, par source, taux de conversion) plutôt qu’installer un nouvel outil : ils répondent à une bonne partie des questions, sans temps d’installation.</li></ul></div>
+<div class="reco"><h3>Ce que nous ne traitons pas</h3><ul>
+<li><b>La concurrence externe</b> (prix, livraison, avis d’autres marques) : demande de collecter des données hors des fichiers.</li>
+<li><b>Le profil homme/femme des clients</b> : absent des fichiers ; les statistiques d’audience d’Instagram (genre, âge) sont le bon outil.</li></ul></div>
+
+<div class="card" style="margin-top:20px"><h3>Ce qui manque pour chiffrer</h3><ul>
+<li>La marge des produits autres que les bougies, et si les 50 % se calculent hors taxes ou toutes taxes comprises.</li>
+<li>Le coût réel d’un colis, et le coût d’une publicité.</li>
+<li>Les règles du programme de fidélité et le nombre d’inscrits.</li>
+<li>Le nombre de paniers abandonnés (Shopify > Analyses).</li>
+<li>Le nombre de photos retouchées par mois et le temps passé par photo.</li>
+<li>La liste des 8 parfums permanents actuels, et la date où elle a arrêté l’IA pour ses vidéos.</li></ul></div></section>
+
+</main>
+<footer><div class="wrap"><p>Données de la boutique Lumineva remises par convention (module Smart Data Marketing, IAE Clermont Auvergne). Chiffres agrégés, aucune donnée personnelle. Ne pas diffuser hors du groupe.</p></div></footer></body></html>'''
+out = os.path.expanduser('~/Desktop/test/Plan Lumineva.html')
+open(out, 'w', encoding='utf-8').write(html)
+print('écrit :', out, len(html) // 1024, 'Ko')

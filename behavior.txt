@@ -1,0 +1,110 @@
+import csv, json
+from datetime import datetime, date
+from collections import defaultdict
+
+def parse_dt(s):
+    # "2026-09-20 20:42:31 +0200"
+    return datetime.strptime(s[:19], "%Y-%m-%d %H:%M:%S")
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['dt'] = parse_dt(o['r']['Created at'])
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+
+REF = datetime(2026,9,21)  # lendemain de la dernière commande (20/09/2026)
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']:
+        cust[o['key']].append(o)
+for v in cust.values():
+    v.sort(key=lambda o:o['dt'])
+
+# ---- RFM pragmatique (4 segments + VIP transversal)
+rows = []
+for k, os_ in cust.items():
+    freq = len(os_)
+    monetary = sum(o['tot'] for o in os_)
+    recency = (REF - os_[-1]['dt']).days
+    first = os_[0]['dt']
+    rows.append({'key':k,'freq':freq,'monetary':monetary,'recency':recency,'first':first})
+
+def seg(r):
+    if r['freq'] == 1 and r['recency'] > 180: return "Perdue après 1 achat"
+    if r['freq'] == 1: return "Nouvelle (1 achat récent)"
+    if r['freq'] >= 2 and r['recency'] <= 90: return "Fidèle active"
+    return "Fidèle en sommeil"
+for r in rows: r['seg'] = seg(r)
+
+seg_agg = defaultdict(lambda: {'n':0,'ca':0.0})
+for r in rows:
+    seg_agg[r['seg']]['n'] += 1
+    seg_agg[r['seg']]['ca'] += r['monetary']
+total_ca = sum(r['monetary'] for r in rows)
+total_n = len(rows)
+
+monetary_sorted = sorted(rows, key=lambda r:-r['monetary'])
+top10n = max(1, round(total_n*0.10))
+vip_ca_share = sum(r['monetary'] for r in monetary_sorted[:top10n]) / total_ca
+
+print("=== Segments RFM ===")
+for s,v in sorted(seg_agg.items(), key=lambda kv:-kv[1]['n']):
+    print(f"  {s}: n={v['n']} ({v['n']*100/total_n:.1f}%) CA={v['ca']:.0f} ({v['ca']*100/total_ca:.1f}%) panier_moy_total={v['ca']/v['n']:.1f}")
+print(f"VIP (10% meilleurs) part du CA: {vip_ca_share*100:.1f}%")
+
+# ---- Cohortes d'acquisition : % avec >=2 commandes selon l'ancienneté disponible
+cohort = defaultdict(list)
+for r in rows:
+    m = r['first'].strftime('%Y-%m')
+    cohort[m].append(r)
+print("\n=== Cohortes (mois de 1re commande) ===")
+cohort_rows = []
+for m, rs in sorted(cohort.items()):
+    n = len(rs)
+    rep = sum(1 for r in rs if r['freq']>=2)
+    months_elapsed = (REF.year-int(m[:4]))*12 + (REF.month-int(m[5:7]))
+    cohort_rows.append({'mois':m,'n':n,'reachat_pct':round(rep*100.0/n,1),'mois_recul':months_elapsed})
+    print(f"  {m}: n={n} reachat={rep*100.0/n:.1f}% (recul {months_elapsed} mois)")
+
+# ---- Marché de paniers : produits achetés ensemble (hors Tip)
+pair_count = defaultdict(int)
+item_count = defaultdict(int)
+n_orders_with_2plus = 0
+for o in orders:
+    names = sorted(set(i['Lineitem name'] for i in o['items'] if i['Lineitem name'] and i['Lineitem name']!='Tip'))
+    for n in names: item_count[n]+=1
+    if len(names) >= 2:
+        n_orders_with_2plus += 1
+        for i in range(len(names)):
+            for j in range(i+1, len(names)):
+                pair_count[(names[i],names[j])] += 1
+N = len(orders)
+pairs_lift = []
+for (a,b), c in pair_count.items():
+    if c < 4: continue
+    pa, pb = item_count[a]/N, item_count[b]/N
+    lift = (c/N) / (pa*pb)
+    pairs_lift.append({'a':a,'b':b,'n':c,'lift':round(lift,2)})
+pairs_lift.sort(key=lambda p:-p['lift'])
+print(f"\n=== Produits achetés ensemble (n commandes avec 2+ produits: {n_orders_with_2plus}) ===")
+for p in pairs_lift[:12]:
+    print(f"  {p['a'][:35]:35s} + {p['b'][:35]:35s} n={p['n']} lift={p['lift']}")
+
+json.dump({
+ 'ref_date': REF.strftime('%Y-%m-%d'),
+ 'rfm_seg': [{'seg':s,'n':v['n'],'ca':round(v['ca'],2)} for s,v in sorted(seg_agg.items(), key=lambda kv:-kv[1]['n'])],
+ 'rfm_total_n': total_n, 'rfm_total_ca': round(total_ca,2), 'vip_ca_share': round(vip_ca_share*100,1),
+ 'cohort': cohort_rows,
+ 'pairs': pairs_lift[:15],
+ 'n_orders_multi': n_orders_with_2plus, 'n_orders_total': N,
+}, open('behavior.json','w'), ensure_ascii=False)

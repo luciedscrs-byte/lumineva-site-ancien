@@ -1,0 +1,122 @@
+# encoding: utf-8
+"""Approfondissement des automatisations (agrégats seulement) :
+ A. lancements et retour en stock : qui achète les jours de pointe, délais d'expédition ces jours-là, clients joignables ;
+ B. relances panier et paiement : entonnoir (envoyés, ouverts, clics, commandes) et poids dans le chiffre d'affaires ;
+ C. cohérence du gain de la relance après la 1re commande avec ce que les e-mails rapportent déjà."""
+import json, csv
+import numpy as np
+from datetime import datetime
+from scipy import stats
+from common import charger
+
+commandes, clients = charger()
+accepte = {r['customer_key'].strip(): r['Accepts Email Marketing'] == 'yes'
+           for r in csv.DictReader(open('../DONNEES/customers.csv', encoding='utf-8'))}
+j1 = json.load(open('j1_emailing.json', encoding='utf-8'))
+l1 = json.load(open('l1_relance.json', encoding='utf-8'))
+out = {}
+
+# ---------------------------------------------------------------- A. lancements, retour en stock
+_pj = {}
+for o in commandes: _pj[o['date']] = _pj.get(o['date'], 0) + 1
+PICS = sorted(d for d, k in _pj.items() if k >= 20)   # jours de pointe : au moins 20 commandes
+out_n = len(commandes)
+mois_ca = {}
+for o in commandes: mois_ca[o['date'][:7]] = mois_ca.get(o['date'][:7], 0) + o['total']
+pics = []
+for d in PICS:
+    os_ = [o for o in commandes if o['date'] == d]
+    ret = [o for o in os_ if o.get('rang', 0) >= 2]
+    pics.append({'date': d, 'commandes': len(os_), 'premieres': sum(1 for o in os_ if o.get('rang') == 1), 'clients_connus': len(ret),
+                 'connus_joignables': sum(1 for o in ret if accepte.get(o['cle'])), 'ca': round(sum(o['total'] for o in os_)),
+                 'part_ca_mois': round(100 * sum(o['total'] for o in os_) / mois_ca[d[:7]], 1)})
+out['pics'] = pics
+out['n_commandes'] = len(commandes)
+out['n_clients'] = len(clients)
+
+def psl(o): return sum(l['qte'] for l in o['lignes'] if 'PUMPKIN SPICE LATTE' in l['nom'].upper())
+c6 = {o['cle'] for o in commandes if o['date'] == '2026-09-06'}; c20 = {o['cle'] for o in commandes if o['date'] == '2026-09-20'}
+p6 = {o['cle'] for o in commandes if o['date'] == '2026-09-06' and psl(o)}; p20 = {o['cle'] for o in commandes if o['date'] == '2026-09-20' and psl(o)}
+out['psl'] = {'unites_6_9': sum(psl(o) for o in commandes if o['date'] == '2026-09-06'), 'unites_20_9': sum(psl(o) for o in commandes if o['date'] == '2026-09-20'),
+              'acheteurs_6_9': len(p6), 'acheteurs_20_9': len(p20), 'acheteurs_communs': len(p6 & p20),
+              'clients_6_9': len(c6), 'clients_20_9': len(c20), 'clients_communs': len(c6 & c20)}
+
+def heures(d):
+    hs = [o['dt'].hour for o in commandes if o['date'] == d]
+    return {'commandes': len(hs), 'deux_premieres_heures': sum(1 for h in hs if h in (10, 11)), 'avant_midi_ou_midi': sum(1 for h in hs if h <= 12),
+            'par_heure': {str(h): hs.count(h) for h in range(8, 24)}}
+out['heures'] = {d: heures(d) for d in ('2026-09-06', '2026-09-20')}
+
+delais = []
+for r in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if r['Total'] and not r['Cancelled at'] and r['Paid at'] and r['Fulfilled at']:
+        p = datetime.strptime(r['Paid at'][:19], '%Y-%m-%d %H:%M:%S'); f = datetime.strptime(r['Fulfilled at'][:19], '%Y-%m-%d %H:%M:%S')
+        delais.append((r['Created at'][:10], (f - p).total_seconds() / 86400))
+v_pic = np.array([x for d, x in delais if d in PICS]); v_aut = np.array([x for d, x in delais if d not in PICS])
+tab = [[int((v_pic > 7).sum()), int((v_pic <= 7).sum())], [int((v_aut > 7).sum()), int((v_aut <= 7).sum())]]
+out['delais'] = {'pic': {'n': len(v_pic), 'mediane': round(float(np.median(v_pic)), 1), 'plus_7j': tab[0][0], 'pct_plus_7j': round(100 * tab[0][0] / len(v_pic), 1)},
+                 'autres': {'n': len(v_aut), 'mediane': round(float(np.median(v_aut)), 1), 'plus_7j': tab[1][0], 'pct_plus_7j': round(100 * tab[1][0] / len(v_aut), 1)},
+                 'p_fisher': float(stats.fisher_exact(tab)[1]), 'p_mw': float(stats.mannwhitneyu(v_pic, v_aut).pvalue),
+                 'par_jour': {d: {'n': int(sum(1 for a, _ in delais if a == d)), 'mediane': round(float(np.median([x for a, x in delais if a == d])), 1),
+                                  'plus_7j': int(sum(1 for a, x in delais if a == d and x > 7))} for d in PICS if any(a == d for a, _ in delais)}}
+out['non_expediees'] = 40  # état à l'export (commandes avec Fulfillment Status = unfulfilled), voir orders.csv
+out['non_expediees'] = int(sum(1 for r in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')) if r['Total'] and not r['Cancelled at'] and r['Fulfillment Status'] == 'unfulfilled'))
+
+out['non_expediees_sept'] = int(sum(1 for r in csv.DictReader(open('../DONNEES/archive_septembre/orders.csv', encoding='utf-8')) if r['Total'] and not r['Cancelled at'] and r['Fulfillment Status'] == 'unfulfilled'))
+acheteurs = {k for k in clients}
+out['audience'] = {'clients_avec_commande': len(acheteurs), 'joignables': sum(1 for k in acheteurs if accepte.get(k)),
+                   'envoyes_dernier_envoi_liste_tous': [e['envoyes'] for e in sorted([e for e in j1['emails'] if e['type'] == 'newsletter' and e['liste'] == 'Tous les abonnés'], key=lambda e: e['date'])][-1]}  # e-mails envoyés au dernier envoi à la liste « Tous les abonnés »
+
+# ---------------------------------------------------------------- B. relances panier et paiement
+def poisson_ic(k, n):
+    lo = 0.0 if k == 0 else stats.chi2.ppf(0.025, 2 * k) / 2
+    hi = stats.chi2.ppf(0.975, 2 * (k + 1)) / 2
+    return lo / n, hi / n
+rel = [e for e in j1['emails'] if e['type'] == 'automatisation' and e['envoyes'] >= 20 and e['objet'] != '🕯️ Tu viens d’entrer dans les coulisses du monde de la bougie...']
+rel = [e for e in rel if e['ouv'] is not None and e['id'] in ('191033671947', '191033737483')]
+lignes = []
+for e in rel:
+    lo, hi = poisson_ic(e['cmd'], e['envoyes'])
+    lignes.append({'objet': e['objet'], 'envoyes': e['envoyes'], 'ouv': e['ouv'], 'clic': e['clic'], 'visites': e['visites'], 'cmd': e['cmd'], 'ca': e['ca'],
+                   'cmd_pct': round(100 * e['cmd'] / e['envoyes'], 2), 'cmd_pct_lo': round(100 * lo, 2), 'cmd_pct_hi': round(100 * hi, 2),
+                   'cmd_par_visite': round(100 * e['cmd'] / e['visites'], 1) if e['visites'] else None})
+out['relances'] = lignes
+g = j1['groupes']['relances_actives']; lo, hi = poisson_ic(g['cmd'], g['envoyes'])
+out['relances_total'] = {'envoyes': g['envoyes'], 'cmd': g['cmd'], 'ca': g['ca'], 'cmd_pct': round(100 * g['cmd'] / g['envoyes'], 2),
+                         'cmd_pct_lo': round(100 * lo, 2), 'cmd_pct_hi': round(100 * hi, 2), 'ca_pm': g['ca_pm'], 'ca_pm_lo': g['ca_pm_lo'], 'ca_pm_hi': g['ca_pm_hi'],
+                         'clic_pct': g['clic_pct']}
+b = j1['groupes']['boutique']; lo, hi = poisson_ic(b['cmd'], b['envoyes'])
+out['newsletters_total'] = {'envoyes': b['envoyes'], 'cmd': b['cmd'], 'ca': b['ca'], 'cmd_pct': round(100 * b['cmd'] / b['envoyes'], 2), 'cmd_pct_lo': round(100 * lo, 2),
+                            'cmd_pct_hi': round(100 * hi, 2), 'ca_pm': b['ca_pm'], 'clic_pct': b['clic_pct']}
+out['ca_total_commandes'] = round(sum(o['total'] for o in commandes))
+out['ca_mail'] = j1['ca_mail']
+out['part_ca_mail_pct'] = round(100 * j1['ca_mail'] / out['ca_total_commandes'], 1)
+out['autres_flux'] = [{'nom': a['nom'], 'statut': a['statut'], 'envoyes': a['envoyes'], 'cmd': a['cmd']} for a in j1['auto']]
+# taille d'échantillon pour comparer deux versions d'un rappel (deux taux de commande, 80 % de puissance)
+def n_par_groupe(p1, p2, alpha=0.05, puiss=0.8):
+    za, zb = stats.norm.ppf(1 - alpha / 2), stats.norm.ppf(puiss); pm = (p1 + p2) / 2
+    return int(np.ceil((za * np.sqrt(2 * pm * (1 - pm)) + zb * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2))) ** 2 / (p1 - p2) ** 2))
+p0 = g['cmd'] / g['envoyes']
+out['taille_test_rappel'] = {'taux_base_pct': round(100 * p0, 2), 'taux_vise_pct': round(200 * p0, 2), 'n_par_groupe': n_par_groupe(p0, 2 * p0)}
+
+# ---------------------------------------------------------------- C. gain de la relance après la 1re commande, au regard des e-mails déjà envoyés
+cible = l1['cibles']['45']['joignables']; panier = l1['panier2']
+sc = {round(100 * x['delta']): x['sans'] for x in l1['scenarios']}   # mêmes scénarios que la page de la relance
+lig = []
+for pts in (1, 2, 5):
+    if pts in sc: a = sc[pts]
+    else: a = {k: v * pts / 2 for k, v in sc[2].items()}                   # +1 point : moitié du scénario +2 points
+    lig.append({'points': pts, 'commandes': round(a['cmd'], 1), 'ca': round(a['ca']), 'marge_bas': round(a['marge_bas']), 'marge_haut': round(a['marge_haut'])})
+out['gain_coherence'] = {'cible': cible, 'panier': round(panier, 2), 'scenarios': lig,
+                         'obs_relances_pct': out['relances_total']['cmd_pct'], 'obs_relances_lo': out['relances_total']['cmd_pct_lo'], 'obs_relances_hi': out['relances_total']['cmd_pct_hi'],
+                         'obs_news_pct': out['newsletters_total']['cmd_pct'],
+                         'commandes_attendues': {'centre': round(cible * out['relances_total']['cmd_pct'] / 100, 1), 'bas': round(cible * out['relances_total']['cmd_pct_lo'] / 100, 1), 'haut': round(cible * out['relances_total']['cmd_pct_hi'] / 100, 1)}}
+
+# parts de la livraison, de la TVA et des remboursements dans le chiffre d'affaires facturé (commandes non annulées)
+_lv = [r for r in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')) if r['Total'] and not r['Cancelled at']]
+_tot = sum(float(r['Total']) for r in _lv)
+out['bases_ca'] = {'part_livraison': round(100 * sum(float(r['Shipping'] or 0) for r in _lv) / _tot, 1), 'part_tva': round(100 * sum(float(r['Taxes'] or 0) for r in _lv) / _tot, 1),
+                   'part_tva_depuis_28_mai': round(100 * sum(float(r['Taxes'] or 0) for r in _lv if r['Created at'][:10] >= '2026-05-28') / sum(float(r['Total']) for r in _lv if r['Created at'][:10] >= '2026-05-28'), 1),
+                   'remboursees': sum(1 for r in _lv if float(r['Refunded Amount'] or 0) > 0), 'montant_rembourse': round(sum(float(r['Refunded Amount'] or 0) for r in _lv))}
+json.dump(out, open('q1_automatisations.json', 'w'), ensure_ascii=False, indent=1)
+print(json.dumps(out, ensure_ascii=False, indent=1)[:6500])

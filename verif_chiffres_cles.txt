@@ -1,0 +1,88 @@
+# encoding: utf-8
+"""Recalcule depuis les fichiers sources les chiffres clés affichés sur le site, et les compare aux valeurs affichées.
+Sert de contrôle : si une ligne affiche « ÉCART », le chiffre du site doit être revu."""
+import csv, os, re
+from collections import Counter, OrderedDict
+from datetime import datetime
+
+# Bloc 1 : pages « Premières analyses » = export de septembre (au 20/09/2026). Bloc 2 : pages mises à jour = livraison d'octobre (au 22/10/2026).
+D = '../DONNEES/archive_septembre/orders.csv'; DL = '../DONNEES/archive_septembre/'; DP = '../DONNEES/'
+rows = list(csv.DictReader(open(D, encoding='utf-8')))
+num = lambda x: float(x.replace(',', '.')) if x not in ('', None) else 0.0
+cmd = OrderedDict()
+for r in rows:
+    if r['order_key'] not in cmd: cmd[r['order_key']] = r          # une ligne d'en-tête de commande = la première ligne de chaque clé
+tous = list(cmd.values())
+valides = [r for r in tous if not r['Cancelled at']]
+
+resultats = []
+def controle(nom, calcule, affiche, tol=0.0):
+    ok = abs(calcule - affiche) <= tol
+    resultats.append((nom, calcule, affiche, 'OK' if ok else 'ÉCART'))
+
+controle('Commandes non annulées', len(valides), 1438)
+controle('Commandes annulées (exclues)', len(tous) - len(valides), 7)
+ca = sum(num(r['Total']) for r in valides)
+controle('Chiffre d\'affaires facturé (€)', round(ca), 90721, 1)
+controle('Panier moyen (€)', round(ca / len(valides), 2), 63.09, 0.01)
+avec_code = sum(1 for r in valides if r['Discount Code'])
+controle('Commandes avec un code promo (tous codes)', avec_code, 516)
+controle('Part des commandes avec code (%)', round(100 * avec_code / len(valides), 1), 35.9, 0.05)
+fr = sum(1 for r in valides if (r['Shipping Country'] or r['Billing Country']) == 'FR')
+controle('Commandes livrées en France', fr, 1350)
+jours = Counter(datetime.strptime(r['Created at'][:10], '%Y-%m-%d').weekday() for r in valides)
+controle('Part du dimanche (%)', round(100 * jours[6] / len(valides), 1), 21.3, 0.05)
+heures = Counter(int(r['Created at'][11:13]) for r in valides)
+h, n = heures.most_common(1)[0]
+controle('Heure la plus chargée (10 h) : part (%)', round(100 * n / len(valides), 1) if h == 10 else -1, 8.6, 0.05)
+dates = sorted(r['Created at'][:10] for r in valides)
+controle('Première commande = 2025-06-27', 1 if dates[0] == '2025-06-27' else 0, 1)
+controle('Dernière commande = 2026-09-20', 1 if dates[-1] == '2026-09-20' else 0, 1)
+sept25 = sum(1 for d in dates if '2025-09-01' <= d <= '2025-09-20'); sept26 = sum(1 for d in dates if '2026-09-01' <= d <= '2026-09-20')
+controle('Commandes du 1er au 20 sept. 2025', sept25, 114); controle('Commandes du 1er au 20 sept. 2026', sept26, 163)
+ca_s = lambda a, b: sum(num(r['Total']) for r in valides if a <= r['Created at'][:10] <= b)
+controle('CA facturé 1-20 sept. 2025 (€)', round(ca_s('2025-09-01', '2025-09-20')), 7491, 1); controle('CA facturé 1-20 sept. 2026 (€)', round(ca_s('2026-09-01', '2026-09-20')), 10820, 1)
+sans_cle = sum(1 for r in valides if not r['customer_key'])
+controle('Commandes sans identifiant client', sans_cle, 25)
+tva = sum(num(r['Taxes']) for r in valides)
+controle('TVA collectée (€)', round(tva), 3685, 1)
+ht = ca - tva
+controle('CA hors TVA (€)', round(ht), 87036, 1)
+premiere_tva = min(r['Created at'][:10] for r in valides if num(r['Taxes']) > 0)
+controle('Première commande avec TVA = 2026-05-28', 1 if premiere_tva == '2026-05-28' else 0, 1)
+# fichier clients
+cl = list(csv.DictReader(open(DL + 'customers.csv', encoding='utf-8')))
+controle('Fiches clients', len(cl), 1923)
+controle('Total dépensé des fiches clients (€)', round(sum(num(r['Total Spent']) for r in cl)), 89718, 1)
+controle('Fiches clients avec dépense > 0 (« ont acheté »)', sum(1 for r in cl if num(r['Total Spent']) > 0), 840)
+# paiements
+pt = list(csv.DictReader(open(DP + 'payment_transactions.csv', encoding='utf-8')))
+controle('Mouvements de paiement', len(pt), 1473)
+
+# ---- bloc 2 : livraison d'octobre, comparée aux chiffres affichés sur l'accueil et dans les pages Automatisations / Formation
+import json
+oc = [r for r in csv.DictReader(open(DP + 'orders.csv', encoding='utf-8')) if r['Total']]
+ocv = [r for r in oc if not r['Cancelled at']]
+ca_oc = sum(num(r['Total']) for r in ocv)
+controle('OCT. Commandes non annulées (accueil : 1 595)', len(ocv), 1595)
+controle("OCT. Chiffre d'affaires facturé (accueil : 99 629 €)", round(ca_oc), 99629, 1)
+controle('OCT. Panier moyen (accueil : 62 €)', round(ca_oc / len(ocv)), 62)
+controle('OCT. Dernière commande = 2026-10-22', 1 if max(r['Created at'][:10] for r in ocv) == '2026-10-22' else 0, 1)
+q1j = json.load(open('q1_automatisations.json', encoding='utf-8')); l3j = json.load(open('l3_formation.json', encoding='utf-8')); l1j = json.load(open('l1_relance.json', encoding='utf-8'))
+controle('OCT. Commandes (script automatisations)', q1j['n_commandes'], len(ocv))
+controle('OCT. Jours de pointe (20 commandes ou plus)', len(q1j['pics']), sum(1 for d in set(r['Created at'][:10] for r in ocv) if sum(1 for r in ocv if r['Created at'][:10] == d) >= 20))
+controle('OCT. Clients suivis (relance)', l1j['N'], len(q1j and set(r['customer_key'] for r in ocv if r['customer_key'])))
+controle('OCT. Commandes de formation (accueil : 18)', l3j['n_ventes'], 18)
+q2j = json.load(open('q2_avis_catalogue.json', encoding='utf-8'))
+_av = list(csv.DictReader(open(DP + 'avis.csv', encoding='utf-8')))
+controle('OCT. Avis publiés (page demande d\'avis : 313)', q2j['avis']['n'], len(_av))
+controle('OCT. Avis à 5 étoiles (95 %)', round(100 * sum(1 for r in _av if r['rating'] == '5') / len(_av)), 95)
+_ar = {(r['rubrique'], r['libelle'], r['serie']): r['valeur'] for r in csv.DictReader(open(DP + 'avis_rapport.csv', encoding='utf-8'))}
+controle('OCT. Demandes d\'avis envoyées (2 911)', q2j['rapport']['envoyes'], int(float(_ar[('All emails', 'Total Count', 'Emails sent')])))
+controle('OCT. Codes AUTO (33)', q2j['codes']['auto_codes'], sum(1 for r in csv.DictReader(open(DP + 'discounts.csv', encoding='utf-8')) if r['Name'].startswith('AUTO-')))
+q3j = json.load(open('q3_photos.json', encoding='utf-8'))
+_pr = list(csv.DictReader(open(DP + 'products.csv', encoding='utf-8')))
+controle('OCT. Produits actifs (page retouche photo : 133)', q3j['produits_actifs'], len({r['Handle'] for r in _pr if r['Status'] == 'active'}))
+print(f'{"Contrôle":48s} {"Recalculé":>12s} {"Affiché":>10s}  Verdict')
+for nom, a, b, v in resultats: print(f'{nom:48s} {a:>12} {b:>10}  {v}')
+print('\n', sum(1 for r in resultats if r[3] == 'OK'), 'contrôles OK sur', len(resultats))

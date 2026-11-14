@@ -1,0 +1,213 @@
+# encoding: utf-8
+"""Analyse des newsletters et automatisations (Shopify Messaging) : quel e-mail marche le mieux, quelles caractéristiques et quels moments.
+Données : ~/Desktop/test/Newsletter Lumineva/donnees/*.json (un fichier par e-mail : résultats + caractéristiques relevées à la main sur l'aperçu).
+Aucune donnée personnelle : chiffres agrégés par e-mail."""
+import json, glob, os, itertools
+from datetime import datetime, timedelta
+from collections import OrderedDict
+import numpy as np
+from scipy import stats
+import statsmodels.api as sm
+
+DOSSIER = '../DONNEES/bilan_emailing/'
+inv = json.load(open(DOSSIER + 'inventaire.json', encoding='utf-8'))
+liste = {x['id']: x for x in inv['newsletters'] + inv['automatisations']}
+E = []
+for f in sorted(glob.glob(DOSSIER + '1*.json')):
+    d = json.load(open(f, encoding='utf-8')); L = liste[d['id']]; k = d['kpi']; c = d['contenu']
+    e = {'id': d['id'], 'type': d['type'], 'objet': d['objet'], 'liste': d['destinataires'], 'envoyes': k['emails_envoyes'],
+         'ouv': L.get('ouverture'), 'clic': L.get('clic'), 'conv': L.get('conversion'), 'cmd': k['commandes'], 'ca': k['ventes_totales'], 'visites': k['visites'], 'desabo': k['taux_desabonnement'],
+         'nb_images': c['nb_images'], 'nb_produits': c['nb_produits'], 'nb_cta': len(c['cta']), 'gras': c['gras'], 'longueur': c['longueur'], 'mots': c['mots_environ'],
+         'emoji_objet': c['emojis_objet'], 'emoji_corps': c['emojis_corps'], 'ton': c['ton'], 'offre': c['offre'], 'urgence': c['urgence'], 'theme': c['theme'],
+         'liens': d['liens'], 'image': d['image'], 'statut': d['statut']}
+    if d['type'] == 'newsletter':
+        e['date'] = L['date']; e['dt'] = datetime.strptime(L['date'], '%Y-%m-%d %H:%M')
+    else:
+        e['automatisation'] = L['automatisation']; e['declencheur'] = L['declencheur']; e['statut_auto'] = L['statut']
+    E.append(e)
+NL = sorted([e for e in E if e['type'] == 'newsletter'], key=lambda e: e['dt'])
+AU = [e for e in E if e['type'] != 'newsletter']
+BOUT = [e for e in NL if e['liste'] == 'Tous les abonnés']; FORM = [e for e in NL if e['liste'] != 'Tous les abonnés']
+print('newsletters', len(NL), '| boutique', len(BOUT), '| formation', len(FORM), '| automatisations', len(AU))
+
+def wilson(k, n, z=1.96):
+    if n == 0: return (0, 0)
+    p = k / n; d = 1 + z * z / n; c = p + z * z / (2 * n); a = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n))
+    return ((c - a) / d, (c + a) / d)
+def poisson_ci(k, a=0.05):
+    lo = 0.0 if k == 0 else stats.chi2.ppf(a / 2, 2 * k) / 2
+    hi = stats.chi2.ppf(1 - a / 2, 2 * k + 2) / 2
+    return lo, hi
+def pour_mille(e):
+    n = e['envoyes']; k = e['cmd']
+    if not n: return {'ca_pm': 0.0, 'cmd_pm': 0.0, 'ca_lo': 0.0, 'ca_hi': 0.0}
+    lo, hi = poisson_ci(k); aov = e['ca'] / k if k else 63.09
+    return {'ca_pm': 1000 * e['ca'] / n, 'cmd_pm': 1000 * k / n, 'ca_lo': 1000 * lo * aov / n, 'ca_hi': 1000 * hi * aov / n}
+for e in E:
+    if e['clic'] is not None:
+        e['clics_n'] = round(e['clic'] * e['envoyes'] / 100); lo, hi = wilson(e['clics_n'], e['envoyes']); e['clic_lo'], e['clic_hi'] = 100 * lo, 100 * hi
+        e['ouv_n'] = round(e['ouv'] * e['envoyes'] / 100)
+    e.update(pour_mille(e))
+
+# type du lien le plus cliqué parmi les liens précis (hors accueil et page « toutes les collections »)
+def lien_principal(e):
+    L = [x for x in e['liens'] if x['url'].strip('/') not in ('', 'collections')]
+    tot = sum(x['clics'] for x in e['liens'])
+    if not L or tot == 0: return ('aucun', 0.0)
+    top = max(L, key=lambda x: x['clics']); typ = 'collection' if top['url'].startswith('/collections/') else ('produit' if '/products/' in top['url'] else 'autre')
+    return (typ, top['clics'] / tot)
+for e in E:
+    e['lien_type'], e['lien_part'] = lien_principal(e)
+# ---------- 1) classement : quelle newsletter marche le mieux ? (marge d'erreur incluse)
+def agg(lst):
+    s = sum(e['envoyes'] for e in lst); c = sum(e['cmd'] for e in lst); ca = sum(e['ca'] for e in lst); cl = sum(e.get('clics_n', 0) for e in lst)
+    lo, hi = poisson_ci(c)
+    return {'n': len(lst), 'envoyes': s, 'clics': cl, 'clic_pct': 100 * cl / s if s else None, 'cmd': c, 'ca': ca, 'cmd_pm': 1000 * c / s if s else None, 'ca_pm': 1000 * ca / s if s else None,
+            'ca_pm_lo': 1000 * lo * (ca / c if c else 63.09) / s if s else None, 'ca_pm_hi': 1000 * hi * (ca / c if c else 63.09) / s if s else None}
+G = {'boutique': agg(BOUT), 'formation': agg(FORM), 'relances_actives': agg([e for e in AU if e['envoyes'] > 100 and 'abandonn' in (e.get('automatisation') or '') and e['cmd'] > 0]),
+     'toutes_auto': agg(AU)}
+for k, v in G.items(): print(k, {a: (round(b, 2) if isinstance(b, float) else b) for a, b in v.items()})
+# les deux listes se distinguent-elles ?  (test de Mann-Whitney sur le taux de clic par envoi)
+mw = stats.mannwhitneyu([e['clic'] for e in FORM], [e['clic'] for e in BOUT], alternative='two-sided')
+print('clic formation vs boutique : médianes', np.median([e['clic'] for e in FORM]), np.median([e['clic'] for e in BOUT]), 'MW p =', round(mw.pvalue, 4))
+# ventes : la liste formation n'a aucune vente, la boutique 17 -> test exact (binomial) à partir des envois
+tot_c = G['boutique']['cmd'] + G['formation']['cmd']; p_exp = G['formation']['envoyes'] / (G['formation']['envoyes'] + G['boutique']['envoyes'])
+p_vente = stats.binomtest(G['formation']['cmd'], tot_c, p_exp).pvalue
+print('commandes : formation', G['formation']['cmd'], 'contre boutique', G['boutique']['cmd'], ': test binomial p =', round(p_vente, 4))
+
+# ---------- 2) caractéristiques (liste boutique, 12 envois) : un test par caractéristique, Holm
+def perm_diff(vals_a, vals_b, w_a=None, w_b=None, n_perm=20000, seed=3):
+    """écart des taux de clic entre deux groupes, test de permutation exact/approché sur les étiquettes (pondéré par le nombre d'envois)"""
+    allv = np.array(vals_a + vals_b, dtype=float); w = np.array((w_a or [1] * len(vals_a)) + (w_b or [1] * len(vals_b)), dtype=float)
+    na = len(vals_a); obs = np.average(allv[:na], weights=w[:na]) - np.average(allv[na:], weights=w[na:])
+    n = len(allv)
+    if len(list(itertools.combinations(range(n), na))) <= 50000:
+        diffs = []
+        for comb in itertools.combinations(range(n), na):
+            m = np.zeros(n, bool); m[list(comb)] = True
+            diffs.append(np.average(allv[m], weights=w[m]) - np.average(allv[~m], weights=w[~m]))
+        diffs = np.array(diffs)
+    else:
+        rng = np.random.default_rng(seed); diffs = []
+        for _ in range(n_perm):
+            p = rng.permutation(n); m = np.zeros(n, bool); m[p[:na]] = True
+            diffs.append(np.average(allv[m], weights=w[m]) - np.average(allv[~m], weights=w[~m]))
+        diffs = np.array(diffs)
+    return float(obs), float(np.mean(np.abs(diffs) >= abs(obs) - 1e-12))
+def commande_binom(g1, g0):
+    """commandes par 1 000 envois : test binomial exact (les commandes se répartissent au prorata des envois sous H0)"""
+    s1, s0 = sum(e['envoyes'] for e in g1), sum(e['envoyes'] for e in g0); c1, c0 = sum(e['cmd'] for e in g1), sum(e['cmd'] for e in g0)
+    p = stats.binomtest(c1, c1 + c0, s1 / (s1 + s0)).pvalue if (c1 + c0) else 1.0
+    return {'pm1': 1000 * c1 / s1, 'pm0': 1000 * c0 / s0, 'c1': c1, 'c0': c0, 'p': float(p)}
+def critere(nom, fct_oui, lst=BOUT, libelle=('oui', 'non')):
+    oui = [e for e in lst if fct_oui(e)]; non = [e for e in lst if not fct_oui(e)]
+    if len(oui) < 2 or len(non) < 2: return None
+    d, p = perm_diff([e['clic'] for e in oui], [e['clic'] for e in non], [e['envoyes'] for e in oui], [e['envoyes'] for e in non])
+    do, po = perm_diff([e['ouv'] for e in oui], [e['ouv'] for e in non], [e['envoyes'] for e in oui], [e['envoyes'] for e in non])
+    cb = commande_binom(oui, non)
+    # corrélation de la caractéristique avec le temps (pour repérer les confusions)
+    t = np.array([e['dt'].timestamp() for e in lst]); x = np.array([1 if fct_oui(e) else 0 for e in lst])
+    rho_t = float(stats.spearmanr(x, t)[0])
+    return {'nom': nom, 'n_oui': len(oui), 'n_non': len(non), 'clic_oui': float(np.average([e['clic'] for e in oui], weights=[e['envoyes'] for e in oui])), 'clic_non': float(np.average([e['clic'] for e in non], weights=[e['envoyes'] for e in non])),
+            'diff_clic': d, 'p_clic': p, 'ouv_oui': float(np.average([e['ouv'] for e in oui], weights=[e['envoyes'] for e in oui])), 'ouv_non': float(np.average([e['ouv'] for e in non], weights=[e['envoyes'] for e in non])), 'diff_ouv': do, 'p_ouv': po,
+            'cmd_pm_oui': cb['pm1'], 'cmd_pm_non': cb['pm0'], 'cmd_oui': cb['c1'], 'cmd_non': cb['c0'], 'p_cmd': cb['p'], 'rho_temps': rho_t, 'ids_oui': [e['id'] for e in oui]}
+CRIT = [
+    critere('7 photos (contre 5 ou moins)', lambda e: e['nb_images'] >= 7),
+    critere('Beaucoup de gras', lambda e: e['gras'].startswith('nombreux')),
+    critere('Emoji dans l’objet', lambda e: e['emoji_objet']),
+    critere('Tutoiement (contre vouvoiement ou mixte)', lambda e: e['ton'] == 'tu'),
+    critere('Une offre (code, remise, jeu)', lambda e: bool(e['offre'])),
+    critere('Un message d’urgence', lambda e: bool(e['urgence'])),
+    critere('Plus de 150 mots', lambda e: e['mots'] > 150),
+    critere('Produits mis en avant (grille produits)', lambda e: e['nb_produits'] > 0),
+    critere('Bouton principal vers une collection (contre une fiche produit)', lambda e: e['lien_type'] == 'collection', lst=[e for e in BOUT if e['lien_type'] in ('collection', 'produit')]),
+    critere('Thème « promotion »', lambda e: e['theme'] == 'promotion'),
+    critere('Thème « lancement » ou « retour produit »', lambda e: e['theme'] in ('lancement produit', 'retour produit')),
+]
+CRIT = [c for c in CRIT if c]
+# correction de Holm sur les tests de clic, et séparément sur les ouvertures et les commandes
+def holm(ps):
+    o = sorted(range(len(ps)), key=lambda i: ps[i]); out = [0] * len(ps); mx = 0
+    for r, i in enumerate(o): mx = max(mx, min(1.0, ps[i] * (len(ps) - r))); out[i] = mx
+    return out
+for k_, nm in (('p_clic', 'h_clic'), ('p_ouv', 'h_ouv'), ('p_cmd', 'h_cmd')):
+    hs = holm([c[k_] for c in CRIT])
+    for c, h in zip(CRIT, hs): c[nm] = h
+for c in CRIT: print(f"{c['nom']:46s} n={c['n_oui']}/{c['n_non']} clic {c['clic_oui']:.2f} vs {c['clic_non']:.2f} p={c['p_clic']:.3f} (Holm {c['h_clic']:.2f}) | ouv {c['ouv_oui']:.1f} vs {c['ouv_non']:.1f} p={c['p_ouv']:.3f} | cmd/1000 {c['cmd_pm_oui']:.2f} vs {c['cmd_pm_non']:.2f} p={c['p_cmd']:.3f} | corr. temps {c['rho_temps']:+.2f}")
+
+# ---------- 3) moments : fatigue de la liste, écart entre envois, jour, heure
+ords = BOUT
+ecart = [None] + [(ords[i]['dt'] - ords[i - 1]['dt']).days for i in range(1, len(ords))]
+for e, g in zip(ords, ecart): e['ecart_j'] = g
+x_ec = [g for g in ecart if g is not None]; y_ec = [e['clic'] for e, g in zip(ords, ecart) if g is not None]
+rho_ec, p_ec = stats.spearmanr(x_ec, y_ec)
+idx = list(range(len(ords))); rho_idx, p_idx = stats.spearmanr(idx, [e['clic'] for e in ords])
+auto = [e for e in ords if e['dt'] >= datetime(2026, 9, 10)]
+rho_auto, p_auto = stats.spearmanr(range(len(auto)), [e['clic'] for e in auto])
+# pente du clic sur l'ordre d'envoi pendant la série d'automne (régression linéaire simple, IC 95 %)
+lr = stats.linregress(range(len(auto)), [e['clic'] for e in auto])
+ic_pente = (lr.slope - stats.t.ppf(0.975, len(auto) - 2) * lr.stderr, lr.slope + stats.t.ppf(0.975, len(auto) - 2) * lr.stderr)
+print(f'clic selon l’écart avec l’envoi précédent : rho={rho_ec:.2f} p={p_ec:.3f} (n={len(x_ec)}) | clic selon l’ordre, 12 envois : rho={rho_idx:.2f} p={p_idx:.3f} | série d’automne ({len(auto)} envois en 5 semaines) : pente {lr.slope:+.2f} point par envoi, IC [{ic_pente[0]:+.2f} ; {ic_pente[1]:+.2f}], p={lr.pvalue:.3f}')
+JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
+moments = [{'id': e['id'], 'jour': JOURS[e['dt'].weekday()], 'heure': e['dt'].hour, 'clic': e['clic'], 'ouv': e['ouv'], 'cmd': e['cmd'], 'date': e['date'], 'ecart': e['ecart_j']} for e in ords]
+hrs = np.array([m['heure'] for m in moments]); rho_h, p_h = stats.spearmanr(hrs, [m['clic'] for m in moments]); rho_ho, p_ho = stats.spearmanr(hrs, [m['ouv'] for m in moments])
+we = [e for e in ords if e['dt'].weekday() >= 5]
+print(f'heure d’envoi : corrélation avec le clic rho={rho_h:.2f} p={p_h:.2f} ; avec l’ouverture rho={rho_ho:.2f} p={p_ho:.2f} | envois le week-end : {len(we)}')
+
+# ---------- 4) les envois font-ils monter les commandes de la boutique ? (modèle de comptage, jours d'envoi et 2 jours suivants)
+import csv
+cmdj = {}
+seen = set()
+for r in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if r['Cancelled at'] or r['order_key'] in seen or not r['Total']: continue
+    seen.add(r['order_key']); d_ = r['Created at'][:10]; cmdj[d_] = cmdj.get(d_, 0) + 1
+j0 = datetime(2025, 6, 27).date(); j1 = max(e['dt'] for e in ords).date(); jours = [j0 + timedelta(days=i) for i in range((j1 - j0).days + 1)]
+y = np.array([cmdj.get(j.isoformat(), 0) for j in jours], dtype=float)
+LANC = [datetime(2025, 9, 7).date(), datetime(2025, 11, 1).date(), datetime(2026, 9, 6).date(), datetime(2026, 9, 20).date()]
+envois = [e['dt'].date() for e in BOUT if j0 <= e['dt'].date() <= j1 and e['dt'].date() not in LANC]
+def design(extra):
+    cols = []
+    for k in range(1, 7): cols.append([1.0 if j.weekday() == k else 0.0 for j in jours])
+    mois = sorted(set((j.year, j.month) for j in jours))
+    for (a, b) in mois[1:]: cols.append([1.0 if (j.year, j.month) == (a, b) else 0.0 for j in jours])
+    for L in LANC: cols.append([1.0 if j == L else 0.0 for j in jours]); cols.append([1.0 if 0 < (j - L).days <= 2 else 0.0 for j in jours])
+    for ex in extra: cols.append(ex)
+    M = np.column_stack(cols); M = M[:, np.abs(M).sum(axis=0) > 0]; return sm.add_constant(M)
+s0 = [1.0 if j in envois else 0.0 for j in jours]; s12 = [1.0 if any(0 < (j - d_).days <= 2 for d_ in envois) else 0.0 for j in jours]
+mod = sm.GLM(y, design([s0, s12]), family=sm.families.Poisson()).fit(cov_type='HC3')
+ev = {}
+for nom, i in (('jour d’envoi', -2), ('1 à 2 jours après', -1)):
+    b, se = mod.params[i], mod.bse[i]; ev[nom] = {'rr': float(np.exp(b)), 'lo': float(np.exp(b - 1.96 * se)), 'hi': float(np.exp(b + 1.96 * se)), 'p': float(mod.pvalues[i])}
+print('envois boutique dans la période des commandes (hors jours de lancement) :', len(envois), '|', {k: (round(v['rr'], 2), round(v['lo'], 2), round(v['hi'], 2), round(v['p'], 3)) for k, v in ev.items()})
+
+# ---------- 5) automatisations
+act = [e for e in AU if e['envoyes'] > 100]
+aut = []
+for e in AU:
+    r = {'id': e['id'], 'nom': e['automatisation'], 'declencheur': e['declencheur'], 'statut': e['statut_auto'], 'envoyes': e['envoyes'], 'ouv': e['ouv'], 'clic': e['clic'], 'conv': e['conv'], 'cmd': e['cmd'], 'ca': e['ca'], 'ca_pm': e['ca_pm'], 'ca_lo': e['ca_lo'], 'ca_hi': e['ca_hi'], 'desabo': e['desabo']}
+    aut.append(r)
+    print(f"  {e['automatisation'][:38]:38s} envoyés {e['envoyes']:4d} ouv {e['ouv']} clic {e['clic']} cmd {e['cmd']} CA {e['ca']:.0f} € -> {e['ca_pm']:.0f} € pour 1 000 envois [{e['ca_lo']:.0f} ; {e['ca_hi']:.0f}]")
+# paiement abandonné vs panier abandonné : 3/451 vs 4/271 commandes
+pa = [e for e in AU if e['automatisation'] == 'Récupérer un paiement abandonné'][0]; pn = [e for e in AU if e['automatisation'] == 'Récupérer un panier abandonné'][0]
+fp = stats.fisher_exact([[pa['cmd'], pa['envoyes'] - pa['cmd']], [pn['cmd'], pn['envoyes'] - pn['cmd']]])[1]
+rel = agg([pa, pn]); nl = G['boutique']
+tab = [[rel['cmd'], rel['envoyes'] - rel['cmd']], [nl['cmd'], nl['envoyes'] - nl['cmd']]]
+p_rel_nl = stats.fisher_exact(tab)[1]
+rr_rel = (rel['cmd'] / rel['envoyes']) / (nl['cmd'] / nl['envoyes'])
+lo_, hi_ = np.exp(np.log(rr_rel) - 1.96 * np.sqrt(1 / rel['cmd'] + 1 / nl['cmd'])), np.exp(np.log(rr_rel) + 1.96 * np.sqrt(1 / rel['cmd'] + 1 / nl['cmd']))
+print(f'paiement vs panier abandonné : Fisher p={fp:.2f} | relances (722 envois) vs newsletters boutique : ×{rr_rel:.0f} de commandes par envoi [{lo_:.0f} ; {hi_:.0f}], Fisher p={p_rel_nl:.5f}')
+ca_tot_mail = G['boutique']['ca'] + rel['ca']
+from common import charger as _ch
+CA_FACTURE = sum(o['total'] for o in _ch()[0])
+print('CA attribué à l’e-mail (newsletters boutique + relances) :', round(ca_tot_mail, 2), '€ soit', round(100 * ca_tot_mail / CA_FACTURE, 1), '% du CA facturé (' + format(round(CA_FACTURE), ',').replace(',', ' ') + ' €)')
+
+def clean(o):
+    if isinstance(o, dict): return {k: clean(v) for k, v in o.items() if k != 'dt'}
+    if isinstance(o, list): return [clean(v) for v in o]
+    if isinstance(o, (np.floating,)): return float(o)
+    if isinstance(o, (np.integer,)): return int(o)
+    return o
+json.dump(clean({'emails': E, 'groupes': G, 'p_listes_clic': float(mw.pvalue), 'p_listes_cmd': float(p_vente), 'criteres': CRIT, 'fatigue': {'rho_ecart': float(rho_ec), 'p_ecart': float(p_ec), 'rho_ordre': float(rho_idx), 'p_ordre': float(p_idx),
+          'auto_rho': float(rho_auto), 'auto_p': float(p_auto), 'pente': float(lr.slope), 'pente_ic': [float(v) for v in ic_pente], 'pente_p': float(lr.pvalue), 'n_auto': len(auto)},
+          'heure': {'rho_clic': float(rho_h), 'p_clic': float(p_h), 'rho_ouv': float(rho_ho), 'p_ouv': float(p_ho)}, 'moments': moments, 'evenement': ev, 'n_envois_fenetre': len(envois),
+          'auto': aut, 'p_paiement_panier': float(fp), 'relances_vs_news': {'rr': float(rr_rel), 'lo': float(lo_), 'hi': float(hi_), 'p': float(p_rel_nl)}, 'ca_facture': float(CA_FACTURE), 'ca_mail': float(ca_tot_mail)}), open('j1_emailing.json', 'w'), ensure_ascii=False, default=str)

@@ -1,0 +1,110 @@
+import json, math
+from svgutil import *
+
+def pv(p, seuil=0.001):
+    if isinstance(p,str): p=float(p)
+    if p < seuil: return f"&lt; {seuil}".replace(".", ",")
+    return n(p, 4 if p<0.01 else 3).replace(" ","")
+def SIG(p): return '<b style="color:var(--good)">significatif</b>' if p<0.05 else '<b style="color:var(--muted)">non significatif</b>'
+
+e1 = json.load(open("e1_rentree_explication.json"))
+f1 = json.load(open("f1_launch_deep.json"))
+f2 = json.load(open("f2_concentration.json"))
+f3 = json.load(open("f3_multifamille.json"))
+f4 = json.load(open("f4_seuil_livraison.json"))
+f5 = json.load(open("f5_local_et_premier_panier.json"))
+
+NEWTAG = '<span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 9px;border-radius:99px;background:var(--flame);color:#fff;margin-right:8px;vertical-align:2px">Nouveau · 22 sept. soir</span>'
+DEEPTAG = '<span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 9px;border-radius:99px;background:var(--accent);color:#fff;margin-right:8px;vertical-align:2px">Approfondi</span>'
+MOIS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."]
+def dfmt(s):
+    y,m,d = s.split('-'); return f"{int(d)} {MOIS[int(m)-1]} {y}"
+
+# ===================================================================
+# PANEL 1 (approfondi) : CA septembre + généralisation des 4 lancements
+sept25 = eur(e1["sept25_total"],0); sept26 = eur(e1["sept26_total"],0)
+sept25h = eur(e1["sept25_hors2j"],0); sept26h = eur(e1["sept26_hors2j"],0)
+surplus = eur(e1["surplus_total"],0)
+part2j = pct(e1["part_2jours_pct"],0)
+
+rows_conc = [[dfmt(r["launch"]), eur(r["launch_ca"],0), eur(r["window_ca"],0), pct(r["part_ca_pct"],1)] for r in f2["results"]]
+t_conc = table(["Journée de lancement","CA du jour","CA des 30 jours autour","Part du jour"], rows_conc, right=[1,2,3])
+
+body_sept = table(["", "Sept. 2025 (1-20)", "Sept. 2026 (1-20)", "Écart"], [
+  ["Mois complet", sept25, sept26, f"+{surplus}"],
+  ["Sans le 6 et le 20 sept. 2026", sept25h, sept26h, eur(e1['surplus_hors2j'],0)],
+], right=[1,2,3])
+body_sept += f'<p class="hint" style="margin-top:10px">{part2j} du surplus de septembre 2026 vient de 2 journées seulement. 6 sept. 2026 : {e1["n6"]} commandes contre {n(e1["mean_n_other"],1)}/jour en moyenne le reste du mois → p(Poisson) {pv(e1["p_poisson"])}.</p>'
+body_sept += f'<p class="hint" style="margin-top:14px"><b>{DEEPTAG} Est-ce systématique ?</b> Même mesure sur les 4 journées de lancement documentées (fenêtre glissante de 30 jours autour de chacune) :</p>'
+body_sept += t_conc
+body_sept += f'<p class="hint" style="margin-top:10px">En moyenne, une journée de lancement pèse à elle seule <b>{pct(f2["avg_part_ca_pct"],1)}</b> du chiffre d’affaires du mois qui l’entoure. Ce n’est pas un accident de septembre 2026 : <b>c’est structurel chez Lumineva</b>, à chaque sortie de collection. Conséquence pour la gérante : le stock, la logistique et l’attention de l’équipe doivent être dimensionnés pour ces pics, pas pour un rythme moyen.</p>'
+panel_sept = panel("c12", f"{NEWTAG}Le CA de septembre 2026 : effet de rentrée ou effet produit ?", "Comparaison jour par jour avec septembre 2025, avec et sans les 2 journées de lancement, puis généralisation aux 4 lancements connus.", body_sept)
+
+# ===================================================================
+# PANEL 2 (approfondi) : fidélité, lancements matures + qualité des acheteurs qui reviennent
+m = f1["mature"]; ar = f1["among_returners"]
+body_loy = f'<p class="hint">{DEEPTAG} Le test d’hier soir mélangeait des lancements très récents (sept. 2026, presque aucun recul) avec des lancements matures (sept. et nov. 2025). En ne gardant <b>que les lancements avec au moins 10 mois de recul</b> (comparables à des clients organiques avec le même recul) :</p>'
+body_loy += table(["", "1re commande un jour de lancement mature", "1re commande organique (même recul)"], [
+  ["Taux de réachat", pct(m["rate_launch"],1)+f' (n={m["n_launch"]})', pct(m["rate_organic"],1)+f' (n={m["n_organic"]})'],
+])
+body_loy += f'<p class="hint" style="margin-top:10px">χ²={m["chi2"]}, p={pv(m["p"])} → {SIG(m["p"])}. L’écart (25,9&nbsp;% contre 40,8&nbsp;%) va dans le même sens qu’hier, mais reste non prouvé statistiquement avec seulement {m["n_launch"]} clients de lancement matures.</p>'
+if ar:
+    body_loy += f'<p class="hint" style="margin-top:14px"><b>{DEEPTAG} Et parmi ceux qui reviennent, achètent-ils différemment ?</b></p>'
+    body_loy += table(["", "Revenus d’un jour de lancement", "Revenus organiques"], [
+      ["Nombre de commandes (médiane)", n(ar["freq_med_launch"],0), n(ar["freq_med_organic"],0)],
+      ["Valeur totale moyenne", eur(ar["mon_mean_launch"],2), eur(ar["mon_mean_organic"],2)],
+    ])
+    body_loy += f'<p class="hint" style="margin-top:10px">Fréquence : Mann-Whitney p={pv(ar["mannwhitney_p"])} ({SIG(ar["mannwhitney_p"])}). Valeur totale : Welch p={pv(ar["welch_p"])} ({SIG(ar["welch_p"])}). <b>Une fois qu’un acheteur de lancement revient, il se comporte comme n’importe quel autre client fidèle</b> : ni plus, ni moins engagé. Le seul écart possible se joue sur le fait de revenir ou non, pas sur la qualité du client une fois revenu.</p>'
+panel_loy = panel("c12", f"{NEWTAG}Fidélité des acheteurs d'un jour de lancement", "Lancements matures uniquement, puis comportement de ceux qui reviennent.", body_loy)
+
+# ===================================================================
+# PANEL 3 (approfondi) : familles de produits -> vente croisée
+svg_fam2 = vbars([f3["by_nfam"][str(k)]["mean"] for k in (1,2,3,4)],
+                 ["1 famille","2 familles","3 familles","4 familles et +"], 680, 220,
+                 lambda v: eur(v,0), 3, 30)
+body_fam = f'<p class="hint">{DEEPTAG} Plutôt que la famille la plus chère de la commande (résultat d’hier, en partie mécanique), on teste si <b>mélanger plusieurs familles dans la même commande</b> fait grossir le panier — un vrai signal de vente croisée.</p>'
+body_fam += f'<div class="chart short">{svg_fam2}</div>'
+body_fam += table(["Familles distinctes dans la commande","Commandes","Panier moyen"], [
+  [f'{k}{" et plus" if k==4 else ""} famille{"s" if k!=1 else ""}', n(f3["by_nfam"][str(k)]["n"]), eur(f3["by_nfam"][str(k)]["mean"],2)] for k in (1,2,3,4)
+], right=[1,2])
+body_fam += f'<p class="hint" style="margin-top:10px">Corrélation nombre de familles ↔ montant : r={f3["corr_r"]}, p={pv(f3["corr_p"])}. Commande mono-famille ({eur(f3["g1_mean"],2)}) vs 2 familles ou plus ({eur(f3["g2plus_mean"],2)}) : Welch p={pv(f3["p"])} → <b style="color:var(--good)">significatif</b>, écart de +{eur(f3["g2plus_mean"]-f3["g1_mean"],2)}.</p>'
+body_fam += '<p class="hint"><b>Lecture</b> : la relation est claire et progressive (48,99&nbsp;€ → 66,38&nbsp;€ → 81,66&nbsp;€ → 129,42&nbsp;€). C’est un vrai levier actionnable : suggérer un produit d’une autre famille (ex. un fondant à côté d’une bougie) peut faire grossir le panier, indépendamment du prix des produits eux-mêmes.</p>'
+panel_fam = panel("c12", f"{NEWTAG}Vente croisée : mélanger les familles de produits fait grossir le panier", "Nombre de familles de produits distinctes dans la commande, contre le montant.", body_fam)
+
+# ===================================================================
+# PANEL 4 (nouveau) : seuil de livraison 79€
+svg_hist = vbars([h["n"] for h in f4["hist"]], [f'{h["lo"]}' for h in f4["hist"]], 700, 240, lambda v: n(v,0), None, 5)
+body_seuil = f'''<div class="chart">{svg_hist}</div>
+<p class="hint" style="margin-top:8px">Nombre de commandes par tranche de 3&nbsp;€ de sous-total (axe : borne basse de la tranche), commandes livrées en relais (n={n(f4["n_fr_relais"])}).</p>
+<p class="hint" style="margin-top:10px">Juste sous 79&nbsp;€ (71 à 79&nbsp;€) : {n(f4["below8"])} commandes. Juste au-dessus (79 à 87&nbsp;€) : {n(f4["above8"])} commandes. Test binomial : p={pv(f4["p_main"])} → <b style="color:var(--good)">significatif</b>.</p>
+<p class="hint"><b>Vérification (règle du cours)</b> : à elle seule, cette asymétrie ne prouve rien — la distribution des paniers penche naturellement vers les petits montants, donc n’importe quel seuil arbitraire montre un déséquilibre. En testant deux seuils fictifs sans raison d’exister (69&nbsp;€ et 89&nbsp;€), on trouve bien PLUS de commandes en dessous qu’au-dessus (comme attendu par la forme générale de la distribution). <b>Seul le seuil réel de 79&nbsp;€ inverse cette tendance</b> : c’est ce renversement, pas la simple asymétrie, qui constitue la preuve d’un effet de seuil actif.</p>
+<p class="hint"><b>Lecture</b> : des clients complètent bien leur panier pour atteindre la livraison gratuite. C’est le test le plus solide en faveur de l’hypothèse déjà évoquée sur le seuil de 79&nbsp;€, et un bon candidat de question de décision pour le CM5 (tester un seuil plus bas).</p>'''
+panel_seuil = panel("c12", f"{NEWTAG}Le seuil de livraison gratuite à 79 € modifie le comportement d'achat", "Test de discontinuité (bunching) autour du seuil, avec deux seuils fictifs comme témoins.", body_seuil)
+
+# ===================================================================
+# PANEL 5 (nouveau) : retrait local -> fidélité
+loc = f5["local"]
+body_local = table(["", "1re commande en retrait local", "1re commande livrée"], [
+  ["Taux de réachat", pct(loc["rate_local"],1)+f' (n={loc["n_local"]})', pct(loc["rate_nonlocal"],1)+f' (n={loc["n_nonlocal"]})'],
+])
+body_local += f'<p class="hint" style="margin-top:10px">Clients avec au moins 90 jours de recul (n={loc["n"]}). χ²={loc["chi2"]}, p={pv(loc["p"])} → <b style="color:var(--good)">significatif</b>.</p>'
+if loc.get("freq_p") is not None:
+    body_local += f'<p class="hint">Parmi ceux qui reviennent, la fréquence est la même des deux côtés (médiane {n(loc["freq_med_local"],0)} commandes, p={pv(loc["freq_p"])}, non significatif) : l’écart porte sur le fait de revenir au moins une fois, pas sur l’intensité ensuite.</p>'
+body_local += '<p class="hint"><b>Lecture</b> : le retrait local n’a pas qu’un panier plus faible (déjà connu) — c’est aussi, et de très loin, le canal le plus fidélisant. Piste pour la gérante : comprendre ce qui rend ce canal si fidélisant (relation de proximité, confiance, bouche-à-oreille local) et si une partie peut se reproduire ailleurs.</p>'
+panel_local = panel("c6", f"{NEWTAG}Le retrait local est le canal le plus fidélisant", "Comparaison à recul égal (≥90 jours) avec les commandes livrées.", body_local)
+
+# ===================================================================
+# PANEL 6 (nouveau) : taille de la 1re commande -> réachat
+fo = f5["first_order_size"]
+body_fo = table(["", "Devient client récurrent", "Reste à 1 commande"], [
+  ["Quantité (1re commande), médiane", n(fo["q_med_rep"],0), n(fo["q_med_norep"],0)],
+  ["Montant moyen (1re commande)", eur(fo["t_mean_rep"],2), eur(fo["t_mean_norep"],2)],
+])
+body_fo += f'<p class="hint" style="margin-top:10px">n={n(fo["n"])} (recul ≥ 90 jours). Quantité : Mann-Whitney p={pv(fo["mw_p"])} → {SIG(fo["mw_p"])}. Montant : Welch p={pv(fo["welch_p"])} → {SIG(fo["welch_p"])}.</p>'
+body_fo += f'<p class="hint"><b>Mais attention</b> : en régression logistique (réachat ~ quantité + montant, contrôlés ensemble), ni la quantité (p={pv(fo["logit_p_qty"])}) ni le montant (p={pv(fo["logit_p_tot"])}) ne restent individuellement significatifs, et le pouvoir prédictif reste faible (pseudo-R²={fo["logit_pseudo_r2"]}).</p>'
+body_fo += '<p class="hint"><b>Lecture honnête</b> : il existe un signal réel mais ténu — les futurs clients récurrents achètent un peu plus dès le départ — mais ce n’est pas assez fort pour prédire individuellement qui reviendra. Ne pas en faire un critère de ciblage à lui seul.</p>'
+panel_fo = panel("c6", f"{NEWTAG}La taille de la 1re commande prédit (faiblement) le réachat", "Quantité et montant du premier achat, chez les clients avec assez de recul.", body_fo)
+
+section = f'<h3 style="margin:22px 0 4px 2px">{NEWTAG}Tests approfondis et nouveaux (après retour de l’équipe)</h3><p class="hint" style="margin:0 0 10px 2px">Les 3 premiers approfondissent les tests d’hier soir (marqués {DEEPTAG}) ; les 3 suivants sont entièrement nouveaux. Les tests de l’après-midi (section suivante) sont conservés tels quels.</p><div class="grid">{panel_sept}{panel_loy}{panel_fam}{panel_seuil}{panel_local}{panel_fo}</div>'
+open("frag_soir2_tests.html","w",encoding="utf-8").write(section)
+print("écrit,", len(section)/1024, "Ko")

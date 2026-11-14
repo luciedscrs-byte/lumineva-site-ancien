@@ -1,0 +1,143 @@
+# encoding: utf-8
+"""Profils de clients : fiche par client (habitudes, ville, niveau de vie), segmentation automatique (k-means),
+et arbre de décision des facteurs de réachat (première commande + lieu)."""
+import json, csv
+import numpy as np
+from collections import Counter, defaultdict
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+from sklearn.tree import DecisionTreeClassifier
+from common import charger, REF
+
+commandes, clients = charger()
+
+# ---- niveau de vie : médiane du niveau de vie de la commune (Insee-Filosofi 2020), à défaut du département
+def lire(f):
+    d = {}
+    for r in csv.DictReader(open(f, encoding='utf-8'), delimiter=';'):
+        try: d[r['CODGEO']] = float(r['MED20'].replace(',', '.'))
+        except Exception: pass
+    return d
+inc_com = lire('cache/cc_filosofi_2020_COM.csv'); inc_dep = lire('cache/cc_filosofi_2020_DEP.csv')
+comm_cp = json.load(open('cache/communes_par_cp.json'))
+
+def geo(cp):
+    cs = comm_cp.get(cp) or []
+    if not cs: return None
+    c = max(cs, key=lambda x: x.get('population') or 0)
+    dep = c.get('codeDepartement') or cp[:2]
+    inc = inc_com.get(c['code']); src = 'commune'
+    if inc is None:
+        inc = inc_dep.get(dep); src = 'département'
+    return {'commune': c['nom'], 'pop': c.get('population') or 0, 'dep': dep, 'revenu': inc, 'src_revenu': src}
+
+def taille(p):
+    return 'Village (< 2 000 hab.)' if p < 2000 else 'Petite ville (2 000 à 20 000)' if p < 20000 else 'Ville (20 000 à 100 000)' if p < 100000 else 'Grande ville (> 100 000)'
+
+# ---- paiement par commande
+pay = {}
+for r in csv.DictReader(open('../DONNEES/payment_transactions.csv', encoding='utf-8')):
+    if r['Type'] == 'charge' and r['order_key'] not in pay: pay[r['order_key']] = r['Payment Method Name']
+
+fiches = []
+for k, os_ in clients.items():
+    p = os_[0]
+    g = geo(p['cp']) if p['pays'] == 'FR' else None
+    fam_dist = set(f for o in os_ for f in o['familles'])
+    dep_first = p['cp'][:2]
+    f = {
+        'cle': k, 'n': len(os_), 'depense': sum(o['total'] for o in os_),
+        'panier': float(np.mean([o['total'] for o in os_])), 'recence': (REF - os_[-1]['dt']).days,
+        'anciennete': (REF - p['dt']).days,
+        'pct_local': float(np.mean([o['local'] for o in os_])), 'pct_code': float(np.mean([1 if o['code'] else 0 for o in os_])),
+        'pct_we': float(np.mean([1 if o['dt'].weekday() >= 5 else 0 for o in os_])),
+        'pct_paypal': float(np.mean([1 if pay.get(o['ordre_key']) == 'paypal' else 0 for o in os_])),
+        'n_fam': len(fam_dist), 'pays': p['pays'], 'geo': g,
+        'p_qte': p['qte'], 'p_total': p['total'], 'p_code': 1 if p['code'] else 0, 'p_local': p['local'],
+        'p_we': 1 if p['dt'].weekday() >= 5 else 0, 'p_paypal': 1 if pay.get(p['ordre_key']) == 'paypal' else 0,
+        'p_nfam': len(p['familles']), 'p_gourmande': 1 if 'Bougies gourmandes' in p['familles'] else 0,
+        'p_fondant': 1 if 'Fondants' in p['familles'] else 0, 'p_fam_dom': p['fam_dom'],
+        'repeat': 1 if len(os_) >= 2 else 0,
+    }
+    fiches.append(f)
+print(len(fiches), 'fiches clients ;', sum(1 for f in fiches if f['geo']), 'avec ville/niveau de vie')
+
+# imputation simple : médiane nationale pour les clients sans géolocalisation (Belgique, etc.)
+med_rev = float(np.median([f['geo']['revenu'] for f in fiches if f['geo'] and f['geo']['revenu']]))
+med_pop = float(np.median([f['geo']['pop'] for f in fiches if f['geo']]))
+for f in fiches:
+    g = f['geo']
+    f['revenu'] = g['revenu'] if g and g['revenu'] else med_rev
+    f['pop'] = g['pop'] if g else med_pop
+    f['taille'] = taille(f['pop']) if g else 'Hors France'
+    f['dep'] = g['dep'] if g else None
+
+# ---- segmentation automatique
+cols = ['ln_n', 'ln_dep', 'ln_panier', 'recence', 'pct_local', 'pct_code', 'n_fam', 'revenu', 'ln_pop', 'pct_we']
+X = np.array([[np.log1p(f['n']), np.log1p(f['depense']), np.log1p(f["panier"]), f['recence'], f['pct_local'], f['pct_code'],
+               f['n_fam'], f['revenu'], np.log1p(f['pop']), f['pct_we']] for f in fiches])
+Xs = StandardScaler().fit_transform(X)
+scores = {}
+for k in (3, 4, 5, 6):
+    km = KMeans(n_clusters=k, n_init=20, random_state=7).fit(Xs)
+    scores[k] = float(silhouette_score(Xs, km.labels_))
+print('silhouette par k :', {k: round(v, 3) for k, v in scores.items()})
+K = 5
+km = KMeans(n_clusters=K, n_init=30, random_state=7).fit(Xs)
+for f, l in zip(fiches, km.labels_): f['cluster'] = int(l)
+
+tot_ca = sum(f['depense'] for f in fiches)
+profils = []
+for c in range(K):
+    fs = [f for f in fiches if f['cluster'] == c]
+    fam = Counter(f['p_fam_dom'] for f in fs).most_common(2)
+    tail = Counter(f['taille'] for f in fs).most_common(1)[0]
+    profils.append({
+        'cluster': c, 'n': len(fs), 'pct_clients': round(100 * len(fs) / len(fiches), 1),
+        'pct_ca': round(100 * sum(f['depense'] for f in fs) / tot_ca, 1),
+        'commandes_med': float(np.median([f['n'] for f in fs])), 'commandes_moy': round(float(np.mean([f['n'] for f in fs])), 2),
+        'depense_moy': round(float(np.mean([f['depense'] for f in fs])), 1), 'panier_moy': round(float(np.mean([f['panier'] for f in fs])), 1),
+        'recence_med': float(np.median([f['recence'] for f in fs])), 'anciennete_med': float(np.median([f['anciennete'] for f in fs])),
+        'pct_local': round(100 * float(np.mean([f['pct_local'] for f in fs])), 1), 'pct_code': round(100 * float(np.mean([f['pct_code'] for f in fs])), 1),
+        'pct_we': round(100 * float(np.mean([f['pct_we'] for f in fs])), 1), 'pct_paypal': round(100 * float(np.mean([f['pct_paypal'] for f in fs])), 1),
+        'nfam_moy': round(float(np.mean([f['n_fam'] for f in fs])), 2),
+        'revenu_med': round(float(np.median([f['revenu'] for f in fs])), 0), 'pop_med': round(float(np.median([f['pop'] for f in fs])), 0),
+        'pct_fr': round(100 * float(np.mean([1 if f['pays'] == 'FR' else 0 for f in fs])), 1),
+        'pct_repeat': round(100 * float(np.mean([f['repeat'] for f in fs])), 1),
+        'taille_dom': tail[0], 'taille_dom_pct': round(100 * tail[1] / len(fs), 0),
+        'fam_dom': [[a, b] for a, b in fam],
+        'deps': [[d, n] for d, n in Counter(f['dep'] for f in fs if f['dep']).most_common(3)],
+    })
+    print(profils[-1]['cluster'], profils[-1]['n'], 'clients', profils[-1]['pct_ca'], '% CA', 'cmd', profils[-1]['commandes_moy'], 'panier', profils[-1]['panier_moy'], 'local', profils[-1]['pct_local'], 'code', profils[-1]['pct_code'], 'rec', profils[-1]['recence_med'], 'rev', profils[-1]['revenu_med'], 'pop', profils[-1]['pop_med'], taille := profils[-1]['taille_dom'])
+
+# ---- arbre des facteurs de réachat (clients avec >= 90 jours de recul)
+base = [f for f in fiches if f['anciennete'] >= 90]
+feat = ['p_qte', 'p_total', 'p_code', 'p_local', 'p_we', 'p_paypal', 'p_nfam', 'p_gourmande', 'p_fondant', 'revenu', 'pop']
+NOMS = {'p_qte': 'Articles dans la 1re commande', 'p_total': 'Montant de la 1re commande (€)', 'p_code': 'Code promo utilisé à la 1re commande',
+        'p_local': 'Retrait local à la 1re commande', 'p_we': '1re commande le week-end', 'p_paypal': 'Paiement PayPal (1re commande)',
+        'p_nfam': 'Familles de produits dans la 1re commande', 'p_gourmande': 'Bougie gourmande dans la 1re commande',
+        'p_fondant': 'Fondant dans la 1re commande', 'revenu': 'Niveau de vie de la commune (€/UC)', 'pop': 'Habitants de la commune'}
+Xt = np.array([[f[c] for c in feat] for f in base], dtype=float); yt = np.array([f['repeat'] for f in base])
+tree = DecisionTreeClassifier(max_depth=3, min_samples_leaf=30, random_state=7).fit(Xt, yt)
+t = tree.tree_
+def noeud(i):
+    n = int(t.n_node_samples[i]); pos = float(t.value[i][0][1]); neg = float(t.value[i][0][0])
+    taux = pos / (pos + neg) if (pos + neg) else 0
+    d = {'n': n, 'taux': round(100 * taux, 1)}
+    if t.children_left[i] != -1:
+        d['var'] = NOMS[feat[t.feature[i]]]; d['seuil'] = round(float(t.threshold[i]), 2); d['bin'] = feat[t.feature[i]] in ('p_code', 'p_local', 'p_we', 'p_paypal', 'p_gourmande', 'p_fondant')
+        d['non'] = noeud(t.children_left[i]); d['oui'] = noeud(t.children_right[i])
+    return d
+arbre = noeud(0)
+print('arbre racine:', arbre['n'], arbre['taux'], '% ; premier critère:', arbre.get('var'), arbre.get('seuil'))
+# précision honnête : comparaison avec le hasard (taux de base)
+from sklearn.model_selection import cross_val_score
+cv = cross_val_score(DecisionTreeClassifier(max_depth=3, min_samples_leaf=30, random_state=7), Xt, yt, cv=5, scoring='roc_auc')
+print('AUC validation croisée (0,5 = hasard) :', round(cv.mean(), 3), '+/-', round(cv.std(), 3))
+
+n_com = sum(1 for f in fiches if f['geo'] and f['geo']['src_revenu'] == 'commune')
+json.dump({'n_revenu_commune': n_com, 'silhouette': scores, 'K': K, 'profils': profils, 'arbre': arbre, 'auc_cv': round(float(cv.mean()), 3), 'auc_sd': round(float(cv.std()), 3),
+           'n_base_arbre': len(base), 'taux_base': round(100 * float(yt.mean()), 1),
+           'n_fiches': len(fiches), 'n_geo': sum(1 for f in fiches if f['geo'])},
+          open('g2_profils.json', 'w'), ensure_ascii=False)

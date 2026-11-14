@@ -1,0 +1,107 @@
+import json, math
+from svgutil import *
+
+def pv(p, seuil=0.001):
+    if isinstance(p,str): p=float(p)
+    if p < seuil: return f"&lt; {seuil}".replace(".", ",")
+    return n(p, 4 if p<0.01 else 3).replace(" ","")
+def sig(p): return "significatif (p&lt;0,05)" if p<0.05 else "non significatif"
+def SIG(p): return '<b style="color:var(--good)">significatif</b>' if p<0.05 else '<b style="color:var(--muted)">non significatif</b>'
+
+bi = json.load(open("b1_bivarie.json"))
+reg = json.load(open("c1_regression.json"))
+regl = json.load(open("c1_regression_log.json"))
+ts = json.load(open("d1_timeseries.json"))
+diddata = json.load(open("d2_diffindiff.json"))
+
+howto = '<div class="howto"><b>Comment lire cette page.</b> Chaque test suit la méthode du CM2 : hypothèse testable, résultat chiffré, incertitude (p-value), et ce que ça autorise ou non à décider. Seuil de signification retenu : 5&nbsp;%. Une p-value ne mesure pas l’importance de l’effet (sa taille), seulement la confiance qu’on peut avoir dans son existence — les deux sont données à chaque fois.</div>'
+
+# ---- Khi2
+k1 = bi["khi2_paiement_code"]; k2 = bi["khi2_email_recurrent"]
+t_k1 = table(["","Avec code promo","Sans code"], [["Carte", n(k1["table"][0][0]), n(k1["table"][0][1])], ["PayPal", n(k1["table"][1][0]), n(k1["table"][1][1])]], right=[1,2])
+t_k2 = table(["","Client recurrent (2+ cmd)","1 commande"], [["Accepte l'e-mail", n(k2["table"][0][0]), n(k2["table"][0][1])], ["N'accepte pas", n(k2["table"][1][0]), n(k2["table"][1][1])]], right=[1,2])
+body_k1 = t_k1 + f'<p class="hint" style="margin-top:10px">χ²={k1["chi2"]}, ddl={k1["dof"]}, p={pv(k1["p"])}, V de Cramér={k1["v"]} → {SIG(k1["p"])}. Le moyen de paiement choisi n’est pas lié à l’usage d’un code promo.</p>'
+body_k2 = t_k2 + f'<p class="hint" style="margin-top:10px">χ²={k2["chi2"]}, ddl={k2["dof"]}, p={pv(k2["p"])}, V de Cramér={k2["v"]} (effet modéré) → {SIG(k2["p"])}. Les clients qui acceptent l’e-mail sont proportionnellement plus souvent des clients récurrents. Un lien statistique n’est pas une preuve que l’e-mail cause la fidélité : les deux peuvent venir d’un même engagement envers la marque.</p>'
+panel_k1 = panel("c6", "Khi² — moyen de paiement × usage d'un code promo", f"H0 : les deux variables sont indépendantes. n={n(k1['n'])}.", body_k1)
+panel_k2 = panel("c6", "Khi² — consentement e-mail × client récurrent", f"H0 : les deux variables sont indépendantes. n={n(k2['n'])}.", body_k2)
+sec_khi2 = panel_k1 + panel_k2
+
+# ---- Test t
+t1 = bi["t_carte_paypal"]; t2 = bi["t_premiere_suivante"]
+body_t1 = table(["","Carte","PayPal"], [["n", n(t1["n_a"]), n(t1["n_b"])], ["Moyenne", eur(t1["mean_a"],2), eur(t1["mean_b"],2)], ["Médiane", eur(t1["med_a"],2), eur(t1["med_b"],2)]]) + f'<p class="hint" style="margin-top:10px">Welch t={t1["t"]}, p={pv(t1["p"])} → {SIG(t1["p"])}. Aucune différence réelle de panier selon le moyen de paiement choisi.</p>'
+hausse_pct = pct((t2["mean_b"]/t2["mean_a"]-1)*100,0)
+body_t2 = table(["","1re commande","Commandes suivantes"], [["n", n(t2["n_a"]), n(t2["n_b"])], ["Moyenne", eur(t2["mean_a"],2), eur(t2["mean_b"],2)]]) + f'<p class="hint" style="margin-top:10px">Welch t={t2["t"]}, p={pv(t2["p"])} → {SIG(t2["p"])}. Les clients qui reviennent dépensent {hausse_pct} de plus en moyenne que lors de leur premier achat : un argument concret pour investir dans la fidélisation plutôt que la seule acquisition.</p>'
+sec_t = panel("c6", "Test t — panier carte vs PayPal", None, body_t1) + panel("c6", "Test t — panier 1re commande vs commandes suivantes", None, body_t2)
+
+# ---- ANOVA
+a1 = bi["anova_jour"]; a2 = bi["anova_paiement"]
+wdN = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"]
+svg_a1 = vbars(a1["means"], wdN, 680, 220, lambda v: eur(v,0), None, 20)
+PAYN = {"card":"Carte","paypal":"PayPal","bancontact":"Bancontact","klarna":"Klarna","card_present":"Carte (caisse)"}
+svg_a2 = vbars(a2["means"], [PAYN.get(l,l) for l in a2["labels"]], 680, 220, lambda v: eur(v,0), a2["means"].index(max(a2["means"])), 20)
+body_a1 = f'<div class="chart short">{svg_a1}</div><p class="hint" style="margin-top:10px">F={a1["F"]}, p={pv(a1["p"])}, η²={a1["eta2"]} → {SIG(a1["p"])}. Le panier moyen ne varie pas selon le jour ; les jours plus chargés en nombre de commandes (voir l’onglet Ventes) ne sont pas ceux où l’on dépense le plus par commande.</p>'
+body_a2 = f'<div class="chart short">{svg_a2}</div><p class="hint" style="margin-top:10px">F={a2["F"]}, p={pv(a2["p"])} → {SIG(a2["p"])}. L’écart vient surtout de Klarna (paiement différé, souvent choisi pour de plus gros achats) et des ventes en caisse (achats rapides, panier réduit).</p>'
+sec_anova = panel("c6", "ANOVA — panier selon le jour de semaine", "7 groupes (lundi à dimanche).", body_a1) + panel("c6", "ANOVA — panier selon le moyen de paiement", "5 groupes (n≥5 chacun).", body_a2)
+
+# ---- Correlations
+c = bi["corr"]
+body_corr = table(["Variables","r","p","Lecture"], [
+  ["Quantité d'articles ↔ montant de la commande", c["qty_tot"]["r"], pv(float(c["qty_tot"]["p"])), "Attendu : plus d'articles, plus cher. Sert de vérification (le modèle « voit » bien la réalité)."],
+  ["Remise (€) ↔ montant de la commande", c["disc_tot"]["r"], pv(c["disc_tot"]["p"]), "Les plus grosses commandes reçoivent une remise plus élevée en valeur absolue (remises en %)."],
+  [f"Fréquence d'achat du client ↔ panier moyen du client (n={c['freq_basket']['n']})", c["freq_basket"]["r"], pv(c["freq_basket"]["p"]), "Faible mais réel : les clients qui reviennent souvent ne dépensent pas moins par commande."],
+ ], right=[1,2])
+sec_corr = panel("c12", "Corrélations", "Trois relations entre variables quantitatives, en plus du revenu par département et de Google Trends (voir les onglets Clients et Croisement).", body_corr)
+
+# ---- Regression
+coef_rows = []
+NAMES = {"qty":"Quantité d'articles","has_code":"Code promo utilisé","is_local":"Retrait local","is_paypal":"Paiement PayPal",
+ "is_klarna":"Paiement Klarna","is_bancontact":"Paiement Bancontact","is_repeat":"Client récurrent","is_weekend":"Week-end",
+ "is_be":"Belgique","sin_month":"Saisonnalité (sin)","cos_month":"Saisonnalité (cos)"}
+for cft in reg["coefs"]:
+    coef_rows.append([NAMES.get(cft["var"],cft["var"]), f'{cft["coef"]:+.2f} €', pv(cft["p"]), SIG(cft["p"]), cft["vif"]])
+t_reg = table(["Variable","Effet estimé","p","",'VIF'], coef_rows, right=[1,2,4])
+qty_c = n(reg["coefs"][0]["coef"],2); local_c = n(reg["coefs"][2]["coef"],2); rep_c = n(reg["coefs"][6]["coef"],2)
+body_reg = t_reg
+body_reg += f'<p class="hint" style="margin-top:12px"><b>Lecture :</b> à quantité d’articles, code promo, mode de livraison et fidélité comparables, seuls <b>la quantité d’articles</b> (+{qty_c} € par article), <b>le retrait local</b> ({local_c} €) et <b>le fait d’être client récurrent</b> (+{rep_c} €) ont un effet mesurable sur le montant. Le code promo, le mode de paiement, le week-end, le pays et le mois n’ont pas d’effet propre une fois les autres facteurs pris en compte.</p>'
+body_reg += f'<p class="hint"><b>Vérification du modèle</b> (règle du cours : toujours vérifier avant de conclure) : les résidus sont fortement asymétriques (quelques grosses commandes), ce qui fragilise les p-values exactes de l’OLS. En refaisant le même modèle sur le logarithme du montant (plus robuste à cette asymétrie), les 4 variables clés restent dans le même sens et avec la même significativité (R²={regl["r2"]}) : quantité +{regl["coefs"]["qty"]["effet_pct"]}&nbsp;% par article, retrait local {regl["coefs"]["is_local"]["effet_pct"]}&nbsp;%, client récurrent +{regl["coefs"]["is_repeat"]["effet_pct"]}&nbsp;%, code promo {regl["coefs"]["has_code"]["effet_pct"]}&nbsp;% (non significatif dans les deux modèles). La conclusion tient.</p>'
+sec_reg = panel("c12", "Régression multiple — expliquer le montant d'une commande",
+ f"Modèle : montant de la commande (€) en fonction de 11 variables. n={n(reg['n'])}, R²={reg['r2']} (R² ajusté {reg['r2_adj']}), p du modèle {pv(reg['f_p'])}. Erreurs-types robustes (HC3). VIF (colinéarité) tous inférieurs à 1,3 : aucun problème de variables redondantes.",
+ body_reg)
+
+# ---- Series temporelles
+svg_week = vbars(ts["week_rev"][-20:], ts["weeks"][-20:], 700, 240, lambda v: eur(v,0), None, 500, rot=True)
+xcorr_rows = [[f"{int(lag):+d} mois", v["r"], pv(v["p"]), n(v["n"])] for lag,v in sorted(ts["xcorr"].items(), key=lambda x:int(x[0]))]
+t_xcorr = table(["Décalage (couverture Instagram par rapport aux commandes)","r","p","n mois"], xcorr_rows, right=[1,2,3])
+body_xcorr = t_xcorr + f'<p class="hint" style="margin-top:10px">Aucun décalage ne donne une corrélation significative à 5&nbsp;% (le plus proche : +2 mois, p={pv(ts["xcorr"]["2"]["p"])}). Sur cette période, la couverture Instagram n’explique pas le rythme des commandes, à aucun décalage testé.</p>'
+bt = ts["break_test"]
+body_break = f'<p class="hint">Saut de niveau détecté : {eur(bt["level_shift"])}/semaine, p={pv(bt["p_shift"])} → {SIG(bt["p_shift"])}.</p>'
+body_break += '<p class="hint"><b>Attention à l’interprétation</b> : le 1er novembre 2025 est à la fois la date de la hausse de prix des bougies gourmandes (+1&nbsp;€) <i>et</i> le lancement de la collection de Noël (30 nouvelles références ce jour-là, voir l’onglet Analyse approfondie). Le diff-in-diff ci-dessous permet de démêler les deux.</p>'
+panel_week = panel("c12", "Chiffre d'affaires par semaine (20 dernières semaines)", "Série hebdomadaire complète : 61 semaines, du 23 juin 2025 au 20 sept. 2026.", f'<div class="chart">{svg_week}</div>')
+panel_xcorr = panel("c6", "Corrélation croisée : couverture Instagram et commandes, avec décalage", "Teste si la couverture d'un mois M±k explique les commandes du mois M (k de -2 à +2 mois).", body_xcorr)
+panel_break = panel("c6", "Test de rupture — 1er novembre 2025", "Régression du CA hebdomadaire sur une tendance + un saut de niveau à la date.", body_break)
+sec_ts = panel_week + panel_xcorr + panel_break
+
+# ---- Diff-in-diff
+did_labels = [w.split("-W")[1] if "-W" in w else w for w in diddata["weeks"]]
+did_labels = [f"S{int(x)}" for x in did_labels]
+svg_did = line_chart([diddata["treated"], diddata["control"]], did_labels, 700, 240, lambda v: n(v,0), 20, ["--flame","--accent"])
+body_did = f'<div class="chart">{svg_did}</div>'
+body_did += '<div class="legend" style="margin-top:8px"><span><i style="background:var(--flame)"></i>Bougies gourmandes (traité)</span><span><i style="background:var(--accent)"></i>Fondants (témoin)</span></div>'
+body_did += f'<p class="hint" style="margin-top:10px">Estimateur diff-in-diff (effet propre de la hausse de prix, au-delà de la tendance commune) : {diddata["did"]:+.3f} article par ligne de commande, p={pv(diddata["p_did"])} → {SIG(diddata["p_did"])}.</p>'
+body_did += '<p class="hint"><b>Conclusion croisée avec le test de rupture ci-dessus :</b> les deux familles progressent ensemble après le 1er novembre, et la hausse de prix n’a pas d’effet propre détectable sur les quantités vendues. Le saut de chiffre d’affaires du 1er novembre s’explique donc par le lancement de la collection de Noël, pas par la hausse de prix.</p>'
+body_did += '<p class="hint"><b>Limite :</b> l’hypothèse de « tendances parallèles avant l’événement » (nécessaire pour un diff-in-diff valide) n’est pas testée formellement, faute d’assez de semaines avant le 1er novembre avec un volume stable ; le graphique permet de la juger à l’œil.</p>'
+sec_did = panel("c12", "Diff-in-diff — l'effet propre de la hausse de prix des bougies gourmandes",
+ f"Groupe traité : bougies gourmandes (prix +1 € vers le 1er nov. 2025). Groupe témoin : fondants et bouquets de fondants (prix stable). Fenêtre : 45 jours avant/après, n={n(diddata['n'])} lignes.",
+ body_did)
+
+section = '<section id="tests"><h2>Tests statistiques (CM2)</h2><p class="src">Python · pandas, scipy, statsmodels · seuil de signification 5&nbsp;%</p>'
+section += howto
+section += '<h3 style="margin:18px 0 4px 2px">Deux variables qualitatives (khi²)</h3><div class="grid">' + sec_khi2 + '</div>'
+section += '<h3 style="margin:18px 0 4px 2px">Une qualitative à 2 groupes + une quantitative (test t)</h3><div class="grid">' + sec_t + '</div>'
+section += '<h3 style="margin:18px 0 4px 2px">Une qualitative à 3+ groupes + une quantitative (ANOVA)</h3><div class="grid">' + sec_anova + '</div>'
+section += '<h3 style="margin:18px 0 4px 2px">Deux variables quantitatives (corrélation)</h3><div class="grid">' + sec_corr + '</div>'
+section += '<h3 style="margin:18px 0 4px 2px">Régression multiple</h3><div class="grid">' + sec_reg + '</div>'
+section += '<h3 style="margin:18px 0 4px 2px">Données temporelles</h3><div class="grid">' + sec_ts + sec_did + '</div>'
+section += '</section>'
+open("frag_tests_tab.html","w",encoding="utf-8").write(section)
+print("onglet tests statistiques ecrit,", len(section)/1024, "Ko")

@@ -1,0 +1,105 @@
+import csv, json
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['dt'] = datetime.strptime(o['r']['Created at'][:19], "%Y-%m-%d %H:%M:%S")
+    o['key'] = o['r']['customer_key'].strip()
+    o['code'] = o['r']['Discount Code']
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o:o['dt'])
+
+REF = datetime(2026,9,21)
+
+def build_events(customers):
+    """Retourne [(duree_jours, evenement)] : evenement=1 si 2e commande observée, 0 si censuré."""
+    ev = []
+    for os_ in customers:
+        first = os_[0]['dt']
+        if len(os_) >= 2:
+            ev.append(((os_[1]['dt']-first).days, 1))
+        else:
+            ev.append(((REF-first).days, 0))
+    return ev
+
+def kaplan_meier(events, tmax=270):
+    """Estimateur de Kaplan-Meier : renvoie liste de (t, %ayant_recommandé) en escalier."""
+    times = sorted(set(t for t,e in events if e==1 and t<=tmax))
+    n_at_risk = len(events)
+    s = 1.0
+    curve = [(0,0.0)]
+    remaining = sorted(events, key=lambda x:x[0])
+    idx = 0
+    at_risk = len(events)
+    for t in times:
+        d = sum(1 for tt,e in events if tt==t and e==1)
+        # nombre encore à risque juste avant t : tous ceux dont la durée >= t
+        at_risk_t = sum(1 for tt,e in events if tt >= t)
+        if at_risk_t > 0:
+            s *= (1 - d/at_risk_t)
+        curve.append((t, round((1-s)*100,2)))
+    curve.append((tmax, curve[-1][1]))
+    return curve
+
+def logrank(evA, evB):
+    """Test du log-rank (comparaison de 2 courbes de survie), khi² à 1 ddl."""
+    all_times = sorted(set(t for t,e in evA+evB if e==1))
+    O_A=E_A=V=0.0
+    for t in all_times:
+        nA = sum(1 for tt,e in evA if tt>=t); nB = sum(1 for tt,e in evB if tt>=t)
+        dA = sum(1 for tt,e in evA if tt==t and e==1); dB = sum(1 for tt,e in evB if tt==t and e==1)
+        n, d = nA+nB, dA+dB
+        if n <= 1 or d == 0: continue
+        O_A += dA
+        E_A += d*nA/n
+        V += d*(nA/n)*(nB/n)*((n-d)/(n-1))
+    chi2 = (O_A-E_A)**2/V if V>0 else 0
+    p = stats.chi2.sf(chi2, df=1)
+    return chi2, p
+
+evA = build_events([os_ for os_ in cust.values() if os_[0]['code']=='BIENVENUE10'])
+evB = build_events([os_ for os_ in cust.values() if not os_[0]['code']])
+evAll = build_events(list(cust.values()))
+
+curveA = kaplan_meier(evA)
+curveB = kaplan_meier(evB)
+curveAll = kaplan_meier(evAll)
+chi2, p = logrank(evA, evB)
+
+def median_time(curve):
+    for t,y in curve:
+        if y >= 50: return t
+    return None
+
+print(f"Tous clients (n={len(evAll)}): réachat à 30j={dict(curveAll)[min([t for t,_ in curveAll if t>=30], default=curveAll[-1][0])]}%")
+print(f"Groupe BIENVENUE10 (n={len(evA)}): médiane (50%) atteinte à t={median_time(curveA)} j" if median_time(curveA) else f"BIENVENUE10: jamais 50%, plateau à {curveA[-1][1]}%")
+print(f"Groupe sans code (n={len(evB)}): médiane (50%) atteinte à t={median_time(curveB)} j" if median_time(curveB) else f"sans code: jamais 50%, plateau à {curveB[-1][1]}%")
+print(f"Log-rank test A vs B: chi2={chi2:.3f} p={p:.4f}")
+
+def pct_at(curve, days):
+    val = 0
+    for t,y in curve:
+        if t<=days: val=y
+    return val
+for d in (30,60,90,180,270):
+    print(f"  à {d}j: tous={pct_at(curveAll,d)}%  BIENVENUE10={pct_at(curveA,d)}%  sans_code={pct_at(curveB,d)}%")
+
+json.dump({'curveA': curveA, 'curveB': curveB, 'curveAll': curveAll,
+           'n_a': len(evA), 'n_b': len(evB), 'n_all': len(evAll),
+           'chi2': round(chi2,3), 'p_logrank': round(p,4),
+           'pct_at': {str(d): {'all':pct_at(curveAll,d),'a':pct_at(curveA,d),'b':pct_at(curveB,d)} for d in (30,60,90,180,270)}},
+          open('a3_survival.json','w'), ensure_ascii=False)

@@ -1,0 +1,125 @@
+# encoding: utf-8
+"""Livraison d'octobre, deuxième série (agrégats seulement, aucun prénom lu) :
+ A. demande d'avis Judge.me : rapport (avis_rapport.csv) et avis publiés (avis.csv, colonne du nom du relecteur jamais chargée) ;
+ B. catalogue au 22/10 : produits épuisés ou presque, part des ventes récentes ;
+ C. codes promo : code de bienvenue et codes AUTO (discounts.csv) ;
+ D. audience des abonnés Instagram et Facebook (audiences.csv)."""
+import csv, json, re, unicodedata, collections, statistics as st
+from datetime import datetime
+import numpy as np
+from scipy import stats
+from common import charger
+
+D = '../DONNEES/'
+commandes, clients = charger()
+out = {}
+
+# ---------------------------------------------------------------- A. demande d'avis
+rap = {}
+for r in csv.DictReader(open(D + 'avis_rapport.csv', encoding='utf-8')):
+    rap[(r['rubrique'], r['libelle'], r['serie'])] = r['valeur']
+def g(*k):
+    v = rap.get(k)
+    return int(float(v)) if v not in (None, '') else None
+rang = {}
+for nom, lab in (('1st Line Item', '1er article'), ('2nd Line Item', '2e article'), ('3rd Line Item', '3e article'), ('Rest of Line Item', '4e article et suivants')):
+    env, cl = g('Line item sequence', nom, 'Emails sent'), g('Line item sequence', nom, 'Emails clicked')
+    rang[lab] = {'envoyes': env, 'avis': cl, 'taux': round(100 * cl / env, 1)}
+env_tot, avis_mail = g('All emails', 'Total Count', 'Emails sent'), g('All emails', 'Total Count', 'Emails clicked')
+premier, autres = rang['1er article'], {'envoyes': env_tot - rang['1er article']['envoyes'], 'avis': avis_mail - rang['1er article']['avis']}
+p_rang = float(stats.fisher_exact([[premier['avis'], premier['envoyes'] - premier['avis']], [autres['avis'], autres['envoyes'] - autres['avis']]])[1])
+out['rapport'] = {'envoyes': env_tot, 'ouverts': g('All emails', 'Total Count', 'Emails opened'), 'avis_par_mail': avis_mail, 'taux': round(100 * avis_mail / env_tot, 1),
+                  'rappels': [g('Reminder', n, 'Emails sent') for n in ('1st Review Reminder', '2nd Review Reminder', '3rd Review Reminder')],
+                  'avis_total': g('Reviews Report', 'All Reviews', 'Total Count'), 'avis_produits': g('Reviews Report', 'Product Reviews', 'Total Count'), 'avis_boutique': g('Reviews Report', 'Site Reviews', 'Total Count'),
+                  'via_app_shop': g('Reviews Report', 'All Reviews', 'shop-app'), 'repli_boutique_envoyes': g('Email template', 'Store Review Fallback', 'Emails sent'),
+                  'revenu_usd': float(rap[('Revenue by source', 'Revenue (USD)', 'Total Revenue (USD)')]), 'commandes_judgeme': g('Orders over time', 'Order Count', 'Total Order Count'),
+                  'revenu_usd_total': float(rap[('Revenue over time', 'Revenue (USD)', 'Total Revenue (USD)')]),
+                  'par_rang': rang, 'premier_vs_autres': {'premier': premier, 'autres': autres, 'p_fisher': p_rang,
+                                                           'taux_autres': round(100 * autres['avis'] / autres['envoyes'], 1)},
+                  'part_avis_articles_2_et_plus': round(100 * autres['avis'] / avis_mail, 0)}
+
+def dt(s): return datetime.strptime(s[:19], '%Y-%m-%d %H:%M:%S') if len(s) >= 19 else datetime.strptime(s[:10], '%Y-%m-%d')
+avis = [{k: r[k] for k in ('customer_key', 'rating', 'review_date', 'source', 'product_handle', 'has_picture', 'reply')} for r in csv.DictReader(open(D + 'avis.csv', encoding='utf-8'))]
+notes = [int(r['rating']) for r in avis]
+cmd_par_client = collections.defaultdict(list)
+for o in commandes:
+    if o['cle']: cmd_par_client[o['cle']].append(o['dt'])
+delais = []
+for r in avis:
+    t = dt(r['review_date']); prev = [d for d in cmd_par_client.get(r['customer_key'], []) if d <= t]
+    if prev: delais.append((t - max(prev)).days)
+q = lambda v, p: sorted(v)[int(len(v) * p)]
+# les 3 avis les plus faibles : sujet (comptage de mots-clés seulement, aucun texte stocké)
+bas = [r for r in csv.DictReader(open(D + 'avis.csv', encoding='utf-8')) if int(r['rating']) <= 3]
+out['avis'] = {'n': len(avis), 'moyenne': round(float(np.mean(notes)), 2), 'part_5': round(100 * sum(1 for x in notes if x == 5) / len(notes), 0), 'n_3_ou_moins': sum(1 for x in notes if x <= 3),
+               'bas_parlent_odeur': sum(1 for r in bas if re.search(r'odeur|senteur|sent', (r['body'] or '').lower())),
+               'avec_photo': sum(1 for r in avis if r['has_picture'] == '1'), 'avec_reponse': sum(1 for r in avis if r['reply']),
+               'delai_jours': {'n': len(delais), 'q10': q(delais, .1), 'q25': q(delais, .25), 'mediane': q(delais, .5), 'q75': q(delais, .75), 'q90': q(delais, .9),
+                               'part_7j': round(100 * sum(1 for x in delais if x <= 7) / len(delais), 0), 'part_30j': round(100 * sum(1 for x in delais if x <= 30) / len(delais), 0)},
+               'par_mois': dict(sorted(collections.Counter(r['review_date'][:7] for r in avis).items()))}
+FORM = re.compile(r'pack|reglement|consulting|formation|plus-belle-bougie')
+out['avis']['sur_formations'] = sum(1 for r in avis if FORM.search(r['product_handle']))
+# scénarios chiffrés : un rappel qui ferait gagner 1, 3 ou 5 points de taux de réponse sur les demandes de la période
+mois = 15.6   # du 18/07/2025 au 22/10/2026
+out['scenarios_rappel'] = [{'points': p, 'avis_en_plus_periode': round(env_tot * p / 100), 'avis_en_plus_par_an': round(env_tot * p / 100 / mois * 12)} for p in (1, 3, 5)]
+def n_groupe(p1, p2, alpha=.05, puiss=.8):
+    za, zb = stats.norm.ppf(1 - alpha / 2), stats.norm.ppf(puiss); pm = (p1 + p2) / 2
+    return int(np.ceil((za * np.sqrt(2 * pm * (1 - pm)) + zb * np.sqrt(p1 * (1 - p1) + p2 * (1 - p2))) ** 2 / (p1 - p2) ** 2))
+p0 = avis_mail / env_tot
+out['test_rappel'] = {'taux_base': round(100 * p0, 1), 'points': 3, 'n_par_groupe': n_groupe(p0, p0 + .03)}
+
+# ---------------------------------------------------------------- B. catalogue au 22/10
+def norm(s):
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode().upper()
+    return re.sub(r'\s+', ' ', re.sub(r'[^A-Z0-9 ]', ' ', s)).strip()
+prod, cur = {}, None
+for r in csv.DictReader(open(D + 'products.csv', encoding='utf-8')):
+    if r['Status']: cur = r['Handle']; prod[cur] = {'t': r['Title'], 's': r['Status'], 'q': 0, 'trk': 0, 'cont': 0}
+    if r['Variant Price']:
+        d = prod[cur]; d['q'] += max(int(r['Variant Inventory Qty'] or 0), 0); d['trk'] += r['Variant Inventory Tracker'] == 'shopify'; d['cont'] += r['Variant Inventory Policy'] == 'continue'
+act = {h: d for h, d in prod.items() if d['s'] == 'active' and d['trk'] > 0}
+ep = [h for h, d in act.items() if d['q'] == 0]
+bas_stock = [h for h, d in act.items() if 1 <= d['q'] <= 5]
+tit = {norm(d['t']): h for h, d in prod.items()}
+debut = '2026-07-24'                                  # 90 derniers jours avant le 22/10/2026
+vend, ca, tot_u, tot_c, tot_l, lies = collections.Counter(), collections.Counter(), 0, 0.0, 0, 0
+cur = None
+for r in csv.DictReader(open(D + 'orders.csv', encoding='utf-8')):
+    if r['Total']: cur = r
+    if cur and r['Lineitem name'] and r['Lineitem name'] != 'Tip' and not cur['Cancelled at'] and cur['Created at'][:10] >= debut:
+        k = norm(re.split(r' - | / ', r['Lineitem name'])[0]); qte = int(r['Lineitem quantity']); pr = float(r['Lineitem price']); tot_l += 1
+        if k in tit: vend[tit[k]] += qte; ca[tit[k]] += qte * pr; tot_u += qte; tot_c += qte * pr; lies += 1
+top = sorted(ep, key=lambda h: -vend[h])[:6]
+out['catalogue'] = {'actifs_suivis': len(act), 'epuises': len(ep), 'epuises_vendables': sum(1 for h in ep if prod[h]['cont'] > 0), 'stock_bas': len(bas_stock),
+                    'unites_90j': tot_u, 'ca_90j': round(tot_c), 'part_lignes_reliees': round(100 * lies / tot_l, 0),
+                    'epuises_unites': sum(vend[h] for h in ep), 'epuises_ca': round(sum(ca[h] for h in ep)), 'epuises_part_ca': round(100 * sum(ca[h] for h in ep) / tot_c, 0),
+                    'epuises_5_et_plus': sum(1 for h in ep if vend[h] >= 5), 'top': [[prod[h]['t'], vend[h]] for h in top],
+                    'cout_renseigne': sum(1 for r in csv.DictReader(open(D + 'products.csv', encoding='utf-8')) if r['Cost per item'])}
+
+# ---------------------------------------------------------------- C. codes promo
+disc = list(csv.DictReader(open(D + 'discounts.csv', encoding='utf-8')))
+auto = [d for d in disc if d['Name'].startswith('AUTO-')]
+def genre(c): return 'aucun' if not c else 'AUTO' if c.startswith('AUTO-') else 'NOMINATIF' if c.startswith('NOMINATIF-') else c
+cm = [o for o in commandes if genre(o['code']) == 'AUTO']; bi = [o for o in commandes if genre(o['code']) == 'BIENVENUE10']
+premieres = [o for o in commandes if o.get('rang') == 1]
+out['codes'] = {'bienvenue_utilisations': len(bi), 'bienvenue_1res': sum(1 for o in bi if o.get('rang') == 1), 'bienvenue_rang2_plus': sum(1 for o in bi if o.get('rang', 0) >= 2),
+                'part_1res_avec_bienvenue': round(100 * sum(1 for o in premieres if genre(o['code']) == 'BIENVENUE10') / len(premieres), 0), 'n_premieres': len(premieres),
+                'auto_codes': len(auto), 'auto_utilises': sum(int(d['Times Used In Total'] or 0) for d in auto), 'auto_usage_unique': sum(1 for d in auto if d['Usage Limit Per Code'] == '1'),
+                'auto_commandes': len(cm), 'auto_deja_clients': sum(1 for o in cm if o.get('rang', 0) >= 2), 'auto_panier_moyen': round(float(np.mean([o['total'] for o in cm]))),
+                'auto_valeurs': dict(collections.Counter(('%d %%' % abs(float(d['Value']))) if d['Value Type'] == 'percentage' else ('%d €' % abs(float(d['Value']))) for d in auto)), 'auto_remise_totale': round(sum(o['remise'] for o in cm)), 'panier_moyen_tous': round(float(np.mean([o['total'] for o in commandes])))}
+
+# ---------------------------------------------------------------- D. audience Meta
+aud = list(csv.DictReader(open(D + 'audiences.csv', encoding='utf-8')))
+res = {}
+for rs in ('instagram', 'facebook'):
+    ag = [a for a in aud if a['reseau'] == rs and a['rubrique'] == 'Âge et genre']
+    tr = collections.defaultdict(float)
+    for a in ag: tr[a['libelle']] += float(a['valeur'])
+    pays = [a for a in aud if a['reseau'] == rs and a['rubrique'] == 'Principaux pays']
+    res[rs] = {'femmes': round(sum(float(a['valeur']) for a in ag if a['serie'] == 'Femmes'), 1), 'hommes': round(sum(float(a['valeur']) for a in ag if a['serie'] == 'Hommes'), 1),
+               'tranches': {k: round(v, 1) for k, v in tr.items()}, '25_44': round(tr['25-34'] + tr['35-44'], 1),
+               'france': float([a['valeur'] for a in pays if a['libelle'] == 'France'][0])}
+out['audience'] = res
+
+json.dump(out, open('q2_avis_catalogue.json', 'w'), ensure_ascii=False, indent=1)
+print(json.dumps(out, ensure_ascii=False, indent=1)[:4500])

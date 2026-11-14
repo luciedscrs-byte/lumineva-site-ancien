@@ -1,0 +1,79 @@
+import json, csv
+from datetime import datetime, timedelta
+from collections import defaultdict
+import numpy as np
+from scipy import stats
+import statsmodels.api as sm
+
+O = json.load(open('orders_prepared.json'))
+for o in O: o['date_obj'] = datetime.fromisoformat(o['date'])
+
+start = min(o['date_obj'] for o in O).date()
+end = max(o['date_obj'] for o in O).date()
+# semaine ISO
+week_rev = defaultdict(float); week_n = defaultdict(int)
+for o in O:
+    yw = o['date_obj'].isocalendar()[:2]
+    week_rev[yw] += o['tot']; week_n[yw] += 1
+weeks = sorted(week_rev.keys())
+print(f"semaines: {len(weeks)} de {weeks[0]} à {weeks[-1]}")
+print("revenu hebdo (8 dernières):", [round(week_rev[w]) for w in weeks[-8:]])
+
+# ===== corrélation croisée Instagram (mensuel) vs commandes, avec décalage -2..+2 mois
+ig = []
+with open('../DONNEES/instagram_publications.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        d = row['Heure de publication']
+        m,dd,yy = d[0:2], d[3:5], d[6:10]
+        reach = int(row['Couverture'] or 0)
+        ig.append((f"{yy}-{m}", reach))
+ig_month = defaultdict(int)
+for m,r in ig: ig_month[m] += r
+mo_orders = defaultdict(int)
+for o in O: mo_orders[o['month']] += 1
+months = sorted(mo_orders.keys())
+print("\n=== Corrélation croisée Instagram (couverture) <-> commandes, décalage en mois ===")
+xcorr = {}
+for lag in (-2,-1,0,1,2):
+    pairs = []
+    for i,m in enumerate(months):
+        j = i - lag  # reach du mois (m - lag) prédit commandes du mois m si lag>0 (reach en avance)
+        if 0 <= j < len(months):
+            src_m = months[j]
+            if src_m in ig_month:
+                pairs.append((ig_month[src_m], mo_orders[m]))
+    if len(pairs) >= 5:
+        xs = [p[0] for p in pairs]; ys=[p[1] for p in pairs]
+        r,p = stats.pearsonr(xs, ys)
+        xcorr[lag] = {'r': round(r,3), 'p': round(p,4), 'n': len(pairs)}
+        print(f"  décalage {lag:+d} mois : r={r:.3f} p={p:.4f} (n={len(pairs)})")
+best_lag = max(xcorr, key=lambda k: abs(xcorr[k]['r']))
+print(f"  -> meilleure corrélation (en valeur absolue) : décalage {best_lag:+d} mois, r={xcorr[best_lag]['r']}")
+
+# ===== test de rupture : hausse du prix des bougies gourmandes (~1er nov 2025)
+print("\n=== Test de rupture : chiffre d'affaires hebdomadaire autour du 1er nov. 2025 ===")
+EVENT = datetime(2025,11,1).date()
+def week_key(d): return d.isocalendar()[:2]
+def week_start(yw):
+    y,w = yw
+    return datetime.fromisocalendar(y,w,1).date()
+
+rows = []
+for w in weeks:
+    ws = week_start(w)
+    t = (ws - start).days
+    rows.append({'w':w,'ws':ws,'t':t,'rev':week_rev[w],'n':week_n[w],'post': 1 if ws>=EVENT else 0})
+df_rows = rows
+X = np.array([[1, r['t'], r['post'], r['t']*r['post']] for r in df_rows])
+y = np.array([r['rev'] for r in df_rows])
+m = sm.OLS(y, X).fit(cov_type='HC3')
+print(m.summary().tables[1])
+level_shift = m.params[2]; p_shift = m.pvalues[2]
+print(f"Saut de niveau au 1er nov. 2025 : {level_shift:+.1f} €/semaine (p={p_shift:.4f})")
+break_res = {'level_shift': round(level_shift,1), 'p_shift': round(p_shift,4),
+             'slope_before': round(m.params[1],2), 'slope_change': round(m.params[3],2), 'p_slope_change': round(m.pvalues[3],4)}
+
+json.dump({'weeks': [f"{w[0]}-W{w[1]:02d}" for w in weeks], 'week_rev':[round(week_rev[w],2) for w in weeks],
+           'week_n':[week_n[w] for w in weeks],
+           'xcorr': xcorr, 'best_lag': best_lag, 'break_test': break_res},
+          open('d1_timeseries.json','w'), ensure_ascii=False)

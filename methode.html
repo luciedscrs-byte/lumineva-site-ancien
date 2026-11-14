@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Méthode, code et vérifications · Lumineva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="style.css?v=17">
+
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+<nav class="topnav" aria-label="Navigation principale"><div class="wrap"><a class="brand" href="index.html">Lumineva · données</a><div class="links"><a href="index.html">Accueil</a><a href="contexte.html">Contexte</a><a href="analyses.html">Premières analyses</a><a href="choix.html">Notre choix</a><a href="automatisations.html">Automatisations</a><a href="q-formation.html">Formation</a><a href="recommandations.html">Recommandations</a><a href="faq.html">FAQ</a><a href="methode.html" aria-current="page">Méthode</a></div></div></nav>
+
+<header class="hero"><div class="wrap"><p class="kicker">Transparence</p><h1>Méthode, code et vérifications</h1><p class="lead">Qui a fait quoi, ce qui a été vérifié, tout le code, et les sources.</p></div></header>
+<main class="wrap" id="contenu">
+<details class="pli" name="audit-ind"><summary>Audit indépendant des chiffres des nouvelles pages</summary><div class="corps"><p>Chaque chiffre clé des pages Automatisations, Formation et Profil est recalculé depuis les fichiers bruts par un second programme qui n’utilise pas le code d’analyse (<code>audit_independant.py</code>), puis comparé à la valeur affichée. Il a déjà fait corriger : deux fins de période restées au 20 septembre, des chiffres écrits en dur périmés, un libellé trompeur (« achat d’une formation » pour une étiquette) et plusieurs phrases trop fortes (par exemple « ne reviennent jamais »). Les e-mails (Shopify Messaging) ne se recalculent pas depuis les fichiers : on contrôle leurs statistiques, pas leurs comptages.</p><pre class="code"><code>Contrôle                                                              Recalculé         Site  Verdict
+Commandes non annulées                                                   1595.0       1595.0  OK
+CA facturé (€)                                                         99629.29      99629.0  OK
+Clients avec commande                                                     913.0        913.0  OK
+Part des clients à 1 seule commande (%)                                 69.3319      69.3319  OK
+Retour à J+45 (Kaplan-Meier refait)                                     11.3707      11.3707  OK
+Retour à J+90 (Kaplan-Meier refait)                                     20.7684      20.7684  OK
+Retour à J+180 (Kaplan-Meier refait)                                    29.2845      29.2845  OK
+Clients qui ont recommandé                                                280.0        280.0  OK
+Délai médian des retours (jours)                                           66.0         66.0  OK
+Cible annuelle joignable à J+45                                           474.0        474.0  OK
+Écart moyen 2e - 1re commande (€)                                        3.7576         3.76  OK
+Wilcoxon p (1re/2e commande)                                              0.028        0.028  OK
+Jours de pointe (>= 20 commandes)                                           4.0          4.0  OK
+Commandes du 2026-09-06                                                    60.0         60.0  OK
+  dont clients déjà connus                                                 39.0         39.0  OK
+Commandes du 2026-09-20                                                    36.0         36.0  OK
+  dont clients déjà connus                                                 13.0         13.0  OK
+6/09 : commandes entre 10 h et 12 h                                        31.0         31.0  OK
+20/09 : part entre 10 h et 12 h (la page dit « la moitié environ »)         50.0      45 à 55  OK
+6/09 : part entre 10 h et 12 h (idem)                                      51.7      45 à 55  OK
+Expéditions > 7 j, jours de pointe (%)                                   23.913         23.9  OK
+Expéditions > 7 j, autres jours (%)                                     13.0886         13.1  OK
+Fisher p expéditions tardives                                            0.0012       0.0012  OK
+PSL : unités le 6/09                                                       26.0         26.0  OK
+PSL : unités le 20/09                                                      34.0         34.0  OK
+Commandes non expédiées au 22/10                                           10.0         10.0  OK
+Relances : commandes / 100 e-mails                                       0.9695         0.97  OK
+Poisson exact : borne basse                                              0.3898         0.39  OK
+Poisson exact : borne haute                                              1.9976          2.0  OK
+Part du CA des relances (%)                                              0.8456       0.8456  OK
+Demandes d'avis envoyées                                                 2911.0       2911.0  OK
+Avis par e-mail                                                           273.0        273.0  OK
+Fisher p : 1er article contre autres                                     0.0001       0.0001  OK
+Avis publiés                                                              313.0        313.0  OK
+Note moyenne                                                             4.9361         4.94  OK
+Avis à 3 étoiles ou moins                                                   3.0          3.0  OK
+Délai médian commande -> avis (jours)                                      19.0         19.0  OK
+Commandes de formation                                                     18.0         18.0  OK
+Formation payée (€, total des commandes)                                 3240.5       3240.5  OK
+Ventes payantes                                                            16.0         16.0  OK
+Montant moyen d'une vente payante (€)                                  202.5312     202.5312  OK
+Ventes dans les 4 jours après un e-mail                                     9.0          9.0  OK
+Couverture de la période (%)                                            15.1351      15.1351  OK
+Test binomial p                                                          0.0002       0.0002  OK
+Codes AUTO                                                                 33.0         33.0  OK
+Usages BIENVENUE10                                                        482.0        482.0  OK
+Part des 1res commandes avec BIENVENUE10 (%)                            48.9595         49.0  OK
+Commandes AUTO déjà clients                                                30.0         30.0  OK
+Panier moyen AUTO                                                      122.8143        123.0  OK
+Produits actifs                                                           133.0        133.0  OK
+Photos des produits actifs                                                271.0        271.0  OK
+Fisher p : relances contre newsletters                                   0.0001       0.0001  OK
+Rapport de commandes par e-mail (relances / newsletters)                 8.9339       8.9339  OK
+Fiches étiquetées « Formation »                                           330.0        330.0  OK
+  dont clients (au moins 1 commande)                                       47.0         47.0  OK
+Acheteurs de formation (clients identifiés)                                15.0         15.0  OK
+  dont étiquetés « Formation »                                              8.0          8.0  OK
+Conversion : acheteurs payants étiquetés / fiches étiquetées (%)         2.1212       2.1212  OK
+Acheteurs de formation déjà clients bougies avant (page : 3)                3.0          3.0  OK
+Dépense moyenne hors formation, fiches étiquetées clientes (€)         134.0083     134.0083  OK
+Dépense moyenne hors formation, autres clients (€)                      102.934      102.934  OK
+Mann-Whitney p (dépense inscrits / autres)                               0.8427       0.8427  OK
+Part des clients à 2 commandes ou plus (%)                              30.6681      30.6681  OK
+Part des clients à 3 commandes ou plus (%)                              13.5816      13.5816  OK
+Commandes par client (moyenne)                                           1.7196       1.7196  OK
+Dépense par client (moyenne, €)                                        108.0829     108.0829  OK
+Dépense par client (médiane, €)                                            63.4         63.4  OK
+Part des commandes avec code (%)                                         35.674       35.674  OK
+Septembre 2026 : commandes                                                211.0        211.0  OK
+Septembre 2026 : part du 6/09 dans le CA du mois (%)                    29.5759         29.6  OK
+Joignables parmi les clients connus du 6/09                                38.0         38.0  OK
+Clients joignables (au moins 1 commande, accepte les e-mails)             740.0        740.0  OK
+Produits actifs suivis en stock                                           121.0        121.0  OK
+  épuisés                                                                  16.0         16.0  OK
+  stock bas (1 à 5)                                                        75.0         75.0  OK
+Coût par article renseigné (nombre de variantes)                            0.0          0.0  OK
+Remise totale des commandes AUTO (€)                                     400.92        401.0  OK
+Remboursements : commandes concernées (page Contexte : 25)                 25.0         25.0  OK
+Remboursements : montant (page Contexte : 345 €)                         344.62        345.0  OK
+Part de la livraison dans le total facturé (%) (page : 6)                 6.419          6.4  OK
+Part de la TVA dans le total facturé (%) (page : 5)                      5.1619          5.2  OK
+Fiches « Formation » issues d'un formulaire Shopify (page : 324)          324.0        324.0  OK
+Clients distincts auteurs d'un avis dans avis.csv (page : 188)            188.0        188.0  OK
+Fiches avec l'étiquette « Wrote Judge.me email review » (page : 181)        181.0        181.0  OK
+Commandes en 2025-09 (page Contexte)                                      163.0        163.0  OK
+Commandes en 2025-11 (page Contexte)                                      197.0        197.0  OK
+Commandes en 2026-09 (page Contexte)                                      211.0        211.0  OK
+Groupe fidèle : part des clients (%) (page Contexte : 18)                  17.7         18.0  OK
+Groupe fidèle : part du CA (%) (page Contexte : 52)                        52.2         52.0  OK
+Délai médian de la 2e commande (page Contexte : 66)                        66.0         66.0  OK
+Retour naturel J+45 -> J+75 (%) (page : 8,3)                             8.3372       8.3372  OK
+Commande moyenne de la 2e commande, clients qui reviennent (€)          67.7294      67.7294  OK
+Scénario +5 points : commandes en plus par an                              23.7         23.7  OK
+Scénario +5 points : marge basse (€)                                   573.0513     573.0513  OK
+Produits sortis en 12 mois (nov. 2025 - oct. 2026)                        210.0        210.0  OK
+  dont reliés au catalogue                                                178.0        178.0  OK
+  photos par produit (moyenne)                                           2.5281          2.5  OK
+  photos à retoucher par an (estimation)                                  531.0        531.0  OK
+Sorties en novembre 2025                                                   56.0         56.0  OK
+Sorties en mars 2026                                                       29.0         29.0  OK
+Sorties en septembre 2026                                                  36.0         36.0  OK
+
+ 101 contrôles OK sur 101
+</code></pre></div></details>
+<details class="pli" name="met" open><summary>Qui a fait quoi</summary><div class="corps"><p>Règle du module : l’IA produit, les étudiants vérifient et signent.</p><div class="tablewrap"><table><tr><th>Étape</th><th>Produit par l’agent</th><th>Décidé ou vérifié par l’équipe</th></tr><tr><td>Nettoyage, calculs, graphiques</td><td>Scripts Python, graphiques SVG, pages de ce site</td><td>Contrôle automatique des chiffres clés fait ; relecture humaine à faire</td></tr><tr><td>Choix des tests</td><td>Proposition et exécution</td><td>À valider par l’équipe</td></tr><tr><td>Questions de décision</td><td>Propositions tirées des notes de la séance de questions, analyses et chiffrage</td><td>Choix des 4 questions à valider par l’équipe</td></tr></table></div></div></details>
+<details class="pli" name="met"><summary>Vérifications</summary><div class="corps"><p>Contrôle automatique des chiffres clés (recalcul depuis les fichiers sources) :</p><pre class="code"><code>Contrôle                                            Recalculé    Affiché  Verdict
+Commandes non annulées                                   1438       1438  OK
+Commandes annulées (exclues)                                7          7  OK
+Chiffre d'affaires facturé (€)                          90721      90721  OK
+Panier moyen (€)                                        63.09      63.09  OK
+Commandes avec un code promo (tous codes)                 516        516  OK
+Part des commandes avec code (%)                         35.9       35.9  OK
+Commandes livrées en France                              1350       1350  OK
+Part du dimanche (%)                                     21.3       21.3  OK
+Heure la plus chargée (10 h) : part (%)                   8.6        8.6  OK
+Première commande = 2025-06-27                              1          1  OK
+Dernière commande = 2026-09-20                              1          1  OK
+Commandes du 1er au 20 sept. 2025                         114        114  OK
+Commandes du 1er au 20 sept. 2026                         163        163  OK
+CA facturé 1-20 sept. 2025 (€)                           7491       7491  OK
+CA facturé 1-20 sept. 2026 (€)                          10820      10820  OK
+Commandes sans identifiant client                          25         25  OK
+TVA collectée (€)                                        3685       3685  OK
+CA hors TVA (€)                                         87036      87036  OK
+Première commande avec TVA = 2026-05-28                     1          1  OK
+Fiches clients                                           1923       1923  OK
+Total dépensé des fiches clients (€)                    89718      89718  OK
+Fiches clients avec dépense &gt; 0 (« ont acheté »)          840        840  OK
+Mouvements de paiement                                   1473       1473  OK
+OCT. Commandes non annulées (accueil : 1 595)            1595       1595  OK
+OCT. Chiffre d'affaires facturé (accueil : 99 629 €)        99629      99629  OK
+OCT. Panier moyen (accueil : 62 €)                         62         62  OK
+OCT. Dernière commande = 2026-10-22                         1          1  OK
+OCT. Commandes (script automatisations)                  1595       1595  OK
+OCT. Jours de pointe (20 commandes ou plus)                 4          4  OK
+OCT. Clients suivis (relance)                             913        913  OK
+OCT. Commandes de formation (accueil : 18)                 18         18  OK
+OCT. Avis publiés (page demande d'avis : 313)             313        313  OK
+OCT. Avis à 5 étoiles (95 %)                               95         95  OK
+OCT. Demandes d'avis envoyées (2 911)                    2911       2911  OK
+OCT. Codes AUTO (33)                                       33         33  OK
+OCT. Produits actifs (page retouche photo : 133)          133        133  OK
+
+ 36 contrôles OK sur 36
+</code></pre><p class="meta">Un contrôle a trouvé une erreur de total (codes promo), corrigée. D’autres contrôles ont corrigé des erreurs d’interprétation : le libellé « TTC » avant le 28 mai 2026, la définition du top 5 des produits, et un classement de produits (packs de Saint-Valentin comptés par erreur comme formations).</p></div></details>
+<details class="pli" name="met"><summary>Le code</summary><div class="corps"><p>Tous les scripts qui produisent les chiffres et les graphiques. Les fichiers de données ne sont pas fournis (confidentiels) : le code se lit, il ne se relance pas sans eux. Les chemins personnels ont été retirés à l’affichage. Chaque page affiche aussi les scripts qui la concernent.</p><div class="tablewrap"><table><tr><th>Script</th><th>Ce qu’il fait</th><th></th></tr><tr><td><code>a1_clv.py</code></td><td>Valeur d’un client avec ou sans le code BIENVENUE10.</td><td><a href="a1_clv.txt" download>télécharger</a></td></tr><tr><td><code>a2_income.py</code></td><td>Niveau de vie médian du département (Insee) rapporté au panier moyen.</td><td><a href="a2_income.txt" download>télécharger</a></td></tr><tr><td><code>a3_survival.py</code></td><td>Courbe de survie : délai avant la 2e commande (Kaplan-Meier, test du log-rank).</td><td><a href="a3_survival.txt" download>télécharger</a></td></tr><tr><td><code>a4_trends.py</code></td><td>Recherches Google (Google Trends) comparées aux commandes.</td><td><a href="a4_trends.txt" download>télécharger</a></td></tr><tr><td><code>audit_independant.py</code></td><td>Audit : recalcule depuis les fichiers bruts, par un autre chemin de calcul, les chiffres des pages Automatisations, Formation et Profil.</td><td><a href="audit_independant.txt" download>télécharger</a></td></tr><tr><td><code>b1_bivarie.py</code></td><td>Tests du khi², tests t, analyses de variance et corrélations.</td><td><a href="b1_bivarie.txt" download>télécharger</a></td></tr><tr><td><code>behavior.py</code></td><td>Segments de clientèle (récence, fréquence, montant), cohortes de réachat, produits achetés ensemble.</td><td><a href="behavior.txt" download>télécharger</a></td></tr><tr><td><code>build_fragments2.py</code></td><td>Assemble les blocs HTML de la première série d’analyses.</td><td><a href="build_fragments2.txt" download>télécharger</a></td></tr><tr><td><code>build_parcours.py</code></td><td>Construit les tableaux, profils et arbres de la page « Parcours clients ».</td><td><a href="build_parcours.txt" download>télécharger</a></td></tr><tr><td><code>build_soir.py</code></td><td>Assemble les blocs HTML de la deuxième série de tests.</td><td><a href="build_soir.txt" download>télécharger</a></td></tr><tr><td><code>build_soir2.py</code></td><td>Assemble les blocs HTML (suite).</td><td><a href="build_soir2.txt" download>télécharger</a></td></tr><tr><td><code>build_soir_v2.py</code></td><td>Assemble les blocs HTML (version approfondie).</td><td><a href="build_soir_v2.txt" download>télécharger</a></td></tr><tr><td><code>build_tests_tab.py</code></td><td>Assemble les blocs HTML des tests statistiques.</td><td><a href="build_tests_tab.txt" download>télécharger</a></td></tr><tr><td><code>c1_regression.py</code></td><td>Régression multiple : ce qui explique le montant d’une commande.</td><td><a href="c1_regression.txt" download>télécharger</a></td></tr><tr><td><code>common.py</code></td><td>Lit les commandes, classe les produits en familles, regroupe les commandes par client. Base des analyses « parcours clients ».</td><td><a href="common.txt" download>télécharger</a></td></tr><tr><td><code>d1_timeseries.py</code></td><td>Séries temporelles : corrélation croisée avec décalage et test de rupture.</td><td><a href="d1_timeseries.txt" download>télécharger</a></td></tr><tr><td><code>d2_diffindiff.py</code></td><td>Différence de différences : effet propre de la hausse de prix des bougies gourmandes.</td><td><a href="d2_diffindiff.txt" download>télécharger</a></td></tr><tr><td><code>e1_rentree_explication.py</code></td><td>Explication du chiffre d’affaires de septembre 2026 ; fidélité des acheteurs de lancement.</td><td><a href="e1_rentree_explication.txt" download>télécharger</a></td></tr><tr><td><code>e2_visites_referent.py</code></td><td>Lecture du rapport de visites par référent (période inconnue : sans conclusion de conversion).</td><td><a href="e2_visites_referent.txt" download>télécharger</a></td></tr><tr><td><code>f1_launch_deep.py</code></td><td>Fidélité des acheteurs de lancement, sur les lancements ayant assez de recul.</td><td><a href="f1_launch_deep.txt" download>télécharger</a></td></tr><tr><td><code>f2_concentration.py</code></td><td>La concentration du chiffre d’affaires sur les jours de lancement : cas isolé ou systématique ?</td><td><a href="f2_concentration.txt" download>télécharger</a></td></tr><tr><td><code>f3_multifamille.py</code></td><td>Acheter plusieurs familles de produits fait-il grossir le panier ?</td><td><a href="f3_multifamille.txt" download>télécharger</a></td></tr><tr><td><code>f4_seuil_livraison.py</code></td><td>Effet de seuil à 79 € : commandes juste sous et juste au-dessus du seuil de livraison offerte.</td><td><a href="f4_seuil_livraison.txt" download>télécharger</a></td></tr><tr><td><code>f5_local_et_premier_panier.py</code></td><td>Le retrait local fidélise-t-il ? La taille de la 1re commande prédit-elle le retour ?</td><td><a href="f5_local_et_premier_panier.txt" download>télécharger</a></td></tr><tr><td><code>g1_premiere_vs_suivantes.py</code></td><td>Ce qui change entre la 1re commande et les suivantes (montant, articles, produits, familles).</td><td><a href="g1_premiere_vs_suivantes.txt" download>télécharger</a></td></tr><tr><td><code>g2_profils.py</code></td><td>Fiche de chaque client, niveau de vie de la commune, 5 profils (k-means), arbre de décision du réachat.</td><td><a href="g2_profils.txt" download>télécharger</a></td></tr><tr><td><code>g3_premiere_commande.py</code></td><td>Contenu d’une 1re commande, compléments, retour des produits, lien avec le réachat.</td><td><a href="g3_premiere_commande.txt" download>télécharger</a></td></tr><tr><td><code>geo.py</code></td><td>Coordonnées des codes postaux et contours des régions.</td><td><a href="geo.txt" download>télécharger</a></td></tr><tr><td><code>h1_seuil79_chiffre.py</code></td><td>Chiffrage de la piste « seuil de livraison à 79 € » : excès de commandes, port non encaissé, déplacements du seuil.</td><td><a href="h1_seuil79_chiffre.txt" download>télécharger</a></td></tr><tr><td><code>j1_emailing.py</code></td><td>Piste 4 : résultats des newsletters et des automatisations (intervalles, tests de permutation, rythme, jours d'envoi).</td><td><a href="j1_emailing.txt" download>télécharger</a></td></tr><tr><td><code>k1_rapport_emailing.py</code></td><td></td><td><a href="k1_rapport_emailing.txt" download>télécharger</a></td></tr><tr><td><code>k2_plan_lumineva.py</code></td><td></td><td><a href="k2_plan_lumineva.txt" download>télécharger</a></td></tr><tr><td><code>l1_relance.py</code></td><td>Relance après la 1re commande : courbe de retour (Kaplan-Meier), moments d'envoi, scénarios de gain.</td><td><a href="l1_relance.txt" download>télécharger</a></td></tr><tr><td><code>l3_formation.py</code></td><td>Formation : ventes autour des e-mails, recoupement inscrits et clients, valeur d'un inscrit.</td><td><a href="l3_formation.txt" download>télécharger</a></td></tr><tr><td><code>mkmap.py</code></td><td>Carte des acheteurs en France : une bulle par commune, plus grosse si le panier moyen est plus élevé.</td><td><a href="mkmap.txt" download>télécharger</a></td></tr><tr><td><code>o1_profil_avis.py</code></td><td>Profil des clients qui écrivent un avis Judge.me, comparés aux autres (sans aucun prénom).</td><td><a href="o1_profil_avis.txt" download>télécharger</a></td></tr><tr><td><code>p1_profil_type.py</code></td><td>Profil type des clients : lieu, taille de commune, panier, fidélité, familles achetées (agrégats uniquement).</td><td><a href="p1_profil_type.txt" download>télécharger</a></td></tr><tr><td><code>prep.py</code></td><td>Relie les commandes, les paiements et les clients. Base commune des tests.</td><td><a href="prep.txt" download>télécharger</a></td></tr><tr><td><code>q1_automatisations.py</code></td><td>Automatisations, approfondissement : jours de lancement et délais d'expédition, entonnoir des relances panier et paiement, gain de la relance comparé aux e-mails déjà envoyés.</td><td><a href="q1_automatisations.txt" download>télécharger</a></td></tr><tr><td><code>q2_avis_catalogue.py</code></td><td>Automatisations, suite : demande d'avis Judge.me, catalogue au 22/10, codes promo automatiques, audience des abonnés Meta.</td><td><a href="q2_avis_catalogue.txt" download>télécharger</a></td></tr><tr><td><code>q3_photos.py</code></td><td>Retouche photo : nombre de photos par produit et par sortie, calendrier des sorties, temps de retouche selon trois hypothèses.</td><td><a href="q3_photos.txt" download>télécharger</a></td></tr><tr><td><code>retouche_ombres.py</code></td><td>Éclaircit les ombres de toutes les photos d'un dossier (gratuit, une commande). À lancer sur ses propres photos.</td><td><a href="retouche_ombres.txt" download>télécharger</a></td></tr><tr><td><code>svgutil.py</code></td><td>Mise en forme des nombres et dessin des graphiques SVG.</td><td><a href="svgutil.txt" download>télécharger</a></td></tr><tr><td><code>verif_chiffres_cles.py</code></td><td>Recalcule les chiffres clés depuis les fichiers sources et les compare à ceux affichés.</td><td><a href="verif_chiffres_cles.txt" download>télécharger</a></td></tr></table></div><p class="meta">Les scripts de la première série de graphiques (chiffre d’affaires par mois, commandes par jour…) n’ont pas été conservés. Leurs chiffres clés sont contrôlés par <code>verif_chiffres_cles.py</code>.</p></div></details>
+<details class="pli" name="met"><summary>Sources</summary><div class="corps"><div class="tablewrap"><table><tr><th>Source</th><th>Adresse</th><th>Consultée</th></tr><tr><td>Annuaire des entreprises (registre officiel)</td><td>recherche-entreprises.api.gouv.fr</td><td>21 septembre 2026</td></tr><tr><td>Communes par code postal</td><td>geo.api.gouv.fr</td><td>25 septembre 2026</td></tr><tr><td>Niveau de vie, Insee Filosofi 2020</td><td>insee.fr (base des comptes communaux et départementaux)</td><td>22 et 25 septembre 2026</td></tr><tr><td>Codes postaux et coordonnées</td><td>geonames.org (fichier FR)</td><td>21–22 septembre 2026</td></tr><tr><td>Contours des régions</td><td>github.com/gregoiredavid/france-geojson</td><td>21–22 septembre 2026</td></tr><tr><td>Recherches Google</td><td>Google Trends (bibliothèque pytrends)</td><td>21–22 septembre 2026</td></tr><tr><td>Météo quotidienne par département</td><td>open-meteo.com (archive météo, usage non commercial)</td><td>21 octobre 2026</td></tr><tr><td>Centres des communes (pour la météo)</td><td>geo.api.gouv.fr</td><td>21 octobre 2026</td></tr><tr><td>Consignes du cours</td><td>sdm.iae-mod.fr</td><td>21 octobre 2026</td></tr></table></div></div></details>
+</main>
+<footer><div class="wrap"><p>Données pseudonymisées de la boutique Lumineva, remises par convention dans le cadre du module Smart Data Marketing (IAE Clermont Auvergne). Seuls des agrégats sont affichés. Ne pas diffuser.</p><p>Version de travail du 12 novembre 2026. Rendu : 18 novembre 2026.</p></div></footer>
+</body>
+</html>

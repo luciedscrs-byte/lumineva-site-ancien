@@ -1,0 +1,41 @@
+# encoding: utf-8
+"""Généralise le constat de septembre 2026 : la concentration du CA sur les jours de
+lancement est-elle systématique à chaque sortie de collection, ou un cas isolé ?"""
+import csv, json
+from collections import defaultdict
+from datetime import datetime, timedelta
+
+orders = []
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total'] and not row.get('Cancelled at'):
+        orders.append(row)
+byday = defaultdict(float)
+byday_n = defaultdict(int)
+for o in orders:
+    d = o['Created at'][:10]
+    byday[d] += float(o['Total'])
+    byday_n[d] += 1
+
+LAUNCHES = ['2025-09-07', '2025-11-01', '2026-09-06', '2026-09-20']
+WINDOW = 30  # mois calendaire (fenêtre glissante autour du lancement, +/- 15j)
+
+results = []
+for L in LAUNCHES:
+    Ld = datetime.strptime(L, '%Y-%m-%d')
+    start = Ld - timedelta(days=15)
+    end = Ld + timedelta(days=14)
+    days = [(start + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(30)]
+    window_ca = sum(byday.get(d, 0.0) for d in days)
+    launch_ca = byday.get(L, 0.0)
+    window_n = sum(byday_n.get(d, 0) for d in days)
+    launch_n = byday_n.get(L, 0)
+    part_ca = launch_ca / window_ca * 100 if window_ca else 0
+    part_n = launch_n / window_n * 100 if window_n else 0
+    results.append({'launch': L, 'window_ca': round(window_ca,2), 'launch_ca': round(launch_ca,2),
+                     'part_ca_pct': round(part_ca,1), 'window_n': window_n, 'launch_n': launch_n,
+                     'part_n_pct': round(part_n,1)})
+    print(f"{L}: CA du jour={launch_ca:.0f}€ sur {window_ca:.0f}€ en 30j ({part_ca:.1f}%) | {launch_n} cmd sur {window_n} ({part_n:.1f}%)")
+
+avg_part = sum(r['part_ca_pct'] for r in results) / len(results)
+print(f"\nMoyenne : le jour de lancement pèse {avg_part:.1f}% du CA des 30 jours autour de lui, sur les {len(LAUNCHES)} lancements documentés.")
+json.dump({'results': results, 'avg_part_ca_pct': round(avg_part,1)}, open('f2_concentration.json','w'), ensure_ascii=False)

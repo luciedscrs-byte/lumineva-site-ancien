@@ -1,0 +1,63 @@
+# encoding: utf-8
+"""La formation : ventes jour par jour autour des e-mails, recoupement inscrits / clients, valeur d'un inscrit.
+Aucune donnée personnelle affichée : comptes et totaux."""
+import csv, json, os
+from datetime import datetime, timedelta
+import numpy as np
+from scipy import stats
+from common import charger, famille
+
+cmds, clients = charger()
+cm = {r['customer_key']: r for r in csv.DictReader(open('../DONNEES/customers.csv', encoding='utf-8'))}
+tagF = {k for k, r in cm.items() if 'Formation' in (r['Tags'] or '')}
+j1 = json.load(open('j1_emailing.json', encoding='utf-8'))
+envois = sorted([datetime.strptime(e['date'][:10], '%Y-%m-%d').date() for e in j1['emails'] if e['type'] == 'newsletter' and e['liste'] != 'Tous les abonnés' and e['date'] >= '2026-01-01'])
+print('envois à la liste formation en 2026 :', [d.isoformat() for d in envois])
+# commandes contenant un produit de formation
+F = [o for o in cmds if 'Formation' in o['familles']]
+rows = sorted([{'date': o['dt'].date(), 'cle': o['cle'], 'total': o['total'], 'code': o['code'], 'ca_lignes': sum(l['qte'] * l['prix'] for l in o['lignes'] if famille(l['nom']) == 'Formation')} for o in F], key=lambda r: r['date'])
+print('commandes de formation :', len(rows), '| CA des lignes de formation (prix catalogue)', round(sum(r['ca_lignes'] for r in rows)), '€ | total payé (après remise, port, taxes)', round(sum(r['total'] for r in rows)), '€ | à 0 € :', sum(1 for r in rows if r['total'] == 0))
+print('avec code promo :', sum(1 for r in rows if r['code']), Counter_codes := {c: sum(1 for r in rows if r['code'] == c) for c in set(r['code'] for r in rows if r['code'])})
+# délai entre chaque vente et le dernier envoi
+def delai(d):
+    prev = [e for e in envois if e <= d]
+    return (d - prev[-1]).days if prev else None
+dl = [delai(r['date']) for r in rows if r['date'] >= envois[0] and r['total'] > 0]          # ventes payantes uniquement (2 commandes à 0 € sont des tests ou des offerts)
+print('délai (jours) entre chaque vente de formation et le dernier envoi :', dl)
+dans4 = sum(1 for x in dl if x is not None and x <= 4); n = len(dl)
+# probabilité d'une telle coïncidence si les ventes tombaient au hasard dans la période : part des jours situés à 0-4 jours après un envoi
+debut, fin = envois[0], max(o['dt'].date() for o in cmds)   # fin de période = dernière commande des données (toutes commandes)
+jours = [debut + timedelta(days=i) for i in range((fin - debut).days + 1)]
+couv = sum(1 for j in jours if any(0 <= (j - e).days <= 4 for e in envois)) / len(jours)
+p_bin = stats.binomtest(dans4, n, couv, alternative='greater').pvalue
+print(f'{dans4} ventes sur {n} tombent dans les 4 jours qui suivent un envoi ; ces 4 jours couvrent {100*couv:.0f} % de la période ; test binomial p = {p_bin:.2g}')
+# par envoi : nombre de ventes dans les 0-4 jours
+par_envoi = []
+for e in envois:
+    k = sum(1 for r in rows if 0 <= (r['date'] - e).days <= 4 and r['total'] > 0)
+    par_envoi.append({'date': e.isoformat(), 'ventes_0_4j': k, 'ca_0_4j': round(sum(r['total'] for r in rows if 0 <= (r['date'] - e).days <= 4))})
+print('par envoi :', par_envoi)
+
+# ---------- recoupement inscrits / clients
+buyers = {r['cle'] for r in rows if r['cle']}
+buyers_pay = {r['cle'] for r in rows if r['cle'] and r['total'] > 0}
+inscrits_clients = tagF & set(clients)
+print('inscrits (étiquette Formation) :', len(tagF), '| dont clients identifiés (au moins 1 commande) :', len(inscrits_clients), f'({100*len(inscrits_clients)/len(tagF):.0f} %)')
+print('acheteurs de formation (clés) :', len(buyers), '| payants :', len(buyers_pay), '| inscrits parmi eux :', len(buyers & tagF), '| déjà clients bougies avant :', sum(1 for k in buyers if any(o['dt'].date() < min(r['date'] for r in rows if r['cle'] == k) and 'Formation' not in o['familles'] for o in clients.get(k, []))))
+# parmi les inscrits-clients, que commandent-ils ?
+ic_sans_form = []
+for k in inscrits_clients:
+    os_ = clients[k]; ic_sans_form.append(sum(o['total'] for o in os_ if 'Formation' not in o['familles']))
+# valeur : dépenses de bougies etc. des inscrits qui sont clients, comparées aux autres clients
+autres = [k for k in clients if k not in tagF]
+dep_autres = [sum(o['total'] for o in clients[k] if 'Formation' not in o['familles']) for k in autres]; dep_ins = [sum(o['total'] for o in clients[k] if 'Formation' not in o['familles']) for k in inscrits_clients]     # hors achats de formation
+mw = stats.mannwhitneyu(dep_ins, dep_autres, alternative='two-sided')
+print(f'dépense hors formation par client : inscrits-clients {np.mean(dep_ins):.0f} € (médiane {np.median(dep_ins):.0f}) contre autres clients {np.mean(dep_autres):.0f} € (médiane {np.median(dep_autres):.0f}) ; Mann-Whitney p={mw.pvalue:.3f}')
+# valeur d'un inscrit
+ca_form = sum(r['total'] for r in rows); n_ins = len(tagF)
+print(f'valeur de la formation par inscrit : {ca_form/n_ins:.1f} € (total payé) ; conversion inscrits -> acheteurs payants : {len(buyers_pay & tagF)}/{n_ins} = {100*len(buyers_pay & tagF)/n_ins:.1f} %')
+json.dump({'n_ventes': len(rows), 'ca_lignes': sum(r['ca_lignes'] for r in rows), 'ca_paye': ca_form, 'a_zero': sum(1 for r in rows if r['total'] == 0), 'codes': Counter_codes,
+           'ventes': [{'date': r['date'].isoformat(), 'total': r['total'], 'code': r['code'], 'delai': delai(r['date'])} for r in rows], 'envois': [e.isoformat() for e in envois], 'dans4': dans4, 'n': n, 'n_payantes': sum(1 for r in rows if r['total'] > 0), 'couv': couv, 'p_bin': float(p_bin), 'par_envoi': par_envoi,
+           'inscrits': n_ins, 'inscrits_clients': len(inscrits_clients), 'acheteurs': len(buyers), 'acheteurs_payants': len(buyers_pay), 'acheteurs_inscrits': len(buyers & tagF),
+           'dep_inscrits_moy': float(np.mean(dep_ins)), 'dep_inscrits_med': float(np.median(dep_ins)), 'dep_autres_moy': float(np.mean(dep_autres)), 'dep_autres_med': float(np.median(dep_autres)), 'p_mw': float(mw.pvalue),
+           'valeur_inscrit': ca_form / n_ins, 'conversion': len(buyers_pay & tagF) / n_ins}, open('l3_formation.json', 'w'), default=float)

@@ -1,0 +1,86 @@
+# encoding: utf-8
+"""Relance après la 1re commande : quand l'envoyer, combien de clients visés, et ce qu'elle pourrait rapporter (scénarios).
+Aucune donnée personnelle : comptes et délais agrégés."""
+import csv, json, os
+from datetime import datetime, timedelta
+import numpy as np
+from common import charger, REF
+
+cmds, clients = charger()
+cm = {r['customer_key']: r for r in csv.DictReader(open('../DONNEES/customers.csv', encoding='utf-8'))}
+rows = []
+for k, os_ in clients.items():
+    p = os_[0]; d1 = p['dt']
+    d2 = os_[1]['dt'] if len(os_) > 1 else None
+    rows.append({'k': k, 'd1': d1, 'jours': (d2 - d1).days if d2 else None, 'suivi': (REF - d1).days, 'cons': cm.get(k, {}).get('Accepts Email Marketing') == 'yes', 'b2': os_[1]['total'] if d2 else None})
+N = len(rows); ret = [r for r in rows if r['jours'] is not None]
+print('clients', N, '| ont recommandé', len(ret))
+
+# ---------- Kaplan-Meier du délai avant la 2e commande (censure à la date de référence)
+dur = np.array([r['jours'] if r['jours'] is not None else r['suivi'] for r in rows], dtype=float); ev = np.array([1 if r['jours'] is not None else 0 for r in rows])
+def km(dur, ev, tmax=400):
+    ts = sorted(set(dur[ev == 1])); S = 1.0; pts = [(0, 1.0)]; var_acc = 0.0; ci = []
+    for t in ts:
+        if t > tmax: break
+        n_risk = (dur >= t).sum(); d = ((dur == t) & (ev == 1)).sum()
+        S *= (1 - d / n_risk); var_acc += d / (n_risk * (n_risk - d)) if n_risk > d else 0
+        pts.append((float(t), float(S))); ci.append((float(t), float(S), float(S * np.sqrt(var_acc))))
+    return pts, ci
+pts, ci = km(dur, ev)
+def S_at(t):
+    s = 1.0
+    for tt, ss in pts:
+        if tt <= t: s = ss
+        else: break
+    return s
+def se_at(t):
+    e = 0.0
+    for tt, ss, se in ci:
+        if tt <= t: e = se
+        else: break
+    return e
+retour = {t: 1 - S_at(t) for t in (30, 45, 60, 90, 120, 180)}
+print('part ayant recommandé à J+t (Kaplan-Meier) :', {t: round(100 * v, 1) for t, v in retour.items()})
+cond = {}
+for t0 in (30, 45, 60):
+    s0 = S_at(t0)
+    cond[t0] = {t: float((s0 - S_at(t)) / s0) for t in (t0 + 30, t0 + 60)}
+print('retour dans les 30 et 60 jours suivants parmi ceux qui n\'ont pas encore recommandé :', {t0: {t: round(100 * v, 1) for t, v in d.items()} for t0, d in cond.items()})
+# histogramme des délais parmi ceux qui reviennent
+bornes = [0, 15, 30, 45, 60, 75, 90, 120, 180, 400]
+hist = []
+for a, b in zip(bornes[:-1], bornes[1:]):
+    hist.append({'a': a, 'b': b, 'n': sum(1 for r in ret if a <= r['jours'] < b)})
+print('délais parmi les 248 qui reviennent :', [(h['a'], h['n']) for h in hist], '| médiane', np.median([r['jours'] for r in ret]))
+
+# ---------- cible : clients à 1 commande à J+45 (flux annuel) et joignables par e-mail
+ANNEE = [r for r in rows if r['suivi'] >= 45 and r['suivi'] <= 45 + 365]               # premiers achats des 12 mois se terminant à J-45
+def pas_encore(r, t0): return r['jours'] is None or r['jours'] > t0
+cibles = {}
+for t0 in (30, 45, 60):
+    pool = [r for r in rows if r['suivi'] >= t0 + 1 and r['suivi'] <= t0 + 365]
+    elig = [r for r in pool if pas_encore(r, t0)]; join = [r for r in elig if r['cons']]
+    cibles[t0] = {'achats_12m': len(pool), 'sans_retour': len(elig), 'joignables': len(join), 'part_joignables': len(join) / len(elig) if elig else 0}
+print('cibles par moment d\'envoi :', cibles)
+# situation actuelle : clients dans la fenêtre 45-90 jours aujourd'hui
+actuel = [r for r in rows if 45 <= r['suivi'] <= 90 and r['jours'] is None]
+print('aujourd’hui : clients à 1 commande entre 45 et 90 jours :', len(actuel), 'dont joignables', sum(r['cons'] for r in actuel))
+b2 = float(np.mean([r['b2'] for r in ret])); b1 = float(np.mean([r['b2'] for r in ret]))
+panier2 = b2
+
+# ---------- scénarios : points de retour en plus parmi les joignables à J+45
+MB, MH = 0.50 * 0.714, 0.50
+t0 = 45; c = cibles[t0]; base_p = cond[45][75]                                           # retour naturel dans les 30 jours suivants (J+45 à J+75)
+sc = []
+for delta in (0.02, 0.05, 0.10):
+    extra = c['joignables'] * delta; ca = extra * panier2
+    sans_remise = {'cmd': extra, 'ca': ca, 'marge_bas': ca * MB, 'marge_haut': ca * MH}
+    remise = 0.10                                                                          # code de 10 % donné à tous ceux qui reviennent dans les 30 jours
+    cout = remise * panier2 * (c['joignables'] * (base_p + delta))
+    avec = {'cmd': extra, 'ca': ca, 'cout_remise': cout, 'marge_bas': ca * MB - cout, 'marge_haut': ca * MH - cout}
+    sc.append({'delta': delta, 'sans': sans_remise, 'avec': avec})
+    print(f'  +{100*delta:.0f} points : {extra:.1f} commandes en plus/an, {ca:,.0f} € de CA ; sans remise marge {ca*MB:,.0f}-{ca*MH:,.0f} € ; avec 10 % : coût {cout:,.0f} € -> marge {ca*MB-cout:,.0f} à {ca*MH-cout:,.0f} €')
+print('retour naturel J+45→J+75 :', round(100 * base_p, 1), '% | panier moyen de la 2e commande :', round(panier2, 2))
+json.dump({'N': N, 'n_ret': len(ret), 'mediane': float(np.median([r['jours'] for r in ret])), 'retour': {str(k): v for k, v in retour.items()}, 'cond': {str(a): {str(b): v for b, v in d.items()} for a, d in cond.items()},
+           'hist': hist, 'cibles': {str(k): v for k, v in cibles.items()}, 'actuel': {'n': len(actuel), 'joignables': sum(r['cons'] for r in actuel)}, 'panier2': panier2, 'base_p': float(base_p), 'scenarios': sc,
+           'km': [[float(a), float(b)] for a, b in pts], 'consent': float(np.mean([r['cons'] for r in rows]))}, open('l1_relance.json', 'w'), default=float)

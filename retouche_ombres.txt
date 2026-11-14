@@ -1,0 +1,60 @@
+# encoding: utf-8
+"""Éclaircit les ombres d'un dossier de photos, en une seule commande (gratuit, sans abonnement).
+
+Usage :
+    python3 retouche_ombres.py photos_brutes                      # écrit dans photos_brutes/retouchees
+    python3 retouche_ombres.py photos_brutes sortie --force 0.7   # plus fort (0 = rien, 1 = fort)
+    python3 retouche_ombres.py photos_brutes --apercu             # ajoute un fichier « avant | après » pour vérifier
+
+Ce que fait le programme : il éclaircit les zones sombres, avec un masque très flou pour ne pas créer de halo,
+et laisse les hautes lumières intactes. Les photos d'origine ne sont jamais modifiées.
+Ce qu'il ne fait pas : il ne supprime pas une ombre portée (l'ombre d'un objet sur la table) ; il ne change pas le fond.
+Il faut relire chaque photo avant de la publier (couleur de la cire, étiquettes lisibles).
+Installation, une seule fois :  pip3 install pillow numpy   (Windows : py -m pip install pillow numpy)"""
+import argparse, os, sys
+import numpy as np
+from PIL import Image, ImageFilter, ImageOps
+
+EXTENSIONS = ('.jpg', '.jpeg', '.png', '.webp')
+
+
+def eclaircir_ombres(img, force):
+    """img : image PIL RGB ; force : de 0 (rien) à 1 (fort). Retourne une image PIL RGB."""
+    a = np.asarray(img, dtype=np.float32) / 255.0
+    lum = 0.2126 * a[..., 0] + 0.7152 * a[..., 1] + 0.0722 * a[..., 2]
+    # masque : fort dans les zones sombres, nul dans les clairs, très flou (pas de halo autour des objets)
+    flou = Image.fromarray((lum * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(max(img.size) / 60))
+    masque = (1.0 - np.asarray(flou, dtype=np.float32) / 255.0) ** 2
+    masque = np.clip(masque * (0.6 + 0.8 * force), 0, 1)[..., None]
+    gamma = 1.0 / (1.0 + 0.9 * force)                       # < 1 : éclaircit les tons sombres
+    eclairci = np.power(np.clip(a, 1e-4, 1), gamma)
+    sortie = a * (1 - masque) + eclairci * masque
+    return Image.fromarray(np.clip(sortie * 255 + 0.5, 0, 255).astype(np.uint8))
+
+
+def main():
+    p = argparse.ArgumentParser(description="Éclaircit les ombres d'un dossier de photos.")
+    p.add_argument('entree', help='dossier des photos brutes')
+    p.add_argument('sortie', nargs='?', help='dossier de sortie (par défaut : entree/retouchees)')
+    p.add_argument('--force', type=float, default=0.6, help='de 0 à 1 (par défaut 0,6)')
+    p.add_argument('--apercu', action='store_true', help="écrit aussi une image « avant | après » par photo")
+    a = p.parse_args()
+    sortie = a.sortie or os.path.join(a.entree, 'retouchees')
+    os.makedirs(sortie, exist_ok=True)
+    fichiers = sorted(f for f in os.listdir(a.entree) if f.lower().endswith(EXTENSIONS))
+    if not fichiers:
+        sys.exit('Aucune photo (.jpg, .png, .webp) dans ' + a.entree)
+    for f in fichiers:
+        img = ImageOps.exif_transpose(Image.open(os.path.join(a.entree, f))).convert('RGB')
+        res = eclaircir_ombres(img, a.force)
+        nom = os.path.splitext(f)[0]
+        res.save(os.path.join(sortie, nom + '.jpg'), quality=95, subsampling=0)
+        if a.apercu:
+            duo = Image.new('RGB', (img.width * 2, img.height)); duo.paste(img, (0, 0)); duo.paste(res, (img.width, 0))
+            duo.save(os.path.join(sortie, nom + '_avant-apres.jpg'), quality=90)
+        print('ok', f)
+    print(len(fichiers), 'photo(s) retouchée(s) ->', sortie)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,87 @@
+# encoding: utf-8
+"""Explique la hausse de CA de septembre 2026 vs septembre 2025, et teste si les
+acheteurs des jours de lancement deviennent des clients fidèles."""
+import csv
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+from scipy.stats import poisson
+import numpy as np
+
+orders = []
+cur = None
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total']:
+        cur = {'r': row, 'items': []}
+        orders.append(cur)
+    if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['d'] = o['r']['Created at'][:10]
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+
+byday = defaultdict(float)
+for o in orders: byday[o['d']] += o['tot']
+
+d25 = [byday.get(f'2025-09-{d:02d}', 0.0) for d in range(1, 21)]
+d26 = [byday.get(f'2026-09-{d:02d}', 0.0) for d in range(1, 21)]
+t, p = stats.ttest_rel(d26, d25)
+d26_ex = [byday.get(f'2026-09-{d:02d}', 0.0) for d in range(1, 21) if d not in (6, 20)]
+d25_ex = [byday.get(f'2025-09-{d:02d}', 0.0) for d in range(1, 21) if d not in (6, 20)]
+t2, p2 = stats.ttest_rel(d26_ex, d25_ex)
+surplus_total = sum(d26) - sum(d25)
+surplus_hors = sum(d26_ex) - sum(d25_ex)
+part_2jours = (surplus_total - surplus_hors) / surplus_total * 100
+
+n_other = [sum(1 for o in orders if o['d'] == f'2026-09-{d:02d}') for d in range(1, 21) if d != 6]
+mean_n = float(np.mean(n_other))
+n6 = sum(1 for o in orders if o['d'] == '2026-09-06')
+p_extreme = 1 - poisson.cdf(n6 - 1, mean_n)
+
+# fidélité des acheteurs des jours de lancement
+LAUNCH_DAYS = {'2025-09-07', '2025-11-01', '2026-09-06', '2026-09-20'}
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o: o['d'])
+
+REF = datetime(2026, 9, 21)
+rows_all, rows_90j = [], []
+for k, os_ in cust.items():
+    first = os_[0]
+    is_launch = 1 if first['d'] in LAUNCH_DAYS else 0
+    is_repeat = 1 if len(os_) >= 2 else 0
+    rows_all.append((is_launch, is_repeat))
+    if (REF - datetime.strptime(first['d'], '%Y-%m-%d')).days >= 90:
+        rows_90j.append((is_launch, is_repeat))
+
+def khi2(rows):
+    tbl = [[sum(1 for l, r in rows if l == L and r == R) for R in (1, 0)] for L in (1, 0)]
+    chi2, p_, dof, _ = stats.chi2_contingency(tbl)
+    n = sum(sum(r) for r in tbl)
+    rl = tbl[0][0] / (tbl[0][0] + tbl[0][1]) if (tbl[0][0] + tbl[0][1]) else None
+    ro = tbl[1][0] / (tbl[1][0] + tbl[1][1])
+    return {'table': tbl, 'chi2': round(chi2, 3), 'p': round(p_, 4), 'n': n,
+            'reachat_launch': round(rl * 100, 1) if rl is not None else None,
+            'reachat_autre': round(ro * 100, 1), 'n_launch': tbl[0][0] + tbl[0][1]}
+
+res_all = khi2(rows_all)
+res_90j = khi2(rows_90j)
+
+print(f"Sept 2025 (1-20): {sum(d25):.0f} EUR | Sept 2026 (1-20): {sum(d26):.0f} EUR | surplus: {surplus_total:.0f} EUR")
+print(f"Sans le 6 et le 20 sept 2026 : sept25={sum(d25_ex):.0f} sept26={sum(d26_ex):.0f} -> {'hausse' if surplus_hors>0 else 'BAISSE'} de {surplus_hors:.0f} EUR")
+print(f"Part du surplus total venant de ces 2 jours : {part_2jours:.1f}%")
+print(f"6 sept 2026 : {n6} commandes vs rythme moyen {mean_n:.1f}/jour -> p(Poisson)={p_extreme:.2e}")
+print("Fidélité (tous) :", res_all)
+print("Fidélité (>=90j de recul) :", res_90j)
+
+import json
+json.dump({
+    'sept25_total': round(sum(d25), 2), 'sept26_total': round(sum(d26), 2),
+    'sept25_hors2j': round(sum(d25_ex), 2), 'sept26_hors2j': round(sum(d26_ex), 2),
+    'surplus_total': round(surplus_total, 2), 'surplus_hors2j': round(surplus_hors, 2),
+    'part_2jours_pct': round(part_2jours, 1),
+    'n6': n6, 'mean_n_other': round(mean_n, 2), 'p_poisson': p_extreme,
+    'fidelite_tous': res_all, 'fidelite_90j': res_90j,
+}, open('./e1_rentree_explication.json', 'w'), ensure_ascii=False)

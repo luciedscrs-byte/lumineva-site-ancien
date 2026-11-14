@@ -1,0 +1,59 @@
+import csv, json, re
+from collections import defaultdict
+from scipy import stats
+
+# revenu médian par département (Filosofi 2020, INSEE)
+income = {}
+with open('filosofi/cc_filosofi_2020_DEP.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f, delimiter=';'):
+        cg = row['CODGEO']
+        try: income[cg] = float(row['MED20'].replace(',', '.'))
+        except: pass
+print("départements avec revenu médian:", len(income))
+
+DEPNAME = {"01":"Ain","02":"Aisne","03":"Allier","04":"Alpes-de-Haute-Provence","05":"Hautes-Alpes","06":"Alpes-Maritimes","07":"Ardèche","08":"Ardennes","09":"Ariège","10":"Aube","11":"Aude","12":"Aveyron","13":"Bouches-du-Rhône","14":"Calvados","15":"Cantal","16":"Charente","17":"Charente-Maritime","18":"Cher","19":"Corrèze","21":"Côte-d'Or","22":"Côtes-d'Armor","23":"Creuse","24":"Dordogne","25":"Doubs","26":"Drôme","27":"Eure","28":"Eure-et-Loir","29":"Finistère","2A":"Corse-du-Sud","2B":"Haute-Corse","30":"Gard","31":"Haute-Garonne","32":"Gers","33":"Gironde","34":"Hérault","35":"Ille-et-Vilaine","36":"Indre","37":"Indre-et-Loire","38":"Isère","39":"Jura","40":"Landes","41":"Loir-et-Cher","42":"Loire","43":"Haute-Loire","44":"Loire-Atlantique","45":"Loiret","46":"Lot","47":"Lot-et-Garonne","48":"Lozère","49":"Maine-et-Loire","50":"Manche","51":"Marne","52":"Haute-Marne","53":"Mayenne","54":"Meurthe-et-Moselle","55":"Meuse","56":"Morbihan","57":"Moselle","58":"Nièvre","59":"Nord","60":"Oise","61":"Orne","62":"Pas-de-Calais","63":"Puy-de-Dôme","64":"Pyrénées-Atlantiques","65":"Hautes-Pyrénées","66":"Pyrénées-Orientales","67":"Bas-Rhin","68":"Haut-Rhin","69":"Rhône","70":"Haute-Saône","71":"Saône-et-Loire","72":"Sarthe","73":"Savoie","74":"Haute-Savoie","75":"Paris","76":"Seine-Maritime","77":"Seine-et-Marne","78":"Yvelines","79":"Deux-Sèvres","80":"Somme","81":"Tarn","82":"Tarn-et-Garonne","83":"Var","84":"Vaucluse","85":"Vendée","86":"Vienne","87":"Haute-Vienne","88":"Vosges","89":"Yonne","90":"Territoire de Belfort","91":"Essonne","92":"Hauts-de-Seine","93":"Seine-Saint-Denis","94":"Val-de-Marne","95":"Val-d'Oise"}
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        if row['Total'] and not row.get('Cancelled at'):
+            orders.append(row)
+
+dep_orders = defaultdict(list)
+for o in orders:
+    country = (o.get('Shipping Country') or o.get('Billing Country') or '').strip()
+    if country != 'FR': continue
+    zip_ = re.sub(r'\D','', (o.get('Shipping Zip') or o.get('Billing Zip') or '')).zfill(5)[:5]
+    if len(zip_) != 5: continue
+    dep = zip_[:2]
+    if dep == '97' or dep == '98': continue  # DOM/COM, absent du fichier métropolitain
+    if dep.startswith('20'):
+        # Corse : 2A/2B selon code commune, approximation par code postal
+        dep = '2A' if zip_ < '20200' else '2B'
+    dep_orders[dep].append(float(o['Total']))
+
+points = []
+for dep, totals in dep_orders.items():
+    if dep not in income or len(totals) < 5:
+        continue
+    points.append({'dep': dep, 'nom': DEPNAME.get(dep,dep), 'n': len(totals),
+                    'panier': sum(totals)/len(totals), 'revenu_median': income[dep]})
+points.sort(key=lambda p:-p['n'])
+print(f"départements avec n>=5 commandes ET revenu connu: {len(points)}")
+for p in points:
+    print(f"  {p['dep']} {p['nom']:22s} n={p['n']:3d} panier={p['panier']:6.2f} revenu_médian={p['revenu_median']:.0f}")
+
+xs = [p['revenu_median'] for p in points]
+ys = [p['panier'] for p in points]
+r, pval = stats.pearsonr(xs, ys)
+print(f"\nCorrélation revenu médian <-> panier moyen (tous départements, n={len(points)}): r={r:.3f} p={pval:.4f}")
+
+# sans le 64 (biais retrait local)
+points_no64 = [p for p in points if p['dep'] != '64']
+xs2 = [p['revenu_median'] for p in points_no64]; ys2 = [p['panier'] for p in points_no64]
+r2, pval2 = stats.pearsonr(xs2, ys2)
+print(f"Corrélation sans le 64 (n={len(points_no64)}): r={r2:.3f} p={pval2:.4f}")
+
+json.dump({'points': points, 'r_all': round(r,3), 'p_all': round(pval,4),
+           'r_no64': round(r2,3), 'p_no64': round(pval2,4), 'n_no64': len(points_no64)},
+          open('a2_income.json','w'), ensure_ascii=False)

@@ -1,0 +1,49 @@
+import json
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+
+O = json.load(open('orders_prepared.json'))
+df = pd.DataFrame(O)
+df = df[df['pay'].notna()].copy()
+df['has_code'] = (df['code']!='').astype(int)
+df['is_local'] = (df['shipmode']=='retrait_local').astype(int)
+df['is_paypal'] = (df['pay']=='paypal').astype(int)
+df['is_klarna'] = (df['pay']=='klarna').astype(int)
+df['is_bancontact'] = (df['pay']=='bancontact').astype(int)
+df['is_repeat'] = df['is_repeat'].fillna(0).astype(int)
+df['month_num'] = pd.to_datetime(df['month']+'-01').dt.month
+df['sin_month'] = np.sin(2*np.pi*df['month_num']/12)
+df['cos_month'] = np.cos(2*np.pi*df['month_num']/12)
+df['is_weekend'] = df['is_weekend'].astype(int)
+df['is_be'] = (df['country']=='BE').astype(int)
+
+X_cols = ['qty','has_code','is_local','is_paypal','is_klarna','is_bancontact',
+          'is_repeat','is_weekend','is_be','sin_month','cos_month']
+X = df[X_cols].astype(float)
+X = sm.add_constant(X)
+y = df['tot'].astype(float)
+model = sm.OLS(y, X).fit(cov_type='HC3')
+print(model.summary())
+
+# VIF rapide (colinéarité)
+from numpy.linalg import inv
+Xc = X.drop(columns='const').values
+Xc = (Xc - Xc.mean(0))
+corr = np.corrcoef(Xc.T)
+vif = {}
+Xd = sm.add_constant(X.drop(columns='const'))
+for i,c in enumerate(X_cols):
+    others = [cc for cc in X_cols if cc!=c]
+    r2 = sm.OLS(X[c].astype(float), sm.add_constant(X[others].astype(float))).fit().rsquared
+    vif[c] = round(1/(1-r2),2) if r2<0.999 else float('inf')
+print("VIF:", vif)
+
+coefs = []
+for name in X_cols:
+    coefs.append({'var':name,'coef':round(model.params[name],3),'p':round(model.pvalues[name],4),
+                   'ci_low':round(model.conf_int().loc[name,0],3),'ci_high':round(model.conf_int().loc[name,1],3),
+                   'vif': vif[name]})
+json.dump({'r2':round(model.rsquared,4),'r2_adj':round(model.rsquared_adj,4),'n':int(model.nobs),
+           'f_p': float(model.f_pvalue), 'coefs':coefs, 'const': round(model.params['const'],3),
+           'const_p': round(model.pvalues['const'],4)}, open('c1_regression.json','w'), ensure_ascii=False)

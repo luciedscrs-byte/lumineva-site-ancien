@@ -1,0 +1,75 @@
+import csv, json, re
+from datetime import datetime
+from collections import defaultdict
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+
+# paiement par order_key (transactions de type charge)
+pay = {}
+with open('../DONNEES/payment_transactions.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        if row['Type'] == 'charge' and row['order_key'] not in pay:
+            pay[row['order_key']] = row['Payment Method Name'] or 'inconnu'
+
+# clients : consentement email, has_phone
+custinfo = {}
+with open('../DONNEES/customers.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        custinfo[row['customer_key']] = row
+
+for o in orders:
+    r = o['r']
+    o['dt'] = datetime.strptime(r['Created at'][:19], "%Y-%m-%d %H:%M:%S")
+    o['tot'] = float(r['Total'])
+    o['sub'] = float(r['Subtotal'])
+    o['key'] = r['customer_key'].strip()
+    o['code'] = r['Discount Code']
+    o['disc'] = float(r['Discount Amount'] or 0)
+    o['qty'] = sum(int(i['Lineitem quantity']) for i in o['items'] if i['Lineitem name'] and i['Lineitem name']!='Tip')
+    o['country'] = (r['Shipping Country'] or r['Billing Country'] or '').strip()
+    sm = r['Shipping Method'] or ''
+    if 'point de retrait Mondial' in sm: o['shipmode']='mondial_relais'
+    elif 'Chronopost' in sm: o['shipmode']='chronopost'
+    elif re.match(r'^\d|otissement', sm): o['shipmode']='retrait_local'
+    elif 'domicile' in sm.lower(): o['shipmode']='mondial_domicile'
+    else: o['shipmode']='autre'
+    o['pay'] = pay.get(r['order_key'], None)
+    o['weekday'] = o['dt'].weekday()  # 0=lundi
+    o['is_weekend'] = 1 if o['weekday'] >= 5 else 0
+    o['month'] = r['Created at'][:7]
+    o['hour'] = o['dt'].hour
+
+# ordre chronologique par client -> repeat/new
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o:o['dt'])
+for os_ in cust.values():
+    for i,o in enumerate(os_):
+        o['is_repeat'] = 1 if i>0 else 0
+        o['rank'] = i+1
+for o in orders:
+    if 'is_repeat' not in o: o['is_repeat'] = None
+
+# fréquence/valeur par client
+freq_of = {k: len(v) for k,v in cust.items()}
+for o in orders:
+    o['cust_freq'] = freq_of.get(o['key'])
+    ci = custinfo.get(o['key'])
+    o['accepts_email'] = ci['Accepts Email Marketing'] if ci else None
+
+json.dump([{k:v for k,v in o.items() if k not in ('r','items','dt')} | {'date': o['dt'].isoformat()} for o in orders],
+          open('orders_prepared.json','w'), ensure_ascii=False)
+print("commandes préparées:", len(orders))
+print("exemple:", {k:v for k,v in orders[0].items() if k not in ('r','items')})
+print("moyens de paiement trouvés:", set(o['pay'] for o in orders if o['pay']))
+print("commandes sans paiement apparié:", sum(1 for o in orders if not o['pay']))

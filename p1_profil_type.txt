@@ -1,0 +1,82 @@
+# encoding: utf-8
+"""Profil type des clients de Lumineva : uniquement des agrégats (aucun nom, e-mail ni adresse).
+Le sexe et l'âge ne sont pas dans les fichiers : ils ne sont pas calculés ici."""
+import json, csv
+import numpy as np
+from collections import Counter
+from common import charger, REF, famille
+
+commandes, clients = charger()
+
+
+def lire(f):
+    d = {}
+    for r in csv.DictReader(open(f, encoding='utf-8'), delimiter=';'):
+        try: d[r['CODGEO']] = float(r['MED20'].replace(',', '.'))
+        except Exception: pass
+    return d
+inc_com = lire('cache/cc_filosofi_2020_COM.csv'); inc_dep = lire('cache/cc_filosofi_2020_DEP.csv')
+comm_cp = json.load(open('cache/communes_par_cp.json'))
+
+
+def geo(cp):
+    cs = comm_cp.get(cp) or []
+    if not cs: return None
+    c = max(cs, key=lambda x: x.get('population') or 0)
+    dep = c.get('codeDepartement') or cp[:2]
+    inc = inc_com.get(c['code'])
+    if inc is None: inc = inc_dep.get(dep)
+    return {'pop': c.get('population') or 0, 'dep': dep, 'revenu': inc}
+
+
+def taille(p):
+    return 'Village (< 2 000 hab.)' if p < 2000 else 'Petite ville (2 000 à 20 000)' if p < 20000 else 'Ville (20 000 à 100 000)' if p < 100000 else 'Grande ville (> 100 000)'
+
+cmds = list(commandes)
+N_cmd, N_cli = len(cmds), len(clients)
+fr = [k for k, os_ in clients.items() if os_[0]['pays'] == 'FR']
+geos = {k: geo(clients[k][0]['cp']) for k in fr}
+geos = {k: g for k, g in geos.items() if g}
+
+nb = np.array([len(os_) for os_ in clients.values()])
+dep = np.array([sum(o['total'] for o in os_) for os_ in clients.values()])
+paniers = np.array([o['total'] for o in cmds])
+qte = np.array([o['qte'] for o in cmds])
+
+# départements (par client, 1re adresse)
+dep_cnt = Counter(g['dep'] for g in geos.values())
+top_dep = [[d, c, 100 * c / len(geos)] for d, c in dep_cnt.most_common(8)]
+tailles = Counter(taille(g['pop']) for g in geos.values())
+rev = np.array([g['revenu'] for g in geos.values() if g['revenu']])
+
+# articles par famille
+fam = Counter(); tot_art = 0
+for o in cmds:
+    for l in o['lignes']:
+        q = int(l['qte']); tot_art += q
+        fam[famille(l['nom'])] += q
+fam_part = [[f, c, 100 * c / tot_art] for f, c in fam.most_common(7)]
+
+# 1re commande
+prem = [os_[0] for os_ in clients.values()]
+prem_tot = np.array([o['total'] for o in prem])
+prem_code = np.mean([1 if o['code'] else 0 for o in prem])
+prem_local = np.mean([o['local'] for o in prem])
+
+out = dict(
+    n_clients=N_cli, n_commandes=N_cmd, pct_fr=100 * len(fr) / N_cli,
+    pct_2plus=100 * float(np.mean(nb >= 2)), pct_3plus=100 * float(np.mean(nb >= 3)),
+    cmd_moy=float(nb.mean()), cmd_med=float(np.median(nb)),
+    depense_moy=float(dep.mean()), depense_med=float(np.median(dep)),
+    panier_moy=float(paniers.mean()), panier_med=float(np.median(paniers)),
+    qte_moy=float(qte.mean()), qte_med=float(np.median(qte)),
+    pct_code=100 * float(np.mean([1 if o['code'] else 0 for o in cmds])),
+    pct_local=100 * float(np.mean([o['local'] for o in cmds])),
+    prem_total_med=float(np.median(prem_tot)), prem_code=100 * float(prem_code), prem_local=100 * float(prem_local),
+    n_geo=len(geos), top_dep=top_dep, tailles={k: [v, 100 * v / len(geos)] for k, v in tailles.most_common()},
+    pop_med=float(np.median([g['pop'] for g in geos.values()])), revenu_med=float(np.median(rev)),
+    pct_moins5000=100 * float(np.mean([g['pop'] < 5000 for g in geos.values()])),
+    fam_part=fam_part, n_articles=tot_art,
+)
+json.dump(out, open('p1_profil_type.json', 'w'), ensure_ascii=False, indent=1)
+for k, v in out.items(): print(k, v if not isinstance(v, float) else round(v, 1))

@@ -1,0 +1,77 @@
+# encoding: utf-8
+"""Base commune aux analyses de parcours client : lecture de orders.csv (hors commandes annulées),
+familles de produits, clés produit, commandes rangées par client."""
+import csv, re
+from datetime import datetime
+from collections import defaultdict
+
+ORDERS_CSV = '../DONNEES/orders.csv'
+REF = datetime(2026, 10, 23)
+
+FAMILLES = ['Bougies gourmandes', 'Bougies boisson', 'Bougies taille S', 'Autres bougies', 'Fondants',
+            'Voiture', 'Diffuseurs maison', 'Poudre parfumée', 'Élixirs', 'Accessoires et cadeaux', 'Formation']
+
+def famille(name):
+    n = name.upper()
+    if n.startswith('BOUGIE GOURMANDE'): return 'Bougies gourmandes'
+    if n.startswith(('BOUGIE BOISSON', 'BOUGIE LATTE', 'BOUGIE ICED')): return 'Bougies boisson'
+    if n.startswith('BOUGIE PARFUMEE TAILLE S'): return 'Bougies taille S'
+    if n.startswith('BOUGIE'): return 'Autres bougies'
+    if n.startswith(('BOX DE FONDANTS', 'BOUQUET DE FONDANTS', 'TABLETTE', 'FONDANT')): return 'Fondants'
+    if n.startswith(('SUSPENSION VOITURE', 'DIFFUSEUR VOITURE')): return 'Voiture'
+    if n.startswith(('DIFFUSEUR', 'RECHARGE MELANGE')): return 'Diffuseurs maison'
+    if n.startswith('POUDRE'): return 'Poudre parfumée'
+    if n.startswith('ELIXIR'): return 'Élixirs'
+    if n.startswith(('PACK FABRICATION', 'PACK BOUGIES')) or 'CONSULTING' in n or n.startswith('RÉGLEMENTATION') or n.startswith('REGLEMENTATION'): return 'Formation'
+    return 'Accessoires et cadeaux'
+
+def cle_produit(name):
+    """Produit au sens marketing : on retire la variante après ' - ' ou ' / ' (parfum, taille)."""
+    return re.split(r' - | / ', name)[0].strip()
+
+def joli(s):
+    t = s.replace('BOUGIE GOURMANDE ', 'Bougie ')
+    t = t.translate(str.maketrans('ÉÈÊÀÂÎÔÛÇÏËÖ', 'éèêàâîôûçïëö')).lower()
+    return t[0].upper() + t[1:]
+
+def charger():
+    """Retourne (commandes, clients) : commandes = liste de dicts ; clients = {cle: [commandes triées par date]}."""
+    rows = []
+    cur = None
+    with open(ORDERS_CSV, encoding='utf-8') as f:
+        for r in csv.DictReader(f):
+            if r['Total']:
+                cur = {'r': r, 'lignes': []}
+                rows.append(cur)
+            if cur and r['Lineitem name'] and r['Lineitem name'] != 'Tip':
+                cur['lignes'].append({'nom': r['Lineitem name'], 'qte': int(r['Lineitem quantity']), 'prix': float(r['Lineitem price'])})
+    commandes = []
+    for o in rows:
+        r = o['r']
+        if r.get('Cancelled at'): continue
+        sm = r['Shipping Method'] or ''
+        d = {
+            'date': r['Created at'][:10], 'dt': datetime.strptime(r['Created at'][:19], '%Y-%m-%d %H:%M:%S'),
+            'cle': r['customer_key'].strip(), 'total': float(r['Total']), 'sous_total': float(r['Subtotal']),
+            'code': r['Discount Code'] or '', 'remise': float(r['Discount Amount'] or 0),
+            'local': 1 if re.match(r'^\d|otissement', sm) else 0,
+            'pays': (r['Shipping Country'] or r['Billing Country'] or '').strip(),
+            'cp': re.sub(r'\D', '', (r['Shipping Zip'] or r['Billing Zip'] or '')).zfill(5)[:5],
+            'ordre_key': r['order_key'],
+            'lignes': o['lignes'],
+        }
+        d['qte'] = sum(l['qte'] for l in d['lignes'])
+        d['familles'] = sorted(set(famille(l['nom']) for l in d['lignes']))
+        d['produits'] = sorted(set(cle_produit(l['nom']) for l in d['lignes']))
+        val = defaultdict(float)
+        for l in d['lignes']: val[famille(l['nom'])] += l['qte'] * l['prix']
+        d['fam_dom'] = max(val.items(), key=lambda kv: kv[1])[0] if val else None
+        d['prix_unit'] = (d['sous_total'] / d['qte']) if d['qte'] else None
+        commandes.append(d)
+    clients = defaultdict(list)
+    for d in commandes:
+        if d['cle'] and d['lignes']: clients[d['cle']].append(d)
+    for v in clients.values(): v.sort(key=lambda d: d['dt'])
+    for v in clients.values():
+        for i, d in enumerate(v): d['rang'] = i + 1
+    return commandes, clients

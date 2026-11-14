@@ -1,0 +1,33 @@
+# encoding: utf-8
+"""Analyse du rapport Shopify 'Visites par référent' fourni par l'enseignant le 22/09.
+ATTENTION : ce fichier ne contient aucune date -> la période exacte est inconnue,
+à confirmer avec l'équipe avant toute conclusion liée à une date précise."""
+import csv
+from collections import defaultdict
+
+SRC = "../DONNEES/visites_par_referent.csv"
+rows = list(csv.DictReader(open(SRC, encoding='utf-8')))
+
+def to_i(s):
+    try: return int(s)
+    except: return 0
+
+tot_visits = sum(to_i(r['Visites']) for r in rows)
+tot_prev = sum(to_i(r['Sessions (previous_period)']) for r in rows)
+print(f"Total visites (période actuelle): {tot_visits} | (période précédente): {tot_prev} | évolution: {(tot_visits/tot_prev-1)*100:+.1f}%")
+
+by_source = defaultdict(lambda: {'visits': 0, 'prev': 0})
+for r in rows:
+    s = r['Source du référent']
+    by_source[s]['visits'] += to_i(r['Visites'])
+    by_source[s]['prev'] += to_i(r['Sessions (previous_period)'])
+for s, v in sorted(by_source.items(), key=lambda kv: -kv[1]['visits']):
+    chg = f"{(v['visits']/v['prev']-1)*100:+.0f}%" if v['prev'] else 'n/a'
+    print(f"  {s:10s} visites={v['visits']:4d} (précédente={v['prev']:4d}, {chg})")
+
+# indices de trafic non-humain (villes = data centers connus) parmi le trafic 'direct'
+DATACENTER_CITIES = {'Boardman', 'Council Bluffs', 'Ashburn', 'The Dalles', 'Moncks Corner', 'North Charleston'}
+suspect = [r for r in rows if r['Source du référent'] == 'direct' and r['Ville de la visite'] in DATACENTER_CITIES]
+susp_visits = sum(to_i(r['Visites']) for r in suspect)
+print(f"\nVisites 'direct' associées à des villes de data centers connus (Boardman OR, Council Bluffs IA...): {susp_visits} sur {by_source['direct']['visits']} direct au total")
+print("Lignes concernées:", [(r['Ville de la visite'], r['Visites']) for r in suspect])

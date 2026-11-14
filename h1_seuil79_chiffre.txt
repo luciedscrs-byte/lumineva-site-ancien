@@ -1,0 +1,83 @@
+# encoding: utf-8
+"""CM4 : de la question au chiffre pour le seuil de livraison offerte (79 €).
+Question : faut-il garder le seuil à 79 € ? Mesure : excès de commandes juste au-dessus du seuil (méthode « bunching » :
+courbe de référence lissée ajustée hors d'une fenêtre autour du seuil), puis conversion en euros.
+Périmètre : commandes France livrées en relais (Mondial Relay / Chronopost), hors annulées. Aucune donnée personnelle."""
+import csv, json
+import numpy as np
+from datetime import datetime
+from scipy import stats
+
+orders = [r for r in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')) if r['Total'] and not r.get('Cancelled at')]
+fr = [o for o in orders if (o['Shipping Country'] or o['Billing Country']) == 'FR' and ('Mondial' in (o['Shipping Method'] or '') or 'Chronopost' in (o['Shipping Method'] or ''))]
+st = np.array([float(o['Subtotal']) for o in fr]); sh = np.array([float(o['Shipping']) for o in fr])
+dts = [datetime.strptime(o['Created at'][:10], '%Y-%m-%d') for o in fr]
+mois = (max(dts) - min(dts)).days / 30.44
+print('périmètre', len(fr), 'commandes sur', round(mois, 1), 'mois')
+
+# 1) la règle est-elle stable ? port moyen payé selon le côté du seuil, par trimestre
+for q in sorted(set(f"{d.year}-T{(d.month-1)//3+1}" for d in dts)):
+    m = np.array([f"{d.year}-T{(d.month-1)//3+1}" == q for d in dts])
+    hi, lo = m & (st >= 79), m & (st < 79) & (st >= 40)
+    print(q, 'n', int(m.sum()), '| >=79 : port moyen', round(sh[hi].mean(), 2) if hi.any() else None, '| 40-79 : port moyen', round(sh[lo].mean(), 2) if lo.any() else None)
+print('port payé médian <79 (40-79) :', np.median(sh[(st >= 40) & (st < 79)]), '| port moyen 40-79 :', round(sh[(st >= 40) & (st < 79)].mean(), 2))
+tarif = float(np.median(sh[(st >= 40) & (st < 77)]))
+
+# 2) bunching : histogramme par pas de 2 €, courbe de référence polynomiale (degré 3) ajustée hors fenêtre [71, 87)
+W = 2.0; lo_b, hi_b = 41, 121
+edges = np.arange(lo_b, hi_b + W, W); centres = (edges[:-1] + edges[1:]) / 2
+cnt, _ = np.histogram(st, bins=edges)
+LO, HI = 71, 87
+def excess(counts, deg=3):
+    fit = ~((centres >= LO) & (centres < HI))
+    x = (centres[fit] - 79) / 20
+    co = np.polyfit(x, counts[fit], deg)
+    ref = np.polyval(co, (centres - 79) / 20)
+    below = (centres >= LO) & (centres < 79); above = (centres >= 79) & (centres < HI)
+    return counts[above].sum() - ref[above].sum(), ref[below].sum() - counts[below].sum(), ref, counts[above].sum(), counts[below].sum(), ref[above].sum(), ref[below].sum()
+ex_above, miss_below, ref, obs_above, obs_below, ref_above, ref_below = excess(cnt)
+print('observé 71-79 :', obs_below, 'attendu', round(ref_below, 1), '| observé 79-87 :', obs_above, 'attendu', round(ref_above, 1))
+print('excès au-dessus :', round(ex_above, 1), '| manque en dessous :', round(miss_below, 1))
+# incertitude : rééchantillonnage des commandes
+rng = np.random.default_rng(7); B = 2000; ex_b = []; ms_b = []
+for _ in range(B):
+    s = rng.choice(st, size=len(st), replace=True); c, _ = np.histogram(s, bins=edges)
+    try:
+        a, b, *_ = excess(c); ex_b.append(a); ms_b.append(b)
+    except Exception: pass
+ci_ex = np.percentile(ex_b, [2.5, 97.5]); ci_ms = np.percentile(ms_b, [2.5, 97.5])
+print('IC95 excès', ci_ex.round(1), 'IC95 manque', ci_ms.round(1))
+# vérification placebo : même méthode à de faux seuils (59 et 99) -> excès attendu ~ 0
+plac = {}
+for fake in (59, 99):
+    LO0, HI0 = LO, HI
+    LO, HI = fake - 8, fake + 8
+    def ex_fake(counts):
+        fit = ~((centres >= LO) & (centres < HI)); x = (centres[fit] - fake) / 20
+        co = np.polyfit(x, counts[fit], 3); r = np.polyval(co, (centres - fake) / 20)
+        ab = (centres >= fake) & (centres < HI); be = (centres >= LO) & (centres < fake)
+        return counts[ab].sum() - r[ab].sum(), r[be].sum() - counts[be].sum()
+    plac[fake] = tuple(round(float(v), 1) for v in ex_fake(cnt))
+    LO, HI = LO0, HI0
+print('placebo (excès, manque) :', plac)
+
+# 3) conversion en euros (hypothèses explicites)
+# a) gain : si les « bunchers » ajoutent des articles pour atteindre 79 €, leur panier final est ~ 79 à 87 € au lieu de ~ 71 à 79 € -> +8 € en moyenne (écart de milieux de tranche)
+gain_par_buncher = 83 - 75
+gain_total = ex_above * gain_par_buncher
+# b) coût : le port non encaissé sur toutes les commandes >= 79 € du périmètre (tarif standard médian)
+n_free = int((st >= 79).sum()); cout_port = n_free * tarif
+facteur = 12 / mois
+print('tarif de port standard (médiane 40-77 €) :', tarif, '| commandes >= 79 :', n_free)
+print('gain de panier estimé :', round(gain_total), '€ sur la période ; port non encaissé :', round(cout_port), '€ sur la période')
+print('annualisé : gain', round(gain_total * facteur), '€ ; port', round(cout_port * facteur), '€')
+# c) simulation de déplacements du seuil : commandes concernées par an et port en jeu
+for s in (69, 89):
+    if s < 79:
+        n = int(((st >= s) & (st < 79)).sum()); print(f'seuil à {s} € : {n} commandes ({round(n*facteur)}/an) passeraient en port gratuit -> port non encaissé en plus ≈ {round(n*tarif*facteur)} €/an (hors effet sur les paniers)')
+    else:
+        n = int(((st >= 79) & (st < s)).sum()); print(f'seuil à {s} € : {n} commandes ({round(n*facteur)}/an) paieraient le port -> port encaissé en plus ≈ {round(n*tarif*facteur)} €/an (hors perte de commandes)')
+json.dump({'n': len(fr), 'mois': round(mois, 1), 'obs_below': int(obs_below), 'ref_below': round(float(ref_below), 1), 'obs_above': int(obs_above), 'ref_above': round(float(ref_above), 1),
+           'excess': round(float(ex_above), 1), 'ci_excess': [round(float(v), 1) for v in ci_ex], 'miss': round(float(miss_below), 1), 'ci_miss': [round(float(v), 1) for v in ci_ms],
+           'placebo': {str(k): v for k, v in plac.items()}, 'tarif': tarif, 'n_free': n_free, 'gain_periode': round(float(gain_total)), 'port_periode': round(float(cout_port)), 'facteur_an': round(float(facteur), 3),
+           'hist': {'centres': centres.tolist(), 'obs': cnt.tolist(), 'ref': ref.tolist()}}, open('h1_seuil79_chiffre.json', 'w'))

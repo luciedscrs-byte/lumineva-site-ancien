@@ -1,0 +1,80 @@
+import json, math
+
+DOM = {"Guadeloupe","Martinique","Guyane","La Réunion","Mayotte"}
+gj = json.load(open('regions-avec-outre-mer.geojson'))
+regions = [f for f in gj['features'] if f['properties'].get('nom') not in DOM]
+print(len(regions), "régions métropolitaines")
+
+pts = json.load(open('map_points.json'))['points']
+
+# bbox sur les régions métropolitaines uniquement
+lons, lats = [], []
+def walk_rings(geom):
+    if geom['type']=='Polygon':
+        for ring in geom['coordinates']:
+            yield ring
+    elif geom['type']=='MultiPolygon':
+        for poly in geom['coordinates']:
+            for ring in poly:
+                yield ring
+
+for f in regions:
+    for ring in walk_rings(f['geometry']):
+        for lon,lat in ring:
+            lons.append(lon); lats.append(lat)
+lon_min,lon_max = min(lons),max(lons)
+lat_min,lat_max = min(lats),max(lats)
+lat0 = (lat_min+lat_max)/2
+print("bbox lon", lon_min, lon_max, "lat", lat_min, lat_max)
+
+W, H, PAD = 620, 620, 10
+kx = math.cos(math.radians(lat0))
+# échelle commune en x et y pour ne pas déformer
+sx = (W-2*PAD)/((lon_max-lon_min)*kx)
+sy = (H-2*PAD)/(lat_max-lat_min)
+s = min(sx, sy)
+def proj(lon, lat):
+    x = PAD + (lon-lon_min)*kx*s
+    y = H-PAD - (lat-lat_min)*s
+    return x,y
+
+def simplify(ring, min_d=2.0):
+    out = []
+    last = None
+    pts_xy = [proj(lo,la) for lo,la in ring]
+    for x,y in pts_xy:
+        if last is None or (x-last[0])**2+(y-last[1])**2 >= min_d*min_d:
+            out.append((x,y)); last=(x,y)
+    if len(out) < 3:
+        out = pts_xy[::max(1,len(pts_xy)//4)]
+    return out
+
+def path_d(feature):
+    d = []
+    for ring in walk_rings(feature['geometry']):
+        pts_s = simplify(ring)
+        if len(pts_s) < 3: continue
+        d.append("M"+" L".join(f"{x:.1f},{y:.1f}" for x,y in pts_s)+" Z")
+    return " ".join(d)
+
+region_paths = []
+total_pts = 0
+for f in regions:
+    dstr = path_d(f)
+    total_pts += dstr.count("L")+dstr.count("M")
+    region_paths.append({"nom": f['properties'].get('nom'), "d": dstr})
+print("total points après simplification:", total_pts)
+print("taille totale d (Ko):", sum(len(r['d']) for r in region_paths)/1024)
+
+# points clients projetés
+proj_pts = []
+for p in pts:
+    x,y = proj(p['lon'], p['lat'])
+    if 0 <= x <= W and 0 <= y <= H:
+        proj_pts.append({**p, 'x': round(x,1), 'y': round(y,1)})
+    else:
+        proj_pts.append({**p, 'x': round(x,1), 'y': round(y,1), 'out': True})
+out_of_bounds = sum(1 for p in proj_pts if p.get('out'))
+print("points hors cadre (DOM/erreur):", out_of_bounds)
+
+json.dump({'W':W,'H':H,'regions':region_paths,'points':proj_pts}, open('map_svg_data.json','w'), ensure_ascii=False)

@@ -1,0 +1,121 @@
+# encoding: utf-8
+"""Contenu de la première commande : produits/familles fréquents, compléments récurrents, retour dans les commandes suivantes, lien avec le réachat."""
+import json, itertools
+import numpy as np
+from collections import Counter
+from scipy.stats import chi2_contingency, fisher_exact
+from common import charger, REF
+
+commandes, clients = charger()
+prem = {k: o[0] for k, o in clients.items()}
+N = len(prem)
+anc = {k: (REF - o[0]['dt']).days for k, o in clients.items()}
+rep = {k: len(o) >= 2 for k, o in clients.items()}
+
+# 1) taille de la première commande
+nb_art = Counter(min(p['qte'], 6) for p in prem.values())
+nb_fam = Counter(len(p['familles']) for p in prem.values())
+nb_prod = Counter(min(len(p['produits']), 4) for p in prem.values())
+
+# 2) familles et produits présents en 1re commande
+fam_cnt = Counter(f for p in prem.values() for f in set(p['familles']))
+prod_cnt = Counter(x for p in prem.values() for x in set(p['produits']))
+fam_dom = Counter(p['fam_dom'] for p in prem.values())
+
+# 3) compléments : paires de familles et de produits en 1re commande (support, confiance, lift)
+def paires(getter, minsup):
+    c1 = Counter(); c2 = Counter()
+    for p in prem.values():
+        s = sorted(set(getter(p)))
+        c1.update(s); c2.update(itertools.combinations(s, 2))
+    out = []
+    for (a, b), n in c2.items():
+        if n < minsup: continue
+        lift = n * N / (c1[a] * c1[b])
+        out.append({'a': a, 'b': b, 'n': n, 'pct': round(100 * n / N, 1), 'conf_a': round(100 * n / c1[a], 1), 'conf_b': round(100 * n / c1[b], 1), 'lift': round(lift, 2)})
+    return sorted(out, key=lambda d: -d['n'])
+pair_fam = paires(lambda p: p['familles'], 8)
+pair_prod = paires(lambda p: p['produits'], 6)
+seuls = sum(1 for p in prem.values() if len(p['produits']) == 1)
+
+# 4) les complémentaires reviennent-ils ? pour chaque produit acheté en 1re commande par un client qui rachète
+rep_clients = [k for k in clients if rep[k]]
+def retour(getter):
+    """part des clients qui rachètent AU MOINS une fois le même élément dans une commande suivante, parmi ceux qui l'ont pris en 1re commande et sont revenus"""
+    res = {}
+    for k in rep_clients:
+        first = set(getter(clients[k][0])); later = set(x for o in clients[k][1:] for x in getter(o))
+        for x in first:
+            r = res.setdefault(x, [0, 0]); r[0] += 1; r[1] += 1 if x in later else 0
+    return res
+rf = retour(lambda o: o['familles']); rp = retour(lambda o: o['produits'])
+ret_fam = sorted([{'nom': k, 'n_first': prod_first, 'n_back': v[0], 'n_again': v[1], 'pct': round(100 * v[1] / v[0], 1)} for k, v in rf.items() for prod_first in [fam_cnt[k]]], key=lambda d: -d['n_back'])
+ret_prod = sorted([{'nom': k, 'n_first': prod_cnt[k], 'n_back': v[0], 'n_again': v[1], 'pct': round(100 * v[1] / v[0], 1)} for k, v in rp.items() if v[0] >= 8], key=lambda d: -d['n_back'])[:12]
+
+# le complément (article n° 2 et suivants d'une 1re commande multi-produits) est-il racheté ?
+comp_tot = comp_again = 0; comp_prod = Counter(); comp_prod_again = Counter()
+for k in rep_clients:
+    f = clients[k][0]
+    if len(f['produits']) < 2: continue
+    later = set(x for o in clients[k][1:] for x in o['produits'])
+    for x in f['produits']:
+        comp_tot += 1; comp_again += 1 if x in later else 0
+multi_rep = sum(1 for k in rep_clients if len(clients[k][0]['produits']) >= 2)
+
+# 5) la 1re commande prédit-elle le retour ? (recul >= 90 jours)
+base = [k for k in clients if anc[k] >= 90]
+def taux(sel):
+    ks = [k for k in base if sel(prem[k])]; r = sum(rep[k] for k in ks)
+    return len(ks), r
+ret_par_fam = []
+for f in fam_cnt:
+    n, r = taux(lambda p, f=f: f in p['familles'])
+    if n >= 25:
+        n0, r0 = taux(lambda p, f=f: f not in p['familles'])
+        pval = fisher_exact([[r, n - r], [r0, n0 - r0]])[1]
+        ret_par_fam.append({'nom': f, 'n': n, 'retour': r, 'pct': round(100 * r / n, 1), 'pct_sans': round(100 * r0 / n0, 1), 'p': float(pval)})
+ret_par_fam.sort(key=lambda d: -d['pct'])
+ret_par_taille = []
+for lab, cond in [('1 article', lambda p: p['qte'] == 1), ('2 à 3 articles', lambda p: 2 <= p['qte'] <= 3), ('4 à 5 articles', lambda p: 4 <= p['qte'] <= 5), ('6 articles et plus', lambda p: p['qte'] >= 6)]:
+    n, r = taux(cond); ret_par_taille.append({'nom': lab, 'n': n, 'retour': r, 'pct': round(100 * r / n, 1) if n else 0})
+tab = [[r['retour'], r['n'] - r['retour']] for r in ret_par_taille if r['n']]
+chi_t = chi2_contingency(tab); 
+ret_promo = {}
+for lab, cond in [('avec code promo', lambda p: p['code']), ('sans code promo', lambda p: not p['code'])]:
+    n, r = taux(cond); ret_promo[lab] = {'n': n, 'retour': r, 'pct': round(100 * r / n, 1)}
+n_multi, r_multi = taux(lambda p: len(p['familles']) >= 2); n_mono, r_mono = taux(lambda p: len(p['familles']) == 1)
+p_multi = float(fisher_exact([[r_multi, n_multi - r_multi], [r_mono, n_mono - r_mono]])[1])
+
+# 6) prix de la 1re commande : tranches
+tr = []
+for lab, lo, hi in [('moins de 30 €', 0, 30), ('30 à 50 €', 30, 50), ('50 à 79 €', 50, 79), ('79 € et plus', 79, 1e9)]:
+    n, r = taux(lambda p, lo=lo, hi=hi: lo <= p['total'] < hi); tr.append({'nom': lab, 'n': n, 'retour': r, 'pct': round(100 * r / n, 1) if n else 0})
+
+# 7) arbre de composition typique : nb de produits distincts -> famille dominante -> complément le plus fréquent
+arbre = []
+for nb in (1, 2, 3):
+    ks = [p for p in prem.values() if (len(p['produits']) == nb if nb < 3 else len(p['produits']) >= 3)]
+    fd = Counter(p['fam_dom'] for p in ks).most_common(3)
+    noeud = {'nb': nb, 'n': len(ks), 'pct': round(100 * len(ks) / N, 1), 'fam': []}
+    for f, c in fd:
+        sous = [p for p in ks if p['fam_dom'] == f]
+        comp = Counter(g for p in sous for g in set(p['familles']) if g != f).most_common(2)
+        noeud['fam'].append({'nom': f, 'n': c, 'pct': round(100 * c / len(ks), 1), 'comp': [[g, m, round(100 * m / len(sous), 1)] for g, m in comp]})
+    arbre.append(noeud)
+
+out = {'N': N, 'seuls': seuls, 'nb_art': dict(nb_art), 'nb_fam': dict(nb_fam), 'nb_prod': dict(nb_prod), 'fam_cnt': fam_cnt.most_common(), 'fam_dom': fam_dom.most_common(),
+       'prod_cnt': prod_cnt.most_common(12), 'pair_fam': pair_fam[:10], 'pair_prod': pair_prod[:10], 'ret_fam': ret_fam, 'ret_prod': ret_prod,
+       'comp': {'tot': comp_tot, 'again': comp_again, 'pct': round(100 * comp_again / comp_tot, 1) if comp_tot else None, 'clients': multi_rep},
+       'ret_par_fam': ret_par_fam, 'ret_par_taille': ret_par_taille, 'chi_taille': {'chi2': float(chi_t[0]), 'p': float(chi_t[1]), 'dl': int(chi_t[2])},
+       'ret_promo': ret_promo, 'multi': {'n': n_multi, 'pct': round(100 * r_multi / n_multi, 1), 'mono_n': n_mono, 'mono_pct': round(100 * r_mono / n_mono, 1), 'p': p_multi},
+       'ret_tranche': tr, 'n_base': len(base), 'taux_base': round(100 * sum(rep[k] for k in base) / len(base), 1), 'arbre': arbre}
+json.dump(out, open('g3_premiere_commande.json', 'w'), ensure_ascii=False)
+print('clients', N, '| mono-produit', seuls, '| base recul', len(base), 'taux', out['taux_base'])
+print('fam 1re cmde', fam_cnt.most_common(6)); print('produits', prod_cnt.most_common(6))
+print('paires fam', [(d['a'], d['b'], d['n'], d['lift']) for d in pair_fam[:6]])
+print('paires prod', [(d['a'], d['b'], d['n'], d['lift']) for d in pair_prod[:5]])
+print('complément racheté', out['comp'])
+print('retour fam', [(d['nom'], d['n_back'], d['pct']) for d in ret_fam[:6]])
+print('retour prod', [(d['nom'], d['n_back'], d['pct']) for d in ret_prod[:6]])
+print('réachat par fam', [(d['nom'], d['n'], d['pct'], d['pct_sans'], round(d['p'], 3)) for d in ret_par_fam])
+print('taille', ret_par_taille, out['chi_taille']); print('promo', ret_promo); print('multi', out['multi']); print('tranche', tr)

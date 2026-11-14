@@ -1,0 +1,59 @@
+import json, math
+from svgutil import *
+
+def pv(p, seuil=0.001):
+    if isinstance(p,str): p=float(p)
+    if p < seuil: return f"&lt; {seuil}".replace(".", ",")
+    return n(p, 4 if p<0.01 else 3).replace(" ","")
+def SIG(p): return '<b style="color:var(--good)">significatif</b>' if p<0.05 else '<b style="color:var(--muted)">non significatif</b>'
+
+e1 = json.load(open("e1_rentree_explication.json"))
+fa = json.load(open("e3_anova_famille.json"))
+
+NEWTAG = '<span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 9px;border-radius:99px;background:var(--flame);color:#fff;margin-right:8px;vertical-align:2px">Nouveau · 22 sept. soir</span>'
+
+# ===================================================================
+# 1) Analyse approfondie : nouveau point 9
+sept25 = eur(e1["sept25_total"],0); sept26 = eur(e1["sept26_total"],0)
+sept25h = eur(e1["sept25_hors2j"],0); sept26h = eur(e1["sept26_hors2j"],0)
+surplus = eur(e1["surplus_total"],0); surplush = eur(e1["surplus_hors2j"],0)
+part2j = pct(e1["part_2jours_pct"],0)
+fl_all = e1["fidelite_tous"]; fl_90 = e1["fidelite_90j"]
+point9 = f'''<div class="panel theme"><h3>{NEWTAG}9. La hausse de chiffre d’affaires de septembre 2026 n’est pas un effet de rentrée</h3><ul class="fl">
+<li><span class="tag f">Fait</span> Du 1<sup>er</sup> au 20 septembre, le chiffre d’affaires facturé passe de {sept25} en 2025 à {sept26} en 2026, soit {surplus} de plus. <b>Mais en retirant les 6 et 20 septembre 2026 (les deux journées de lancement de la Pumpkin Spice Latte), le chiffre d’affaires tombe à {sept26h} contre {sept25h} en 2025 — une baisse de {eur(-e1['surplus_hors2j'],0)}.</b> Ces deux journées expliquent {part2j} du surplus total ; le reste du mois recule par rapport à l’an dernier.</li>
+<li><span class="tag f">Fait</span> Le 6 septembre 2026 ({e1['n6']} commandes) est statistiquement extrême par rapport au rythme moyen du mois ({n(e1['mean_n_other'],1)} commandes/jour) : sous un rythme normal, la probabilité d’observer autant de commandes en un jour est quasiment nulle (test de Poisson, p&nbsp;≈&nbsp;0).</li>
+<li><span class="tag f">Fait</span> Fidélité des acheteurs d’un jour de lancement (7 sept. 2025, 1<sup>er</sup> nov. 2025, 6 et 20 sept. 2026) : {n(fl_all['reachat_launch'],1)}&nbsp;% recommandent contre {n(fl_all['reachat_autre'],1)}&nbsp;% pour un achat un autre jour (khi², p={pv(fl_all['p'])}). <b>Mais en ne gardant que les clients avec au moins 90 jours de recul</b> (pour ne pas pénaliser les lancements trop récents pour avoir eu le temps de revenir), l’écart devient non significatif : {n(fl_90['reachat_launch'],1)}&nbsp;% contre {n(fl_90['reachat_autre'],1)}&nbsp;% (p={pv(fl_90['p'])}, n={fl_90['n_launch']} seulement côté lancement).</li>
+<li><span class="tag i">Interprétation possible</span> La croissance apparente de septembre 2026 n’est pas une reprise générale de l’activité : c’est un succès ponctuel d’un seul produit, sur deux journées. Sans lui, le mois est en repli sur un an. C’est un point important à clarifier devant la gérante : un pic produit et une dynamique de rentrée n’appellent pas les mêmes décisions.</li>
+<li><span class="tag i">Interprétation possible</span> Le chiffre plus faible de fidélité des acheteurs de lancement (13&nbsp;% contre 31&nbsp;%) est en grande partie un artefact de mesure : la plupart de ces clients n’ont tout simplement pas encore eu le temps de revenir. Avec seulement 27 clients ayant assez de recul, on ne peut ni confirmer ni écarter que les acheteurs « coup de cœur » reviennent moins que les autres.</li>
+<li><span class="tag q">Pour trancher</span> Attendre encore quelques mois pour juger la fidélité des acheteurs du 6 et du 20 septembre 2026 avec assez de recul ; savoir si d’autres lancements sont prévus avant la fin de l’année pour anticiper des pics similaires.</li>
+<li><span class="tag l">Limite</span> Le test de Poisson suppose un rythme quotidien stable en dehors du pic, ce qui est une simplification (le rythme varie déjà selon le jour de la semaine).</li>
+</ul></div>'''
+
+# ===================================================================
+# 2) Tests statistiques : nouvelle section
+body_sept = table(["", "Sept. 2025 (1-20)", "Sept. 2026 (1-20)", "Écart"], [
+  ["Mois complet", sept25, sept26, f"+{surplus}"],
+  ["Sans le 6 et le 20 sept. 2026", sept25h, sept26h, eur(e1['surplus_hors2j'],0)],
+], right=[1,2,3])
+body_sept += f'<p class="hint" style="margin-top:10px">{part2j} du surplus de septembre vient de 2 journées seulement. 6 sept. 2026 : {e1["n6"]} commandes contre {n(e1["mean_n_other"],1)}/jour en moyenne le reste du mois → p(Poisson) {pv(e1["p_poisson"])} → {SIG(0)}.</p>'
+panel_sept = panel("c12", f"{NEWTAG}Le CA de septembre 2026 : effet de rentrée ou effet produit ?", "Comparaison jour par jour avec septembre 2025, avec et sans les 2 journées de lancement de la Pumpkin Spice Latte.", body_sept)
+
+body_loy = table(["", "1re commande un jour de lancement", "1re commande un autre jour"], [
+  ["Tous les clients (n="+n(fl_all['n'])+")", pct(fl_all['reachat_launch'],1)+f" (n={fl_all['n_launch']})", pct(fl_all['reachat_autre'],1)],
+  ["Avec ≥90 jours de recul (n="+n(fl_90['n'])+")", pct(fl_90['reachat_launch'],1)+f" (n={fl_90['n_launch']})", pct(fl_90['reachat_autre'],1)],
+])
+body_loy += f'<p class="hint" style="margin-top:10px">Tous clients : χ²={fl_all["chi2"]}, p={pv(fl_all["p"])} → {SIG(fl_all["p"])}. Avec recul ≥90 j : χ²={fl_90["chi2"]}, p={pv(fl_90["p"])} → {SIG(fl_90["p"])}.</p>'
+body_loy += '<p class="hint"><b>Lecture</b> : le premier résultat, pris seul, suggérerait que les acheteurs de lancement sont des clients de passage. Contrôlé pour le recul disponible, ce n’est plus démontré — un bon exemple de conclusion qui change une fois le biais de mesure retiré.</p>'
+panel_loy = panel("c6", f"{NEWTAG}Khi² — fidélité des acheteurs d'un jour de lancement", "Comparaison brute puis corrigée du biais de recul.", body_loy)
+
+svg_fam = vbars(fa["means"], fa["labels"], 680, 220, lambda v: eur(v,0), fa["means"].index(max(fa["means"])), 20, rot=True)
+body_fam = f'<div class="chart short">{svg_fam}</div><p class="hint" style="margin-top:10px">F={fa["F"]}, p={pv(fa["p"])}, η²={fa["eta2"]} → {SIG(fa["p"])}. Chaque commande est classée dans la famille qui y pèse le plus (en valeur). Les commandes autour des bougies gourmandes ont un panier plus élevé (68,30&nbsp;€) que celles autour des fondants (52,20&nbsp;€) ou des accessoires (48,35&nbsp;€).</p>'
+body_fam += '<p class="hint"><b>Limite</b> : cet écart reflète en partie le prix des produits eux-mêmes (22,90&nbsp;€ la bougie contre des fondants à l’unité moins chers), pas seulement un effet de la famille sur le comportement d’achat.</p>'
+panel_fam = panel("c6", f"{NEWTAG}ANOVA — panier selon la famille de produit dominante", "6 familles (n≥15 chacune) ; formation exclue de l'ANOVA (n=14) mais indicative : 171,61&nbsp;€.", body_fam)
+
+sec_new = f'<h3 style="margin:22px 0 4px 2px">{NEWTAG}Tests ajoutés après retour de l’équipe</h3><p class="hint" style="margin:0 0 10px 2px">Les tests ci-dessous répondent à des questions de décision précises. Les tests de la section précédente (22 sept., après-midi) sont conservés tels quels.</p><div class="grid">{panel_sept}{panel_loy}{panel_fam}</div>'
+
+# insérer juste après le bandeau "howto" au tout début de l'onglet tests (avant "Deux variables qualitatives")
+open("frag_soir_tests.html","w",encoding="utf-8").write(sec_new)
+open("frag_soir_analyse.html","w",encoding="utf-8").write(point9)
+print("fragments du soir écrits")

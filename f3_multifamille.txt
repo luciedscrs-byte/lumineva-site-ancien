@@ -1,0 +1,63 @@
+# encoding: utf-8
+"""Approfondit l'ANOVA panier x famille : teste si acheter plusieurs familles de
+produits dans la même commande (vente croisée) fait vraiment grossir le panier,
+au-delà du simple effet 'les bougies coûtent plus cher'."""
+import csv, json
+from collections import defaultdict
+from scipy import stats
+import numpy as np
+
+orders = []
+cur = None
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total']:
+        cur = {'r': row, 'items': []}; orders.append(cur)
+    if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+
+def fam(name):
+    if name.startswith('BOUGIE GOURMANDE'): return 'Bougies gourmandes'
+    if name.startswith(('BOUGIE SIGNATURE','BOUGIE FANTAISIE','BOUGIE PARFUMEE','BOUGIE AMBASSADRICE')): return 'Autres bougies'
+    if name.startswith('ELIXIR'): return 'Élixirs'
+    if name.startswith(('FONDANT','BOX DE FONDANTS','BOUQUET DE FONDANTS','TABLETTE')): return 'Fondants'
+    if name.startswith(('BRULE-PARFUM','DIFFUSEUR','SUSPENSION','COUPELLE','ETEIGNOIR','POT ')): return 'Accessoires'
+    if name.startswith('POUDRE'): return 'Poudre'
+    if 'Pack' in name or 'Consulting' in name or name.startswith('Réglementation'): return 'Formation'
+    return None
+
+rows = []
+for o in orders:
+    fams = set()
+    for i in o['items']:
+        n_ = i['Lineitem name']
+        if not n_ or n_ == 'Tip': continue
+        f = fam(n_)
+        if f: fams.add(f)
+    if not fams: continue
+    rows.append({'nfam': len(fams), 'tot': float(o['r']['Total'])})
+
+groups = defaultdict(list)
+for r in rows:
+    k = min(r['nfam'], 4)  # 4 = "4 et plus"
+    groups[k].append(r['tot'])
+for k in sorted(groups):
+    lbl = f"{k} famille{'s' if k>1 else ''}" + (" et plus" if k==4 else "")
+    print(f"  {lbl}: n={len(groups[k])} panier_moyen={np.mean(groups[k]):.2f} médiane={np.median(groups[k]):.2f}")
+
+nfam = [r['nfam'] for r in rows]
+tot = [r['tot'] for r in rows]
+r_corr, p_corr = stats.pearsonr(nfam, tot)
+print(f"\nCorrélation nb de familles distinctes <-> montant de la commande : r={r_corr:.3f} p={p_corr:.2e} (n={len(rows)})")
+
+g1 = groups[1]; g2plus = [x for k in groups if k>=2 for x in groups[k]]
+t, p = stats.ttest_ind(g2plus, g1, equal_var=False)
+print(f"1 seule famille (n={len(g1)}, moy={np.mean(g1):.2f}€) vs 2+ familles (n={len(g2plus)}, moy={np.mean(g2plus):.2f}€) : Welch t={t:.3f} p={p:.4f}")
+print(f"écart : +{np.mean(g2plus)-np.mean(g1):.2f} € en moyenne quand la commande mélange au moins 2 familles")
+
+json.dump({
+ 'by_nfam': {str(k): {'n': len(v), 'mean': round(np.mean(v),2), 'median': round(np.median(v),2)} for k,v in groups.items()},
+ 'corr_r': round(r_corr,3), 'corr_p': p_corr,
+ 'g1_mean': round(np.mean(g1),2), 'g2plus_mean': round(np.mean(g2plus),2),
+ 'g1_n': len(g1), 'g2plus_n': len(g2plus),
+ 't': round(t,3), 'p': round(p,4),
+}, open('f3_multifamille.json','w'), ensure_ascii=False)

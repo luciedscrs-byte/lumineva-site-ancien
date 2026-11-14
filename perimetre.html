@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Périmètre des données · Lumineva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="style.css?v=17">
+
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+<nav class="topnav" aria-label="Navigation principale"><div class="wrap"><a class="brand" href="index.html">Lumineva · données</a><div class="links"><a href="index.html">Accueil</a><a href="contexte.html">Contexte</a><a href="analyses.html" aria-current="page">Premières analyses</a><a href="choix.html">Notre choix</a><a href="automatisations.html">Automatisations</a><a href="q-formation.html">Formation</a><a href="recommandations.html">Recommandations</a><a href="faq.html">FAQ</a><a href="methode.html">Méthode</a></div></div></nav>
+<nav class="subnav meta" aria-label="Premières analyses"><div class="wrap"><span class="lab">Premières analyses</span><a href="analyses.html">Présentation</a><a href="perimetre.html" aria-current="page">Périmètre</a><a href="observations.html">Observations</a><a href="explications.html">Explications</a><a href="externe.html">Externe</a><a href="decision-emailing.html">Décision e-mailing</a></div></nav>
+<header class="hero"><div class="wrap"><p class="kicker">Fondations</p><h1>Périmètre des données</h1><p class="lead">Avant toute analyse : quelles données, quelles règles de comptage, quels contrôles. Un périmètre faux fausse tout le reste, c’est donc la page la plus importante du site.</p></div></header>
+<main class="wrap" id="contenu">
+<details class="pli" name="per" open><summary>Les fichiers utilisés</summary><div class="corps"><div class="tablewrap"><table><tr><th>Fichier</th><th>Une ligne =</th><th>Taille</th><th>Période</th></tr><tr><td><code>orders.csv</code></td><td>un produit commandé (une commande en a plusieurs)</td><td>4 537 lignes, 1 445 commandes dont 7 annulées</td><td>27 juin 2025 → 20 sept. 2026</td></tr><tr><td><code>customers.csv</code></td><td>une fiche client (compte ou acheteur)</td><td>1 923 fiches</td><td>—</td></tr><tr><td><code>payment_transactions.csv</code></td><td>un mouvement de paiement</td><td>1 473 mouvements</td><td>—</td></tr><tr><td><code>payouts.csv</code></td><td>un versement de Shopify</td><td>439 versements</td><td>28 juin 2025 → 21 sept. 2026</td></tr><tr><td><code>products.csv</code></td><td>un produit (et ses variantes)</td><td>480 produits, 780 variantes</td><td>état à l’export</td></tr><tr><td><code>inventory.csv</code></td><td>une ligne de stock (produit × variante)</td><td>726 lignes</td><td>état à l’export</td></tr><tr><td><code>instagram_publications.csv</code></td><td>une publication</td><td>714 publications</td><td>24 févr. 2024 → 10 sept. 2026</td></tr><tr><td>Rapport « Visites par référent »</td><td>une source de trafic</td><td>reçu le 22 septembre</td><td><b>inconnue</b> (question posée à l’enseignant)</td></tr></table></div><p class="meta">Un export de commandes non pseudonymisé a aussi été remis : il n’est ni utilisé, ni recopié, ni cité dans ce site.</p></div></details>
+<details class="pli" name="per"><summary>Règles de comptage</summary><div class="corps"><ul><li><b>Une commande = une clé de commande.</b> Les lignes d’un même achat sont regroupées ; les 7 commandes annulées sont retirées, ce qui laisse 1 438 commandes.</li><li><b>La ligne « pourboire » n’est pas un produit</b> : elle est exclue des contenus de commande.</li><li><b>25 commandes n’ont pas d’identifiant client</b> (dont des ventes en personne) : elles comptent dans les ventes, pas dans le suivi des clients (829 clients suivis).</li><li><b>La TVA n’est facturée que depuis le 28 mai 2026.</b> Le chiffre d’affaires facturé (90 721 €) mélange donc des montants sans TVA puis avec TVA ; hors TVA il est de 87 036 €.</li><li><b>Le recul compte.</b> Un client arrivé il y a trois semaines n’a pas eu le temps de recommander : les taux de retour ne sont comparés qu’avec au moins 90 jours de recul.</li><li><b>Seuls des agrégats sont affichés</b> : aucun nom, e-mail, téléphone ni adresse.</li></ul></div></details>
+<details class="pli" name="per"><summary>Contrôles effectués</summary><div class="corps"><p>Les chiffres clés affichés sur le site sont recalculés directement depuis les fichiers sources par un script, puis comparés à la valeur affichée. Résultat de la dernière exécution :</p><pre class="code"><code>Contrôle                                            Recalculé    Affiché  Verdict
+Commandes non annulées                                   1438       1438  OK
+Commandes annulées (exclues)                                7          7  OK
+Chiffre d'affaires facturé (€)                          90721      90721  OK
+Panier moyen (€)                                        63.09      63.09  OK
+Commandes avec un code promo (tous codes)                 516        516  OK
+Part des commandes avec code (%)                         35.9       35.9  OK
+Commandes livrées en France                              1350       1350  OK
+Part du dimanche (%)                                     21.3       21.3  OK
+Heure la plus chargée (10 h) : part (%)                   8.6        8.6  OK
+Première commande = 2025-06-27                              1          1  OK
+Dernière commande = 2026-09-20                              1          1  OK
+Commandes du 1er au 20 sept. 2025                         114        114  OK
+Commandes du 1er au 20 sept. 2026                         163        163  OK
+CA facturé 1-20 sept. 2025 (€)                           7491       7491  OK
+CA facturé 1-20 sept. 2026 (€)                          10820      10820  OK
+Commandes sans identifiant client                          25         25  OK
+TVA collectée (€)                                        3685       3685  OK
+CA hors TVA (€)                                         87036      87036  OK
+Première commande avec TVA = 2026-05-28                     1          1  OK
+Fiches clients                                           1923       1923  OK
+Total dépensé des fiches clients (€)                    89718      89718  OK
+Fiches clients avec dépense &gt; 0 (« ont acheté »)          840        840  OK
+Mouvements de paiement                                   1473       1473  OK
+OCT. Commandes non annulées (accueil : 1 595)            1595       1595  OK
+OCT. Chiffre d'affaires facturé (accueil : 99 629 €)        99629      99629  OK
+OCT. Panier moyen (accueil : 62 €)                         62         62  OK
+OCT. Dernière commande = 2026-10-22                         1          1  OK
+OCT. Commandes (script automatisations)                  1595       1595  OK
+OCT. Jours de pointe (20 commandes ou plus)                 4          4  OK
+OCT. Clients suivis (relance)                             913        913  OK
+OCT. Commandes de formation (accueil : 18)                 18         18  OK
+OCT. Avis publiés (page demande d'avis : 313)             313        313  OK
+OCT. Avis à 5 étoiles (95 %)                               95         95  OK
+OCT. Demandes d'avis envoyées (2 911)                    2911       2911  OK
+OCT. Codes AUTO (33)                                       33         33  OK
+OCT. Produits actifs (page retouche photo : 133)          133        133  OK
+
+ 36 contrôles OK sur 36
+</code></pre><p class="meta">Ce contrôle a déjà servi : il a révélé que le total « 475 commandes avec code promo » affiché dans une première version était en réalité la somme des six codes les plus utilisés ; le total exact est de 516 commandes (35,9 %), corrigé partout.</p></div></details>
+<details class="pli" name="per"><summary>Ce que le périmètre ne couvre pas</summary><div class="corps"><ul><li>Marge : seule la marge de 50 % sur les bougies (indiquée par la gérante) est connue ; la colonne « coût par article » du catalogue est vide. Les bougies font 71 % du chiffre d’affaires des lignes de commande.</li><li>Coût des colis : les fichiers donnent le port <b>facturé aux clients</b> (5,90 € en point relais, 9,90 € à domicile ; 5 648 € au total), pas ce que la boutique paie au transporteur.</li><li>Aucune donnée de trafic datée, de conversion ni de provenance par commande : la colonne « Source » des commandes ne contient aucune valeur Instagram.</li><li>Aucune information sur les actions marketing (e-mails, publicités, calendrier de lancement).</li><li>Quinze mois d’historique : les corrélations calculées portent sur très peu de points.</li></ul></div></details>
+<details class="pli" name="per"><summary>Le code</summary><div class="corps"><div class="codes"><details class="pli" name="code-common.py"><summary><code>common.py</code> · Lit les commandes, classe les produits en familles, regroupe les commandes par client. Base des analyses « parcours clients ».</summary><div class="corps"><p class="meta">78 lignes · <a href="common.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Base commune aux analyses de parcours client : lecture de orders.csv (hors commandes annulées),
+familles de produits, clés produit, commandes rangées par client."""
+import csv, re
+from datetime import datetime
+from collections import defaultdict
+
+ORDERS_CSV = '../DONNEES/orders.csv'
+REF = datetime(2026, 10, 23)
+
+FAMILLES = ['Bougies gourmandes', 'Bougies boisson', 'Bougies taille S', 'Autres bougies', 'Fondants',
+            'Voiture', 'Diffuseurs maison', 'Poudre parfumée', 'Élixirs', 'Accessoires et cadeaux', 'Formation']
+
+def famille(name):
+    n = name.upper()
+    if n.startswith('BOUGIE GOURMANDE'): return 'Bougies gourmandes'
+    if n.startswith(('BOUGIE BOISSON', 'BOUGIE LATTE', 'BOUGIE ICED')): return 'Bougies boisson'
+    if n.startswith('BOUGIE PARFUMEE TAILLE S'): return 'Bougies taille S'
+    if n.startswith('BOUGIE'): return 'Autres bougies'
+    if n.startswith(('BOX DE FONDANTS', 'BOUQUET DE FONDANTS', 'TABLETTE', 'FONDANT')): return 'Fondants'
+    if n.startswith(('SUSPENSION VOITURE', 'DIFFUSEUR VOITURE')): return 'Voiture'
+    if n.startswith(('DIFFUSEUR', 'RECHARGE MELANGE')): return 'Diffuseurs maison'
+    if n.startswith('POUDRE'): return 'Poudre parfumée'
+    if n.startswith('ELIXIR'): return 'Élixirs'
+    if n.startswith(('PACK FABRICATION', 'PACK BOUGIES')) or 'CONSULTING' in n or n.startswith('RÉGLEMENTATION') or n.startswith('REGLEMENTATION'): return 'Formation'
+    return 'Accessoires et cadeaux'
+
+def cle_produit(name):
+    """Produit au sens marketing : on retire la variante après ' - ' ou ' / ' (parfum, taille)."""
+    return re.split(r' - | / ', name)[0].strip()
+
+def joli(s):
+    t = s.replace('BOUGIE GOURMANDE ', 'Bougie ')
+    t = t.translate(str.maketrans('ÉÈÊÀÂÎÔÛÇÏËÖ', 'éèêàâîôûçïëö')).lower()
+    return t[0].upper() + t[1:]
+
+def charger():
+    """Retourne (commandes, clients) : commandes = liste de dicts ; clients = {cle: [commandes triées par date]}."""
+    rows = []
+    cur = None
+    with open(ORDERS_CSV, encoding='utf-8') as f:
+        for r in csv.DictReader(f):
+            if r['Total']:
+                cur = {'r': r, 'lignes': []}
+                rows.append(cur)
+            if cur and r['Lineitem name'] and r['Lineitem name'] != 'Tip':
+                cur['lignes'].append({'nom': r['Lineitem name'], 'qte': int(r['Lineitem quantity']), 'prix': float(r['Lineitem price'])})
+    commandes = []
+    for o in rows:
+        r = o['r']
+        if r.get('Cancelled at'): continue
+        sm = r['Shipping Method'] or ''
+        d = {
+            'date': r['Created at'][:10], 'dt': datetime.strptime(r['Created at'][:19], '%Y-%m-%d %H:%M:%S'),
+            'cle': r['customer_key'].strip(), 'total': float(r['Total']), 'sous_total': float(r['Subtotal']),
+            'code': r['Discount Code'] or '', 'remise': float(r['Discount Amount'] or 0),
+            'local': 1 if re.match(r'^\d|otissement', sm) else 0,
+            'pays': (r['Shipping Country'] or r['Billing Country'] or '').strip(),
+            'cp': re.sub(r'\D', '', (r['Shipping Zip'] or r['Billing Zip'] or '')).zfill(5)[:5],
+            'ordre_key': r['order_key'],
+            'lignes': o['lignes'],
+        }
+        d['qte'] = sum(l['qte'] for l in d['lignes'])
+        d['familles'] = sorted(set(famille(l['nom']) for l in d['lignes']))
+        d['produits'] = sorted(set(cle_produit(l['nom']) for l in d['lignes']))
+        val = defaultdict(float)
+        for l in d['lignes']: val[famille(l['nom'])] += l['qte'] * l['prix']
+        d['fam_dom'] = max(val.items(), key=lambda kv: kv[1])[0] if val else None
+        d['prix_unit'] = (d['sous_total'] / d['qte']) if d['qte'] else None
+        commandes.append(d)
+    clients = defaultdict(list)
+    for d in commandes:
+        if d['cle'] and d['lignes']: clients[d['cle']].append(d)
+    for v in clients.values(): v.sort(key=lambda d: d['dt'])
+    for v in clients.values():
+        for i, d in enumerate(v): d['rang'] = i + 1
+    return commandes, clients
+</code></pre></div></details><details class="pli" name="code-prep.py"><summary><code>prep.py</code> · Relie les commandes, les paiements et les clients. Base commune des tests.</summary><div class="corps"><p class="meta">76 lignes · <a href="prep.txt" download>télécharger le fichier</a></p><pre class="code"><code>import csv, json, re
+from datetime import datetime
+from collections import defaultdict
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+
+# paiement par order_key (transactions de type charge)
+pay = {}
+with open('../DONNEES/payment_transactions.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        if row['Type'] == 'charge' and row['order_key'] not in pay:
+            pay[row['order_key']] = row['Payment Method Name'] or 'inconnu'
+
+# clients : consentement email, has_phone
+custinfo = {}
+with open('../DONNEES/customers.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        custinfo[row['customer_key']] = row
+
+for o in orders:
+    r = o['r']
+    o['dt'] = datetime.strptime(r['Created at'][:19], "%Y-%m-%d %H:%M:%S")
+    o['tot'] = float(r['Total'])
+    o['sub'] = float(r['Subtotal'])
+    o['key'] = r['customer_key'].strip()
+    o['code'] = r['Discount Code']
+    o['disc'] = float(r['Discount Amount'] or 0)
+    o['qty'] = sum(int(i['Lineitem quantity']) for i in o['items'] if i['Lineitem name'] and i['Lineitem name']!='Tip')
+    o['country'] = (r['Shipping Country'] or r['Billing Country'] or '').strip()
+    sm = r['Shipping Method'] or ''
+    if 'point de retrait Mondial' in sm: o['shipmode']='mondial_relais'
+    elif 'Chronopost' in sm: o['shipmode']='chronopost'
+    elif re.match(r'^\d|otissement', sm): o['shipmode']='retrait_local'
+    elif 'domicile' in sm.lower(): o['shipmode']='mondial_domicile'
+    else: o['shipmode']='autre'
+    o['pay'] = pay.get(r['order_key'], None)
+    o['weekday'] = o['dt'].weekday()  # 0=lundi
+    o['is_weekend'] = 1 if o['weekday'] &gt;= 5 else 0
+    o['month'] = r['Created at'][:7]
+    o['hour'] = o['dt'].hour
+
+# ordre chronologique par client -&gt; repeat/new
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o:o['dt'])
+for os_ in cust.values():
+    for i,o in enumerate(os_):
+        o['is_repeat'] = 1 if i&gt;0 else 0
+        o['rank'] = i+1
+for o in orders:
+    if 'is_repeat' not in o: o['is_repeat'] = None
+
+# fréquence/valeur par client
+freq_of = {k: len(v) for k,v in cust.items()}
+for o in orders:
+    o['cust_freq'] = freq_of.get(o['key'])
+    ci = custinfo.get(o['key'])
+    o['accepts_email'] = ci['Accepts Email Marketing'] if ci else None
+
+json.dump([{k:v for k,v in o.items() if k not in ('r','items','dt')} | {'date': o['dt'].isoformat()} for o in orders],
+          open('orders_prepared.json','w'), ensure_ascii=False)
+print("commandes préparées:", len(orders))
+print("exemple:", {k:v for k,v in orders[0].items() if k not in ('r','items')})
+print("moyens de paiement trouvés:", set(o['pay'] for o in orders if o['pay']))
+print("commandes sans paiement apparié:", sum(1 for o in orders if not o['pay']))
+</code></pre></div></details><details class="pli" name="code-verif_chiffres_cles.py"><summary><code>verif_chiffres_cles.py</code> · Recalcule les chiffres clés depuis les fichiers sources et les compare à ceux affichés.</summary><div class="corps"><p class="meta">89 lignes · <a href="verif_chiffres_cles.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Recalcule depuis les fichiers sources les chiffres clés affichés sur le site, et les compare aux valeurs affichées.
+Sert de contrôle : si une ligne affiche « ÉCART », le chiffre du site doit être revu."""
+import csv, os, re
+from collections import Counter, OrderedDict
+from datetime import datetime
+
+# Bloc 1 : pages « Premières analyses » = export de septembre (au 20/09/2026). Bloc 2 : pages mises à jour = livraison d'octobre (au 22/10/2026).
+D = '../DONNEES/archive_septembre/orders.csv'; DL = '../DONNEES/archive_septembre/'; DP = '../DONNEES/'
+rows = list(csv.DictReader(open(D, encoding='utf-8')))
+num = lambda x: float(x.replace(',', '.')) if x not in ('', None) else 0.0
+cmd = OrderedDict()
+for r in rows:
+    if r['order_key'] not in cmd: cmd[r['order_key']] = r          # une ligne d'en-tête de commande = la première ligne de chaque clé
+tous = list(cmd.values())
+valides = [r for r in tous if not r['Cancelled at']]
+
+resultats = []
+def controle(nom, calcule, affiche, tol=0.0):
+    ok = abs(calcule - affiche) &lt;= tol
+    resultats.append((nom, calcule, affiche, 'OK' if ok else 'ÉCART'))
+
+controle('Commandes non annulées', len(valides), 1438)
+controle('Commandes annulées (exclues)', len(tous) - len(valides), 7)
+ca = sum(num(r['Total']) for r in valides)
+controle('Chiffre d\'affaires facturé (€)', round(ca), 90721, 1)
+controle('Panier moyen (€)', round(ca / len(valides), 2), 63.09, 0.01)
+avec_code = sum(1 for r in valides if r['Discount Code'])
+controle('Commandes avec un code promo (tous codes)', avec_code, 516)
+controle('Part des commandes avec code (%)', round(100 * avec_code / len(valides), 1), 35.9, 0.05)
+fr = sum(1 for r in valides if (r['Shipping Country'] or r['Billing Country']) == 'FR')
+controle('Commandes livrées en France', fr, 1350)
+jours = Counter(datetime.strptime(r['Created at'][:10], '%Y-%m-%d').weekday() for r in valides)
+controle('Part du dimanche (%)', round(100 * jours[6] / len(valides), 1), 21.3, 0.05)
+heures = Counter(int(r['Created at'][11:13]) for r in valides)
+h, n = heures.most_common(1)[0]
+controle('Heure la plus chargée (10 h) : part (%)', round(100 * n / len(valides), 1) if h == 10 else -1, 8.6, 0.05)
+dates = sorted(r['Created at'][:10] for r in valides)
+controle('Première commande = 2025-06-27', 1 if dates[0] == '2025-06-27' else 0, 1)
+controle('Dernière commande = 2026-09-20', 1 if dates[-1] == '2026-09-20' else 0, 1)
+sept25 = sum(1 for d in dates if '2025-09-01' &lt;= d &lt;= '2025-09-20'); sept26 = sum(1 for d in dates if '2026-09-01' &lt;= d &lt;= '2026-09-20')
+controle('Commandes du 1er au 20 sept. 2025', sept25, 114); controle('Commandes du 1er au 20 sept. 2026', sept26, 163)
+ca_s = lambda a, b: sum(num(r['Total']) for r in valides if a &lt;= r['Created at'][:10] &lt;= b)
+controle('CA facturé 1-20 sept. 2025 (€)', round(ca_s('2025-09-01', '2025-09-20')), 7491, 1); controle('CA facturé 1-20 sept. 2026 (€)', round(ca_s('2026-09-01', '2026-09-20')), 10820, 1)
+sans_cle = sum(1 for r in valides if not r['customer_key'])
+controle('Commandes sans identifiant client', sans_cle, 25)
+tva = sum(num(r['Taxes']) for r in valides)
+controle('TVA collectée (€)', round(tva), 3685, 1)
+ht = ca - tva
+controle('CA hors TVA (€)', round(ht), 87036, 1)
+premiere_tva = min(r['Created at'][:10] for r in valides if num(r['Taxes']) &gt; 0)
+controle('Première commande avec TVA = 2026-05-28', 1 if premiere_tva == '2026-05-28' else 0, 1)
+# fichier clients
+cl = list(csv.DictReader(open(DL + 'customers.csv', encoding='utf-8')))
+controle('Fiches clients', len(cl), 1923)
+controle('Total dépensé des fiches clients (€)', round(sum(num(r['Total Spent']) for r in cl)), 89718, 1)
+controle('Fiches clients avec dépense &gt; 0 (« ont acheté »)', sum(1 for r in cl if num(r['Total Spent']) &gt; 0), 840)
+# paiements
+pt = list(csv.DictReader(open(DP + 'payment_transactions.csv', encoding='utf-8')))
+controle('Mouvements de paiement', len(pt), 1473)
+
+# ---- bloc 2 : livraison d'octobre, comparée aux chiffres affichés sur l'accueil et dans les pages Automatisations / Formation
+import json
+oc = [r for r in csv.DictReader(open(DP + 'orders.csv', encoding='utf-8')) if r['Total']]
+ocv = [r for r in oc if not r['Cancelled at']]
+ca_oc = sum(num(r['Total']) for r in ocv)
+controle('OCT. Commandes non annulées (accueil : 1 595)', len(ocv), 1595)
+controle("OCT. Chiffre d'affaires facturé (accueil : 99 629 €)", round(ca_oc), 99629, 1)
+controle('OCT. Panier moyen (accueil : 62 €)', round(ca_oc / len(ocv)), 62)
+controle('OCT. Dernière commande = 2026-10-22', 1 if max(r['Created at'][:10] for r in ocv) == '2026-10-22' else 0, 1)
+q1j = json.load(open('q1_automatisations.json', encoding='utf-8')); l3j = json.load(open('l3_formation.json', encoding='utf-8')); l1j = json.load(open('l1_relance.json', encoding='utf-8'))
+controle('OCT. Commandes (script automatisations)', q1j['n_commandes'], len(ocv))
+controle('OCT. Jours de pointe (20 commandes ou plus)', len(q1j['pics']), sum(1 for d in set(r['Created at'][:10] for r in ocv) if sum(1 for r in ocv if r['Created at'][:10] == d) &gt;= 20))
+controle('OCT. Clients suivis (relance)', l1j['N'], len(q1j and set(r['customer_key'] for r in ocv if r['customer_key'])))
+controle('OCT. Commandes de formation (accueil : 18)', l3j['n_ventes'], 18)
+q2j = json.load(open('q2_avis_catalogue.json', encoding='utf-8'))
+_av = list(csv.DictReader(open(DP + 'avis.csv', encoding='utf-8')))
+controle('OCT. Avis publiés (page demande d\'avis : 313)', q2j['avis']['n'], len(_av))
+controle('OCT. Avis à 5 étoiles (95 %)', round(100 * sum(1 for r in _av if r['rating'] == '5') / len(_av)), 95)
+_ar = {(r['rubrique'], r['libelle'], r['serie']): r['valeur'] for r in csv.DictReader(open(DP + 'avis_rapport.csv', encoding='utf-8'))}
+controle('OCT. Demandes d\'avis envoyées (2 911)', q2j['rapport']['envoyes'], int(float(_ar[('All emails', 'Total Count', 'Emails sent')])))
+controle('OCT. Codes AUTO (33)', q2j['codes']['auto_codes'], sum(1 for r in csv.DictReader(open(DP + 'discounts.csv', encoding='utf-8')) if r['Name'].startswith('AUTO-')))
+q3j = json.load(open('q3_photos.json', encoding='utf-8'))
+_pr = list(csv.DictReader(open(DP + 'products.csv', encoding='utf-8')))
+controle('OCT. Produits actifs (page retouche photo : 133)', q3j['produits_actifs'], len({r['Handle'] for r in _pr if r['Status'] == 'active'}))
+print(f'{"Contrôle":48s} {"Recalculé":&gt;12s} {"Affiché":&gt;10s}  Verdict')
+for nom, a, b, v in resultats: print(f'{nom:48s} {a:&gt;12} {b:&gt;10}  {v}')
+print('\n', sum(1 for r in resultats if r[3] == 'OK'), 'contrôles OK sur', len(resultats))
+</code></pre></div></details></div></div></details>
+</main>
+<footer><div class="wrap"><p>Données pseudonymisées de la boutique Lumineva, remises par convention dans le cadre du module Smart Data Marketing (IAE Clermont Auvergne). Seuls des agrégats sont affichés. Ne pas diffuser.</p><p>Version de travail du 12 novembre 2026. Rendu : 18 novembre 2026.</p></div></footer>
+</body>
+</html>

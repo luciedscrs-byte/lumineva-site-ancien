@@ -1,0 +1,110 @@
+# encoding: utf-8
+"""Petites fonctions de mise en forme et de graphiques SVG, dans le même style
+que le dashboard Lumineva (pas de bibliothèque externe, couleurs via tokens CSS)."""
+import math
+
+def n(v, d=0):
+    s = f"{v:,.{d}f}".replace(",", "§").replace(".", ",").replace("§", " ")
+    return s
+
+def eur(v, d=0): return f"{n(v,d)} €"
+def pct(v, d=1): return f"{n(v,d)} %"
+def esc(s): return str(s).replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+
+MOIS = ["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."]
+def ml(k):
+    y,m = k.split("-")[:2]
+    return f"{MOIS[int(m)-1]} {y[2:]}"
+
+def table(head, rows, right=()):
+    h = "".join(f'<th class="{"r" if i in right else ""}">{c}</th>' for i,c in enumerate(head))
+    b = "".join("<tr>"+"".join(f'<td class="{"r" if i in right else ""}">{c}</td>' for i,c in enumerate(r))+"</tr>" for r in rows)
+    return f'<div class="tablewrap"><table><tr>{h}</tr>{b}</table></div>'
+
+def kpi(l, v, nn, cls=""):
+    return f'<div class="kpi {cls}"><span class="l">{l}</span><span class="v">{v}</span><span class="n">{nn}</span></div>'
+
+def panel(cls, title, hint, body):
+    h = f'<p class="hint">{hint}</p>' if hint else ""
+    return f'<section class="panel {cls}"><h3>{title}</h3>{h}{body}</section>'
+
+def vbars(vals, labels, w, h, fmt, hl, step, rot=False, colors=None):
+    pl,pr,pt,pb = 64,8,10,(42 if rot else 26)
+    mx = max(vals) if vals else 0
+    top = max(math.ceil(mx/step)*step, step)
+    iw, ih = w-pl-pr, h-pt-pb
+    s = [f'<svg viewBox="0 0 {w} {h}" width="100%" role="img" style="display:block">']
+    ticks = int(round(top/step))
+    for i in range(ticks+1):
+        v = i*step
+        y = pt+ih-v/top*ih
+        s.append(f'<line x1="{pl}" x2="{w-pr}" y1="{y:.1f}" y2="{y:.1f}" style="stroke:var(--grid)"/>'
+                  f'<text x="{pl-6}" y="{y+4:.1f}" text-anchor="end" font-size="11" style="fill:var(--muted)">{esc(fmt(v))}</text>')
+    bw = iw/max(len(vals),1)
+    for i,v in enumerate(vals):
+        bh = v/top*ih
+        x = pl+i*bw+bw*0.18
+        col = (colors[i] if colors else None) or ("--flame" if i==hl else "--accent")
+        s.append(f'<rect x="{x:.1f}" y="{pt+ih-bh:.1f}" width="{bw*0.64:.1f}" height="{bh:.1f}" rx="2" style="fill:var({col})">'
+                  f'<title>{esc(labels[i])} : {esc(fmt(v))}</title></rect>')
+        if labels[i]:
+            cx = x+bw*0.32
+            if rot:
+                s.append(f'<text transform="translate({cx:.1f},{h-pb+12}) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">{esc(labels[i])}</text>')
+            else:
+                s.append(f'<text x="{cx:.1f}" y="{h-8}" text-anchor="middle" font-size="11" style="fill:var(--muted)">{esc(labels[i])}</text>')
+    s.append("</svg>")
+    return "".join(s)
+
+def line_chart(series_list, labels, w, h, fmt, step, colors, y0_zero=True):
+    """series_list: liste de listes de même longueur que labels. colors: une couleur par série."""
+    pl,pr,pt,pb = 64,8,10,34
+    allv = [v for s in series_list for v in s]
+    mx = max(allv) if allv else 1
+    mn = min(allv) if allv else 0
+    if y0_zero: mn = min(mn, 0)
+    top = max(math.ceil(mx/step)*step, step)
+    bot = math.floor(mn/step)*step if mn < 0 else 0
+    iw, ih = w-pl-pr, h-pt-pb
+    span = top-bot
+    def yx(v): return pt+ih-(v-bot)/span*ih
+    s = [f'<svg viewBox="0 0 {w} {h}" width="100%" role="img" style="display:block">']
+    ticks = int(round(span/step))
+    for i in range(ticks+1):
+        v = bot+i*step
+        y = yx(v)
+        s.append(f'<line x1="{pl}" x2="{w-pr}" y1="{y:.1f}" y2="{y:.1f}" style="stroke:var(--grid)"/>'
+                  f'<text x="{pl-6}" y="{y+4:.1f}" text-anchor="end" font-size="11" style="fill:var(--muted)">{esc(fmt(v))}</text>')
+    n_pts = len(labels)
+    bw = iw/max(n_pts-1,1)
+    for li,vals in enumerate(series_list):
+        pts = " ".join(f"{pl+i*bw:.1f},{yx(v):.1f}" for i,v in enumerate(vals))
+        s.append(f'<polyline points="{pts}" fill="none" style="stroke:var({colors[li]});stroke-width:2"/>')
+        for i,v in enumerate(vals):
+            s.append(f'<circle cx="{pl+i*bw:.1f}" cy="{yx(v):.1f}" r="2.4" style="fill:var({colors[li]})"><title>{esc(labels[i])} : {esc(fmt(v))}</title></circle>')
+    step_lbl = max(1, math.ceil(n_pts / max(1, int(w/70))))
+    for i,lb in enumerate(labels):
+        if i % step_lbl == 0 or i == n_pts-1:
+            s.append(f'<text x="{pl+i*bw:.1f}" y="{h-8}" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">{esc(lb)}</text>')
+    s.append("</svg>")
+    return "".join(s)
+
+def step_survival(curves, w, h, xmax, fmt_y=lambda v: f"{v:.0f}%"):
+    """curves: liste de (label, couleur, [(t0,y0),(t1,y1)...]) déjà en escalier, y en 0..100."""
+    pl,pr,pt,pb = 40,10,10,28
+    iw, ih = w-pl-pr, h-pt-pb
+    def xx(t): return pl + min(t,xmax)/xmax*iw
+    def yy(y): return pt + ih - y/100*ih
+    s = [f'<svg viewBox="0 0 {w} {h}" width="100%" role="img" style="display:block">']
+    for gy in (0,25,50,75,100):
+        y = yy(gy)
+        s.append(f'<line x1="{pl}" x2="{w-pr}" y1="{y:.1f}" y2="{y:.1f}" style="stroke:var(--grid)"/><text x="{pl-6}" y="{y+4:.1f}" text-anchor="end" font-size="10.5" style="fill:var(--muted)">{fmt_y(gy)}</text>')
+    for i in (0, xmax//2, xmax):
+        s.append(f'<text x="{xx(i):.1f}" y="{h-8}" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">{i} j</text>')
+    for label, color, pts in curves:
+        d = f"M{xx(pts[0][0]):.1f},{yy(pts[0][1]):.1f} "
+        for t,y in pts[1:]:
+            d += f"L{xx(t):.1f},{yy(y):.1f} "
+        s.append(f'<path d="{d}" fill="none" style="stroke:var({color});stroke-width:2"><title>{esc(label)}</title></path>')
+    s.append("</svg>")
+    return "".join(s)

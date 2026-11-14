@@ -1,0 +1,60 @@
+import csv, json
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+from svgutil import *
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['dt'] = datetime.strptime(o['r']['Created at'][:19], "%Y-%m-%d %H:%M:%S")
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+    o['disc_amt'] = float(o['r']['Discount Amount'] or 0)
+    o['code'] = o['r']['Discount Code']
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o:o['dt'])
+
+groupA, groupB = [], []  # A = 1re commande avec BIENVENUE10, B = 1re commande sans code
+disc_cost_A = 0.0
+for k, os_ in cust.items():
+    first = os_[0]
+    lifetime = sum(o['tot'] for o in os_)
+    if first['code'] == 'BIENVENUE10':
+        groupA.append(lifetime)
+        disc_cost_A += first['disc_amt']
+    elif not first['code']:
+        groupB.append(lifetime)
+
+t_stat, p_val = stats.ttest_ind(groupA, groupB, equal_var=False)  # Welch
+mean_a, mean_b = sum(groupA)/len(groupA), sum(groupB)/len(groupB)
+med = lambda a: sorted(a)[len(a)//2] if len(a)%2 else (sorted(a)[len(a)//2-1]+sorted(a)[len(a)//2])/2
+avg_disc_per_customer = disc_cost_A/len(groupA)
+clv_net_A = mean_a - avg_disc_per_customer
+
+print(f"Groupe A (1re cmd BIENVENUE10): n={len(groupA)} CLV moyenne={mean_a:.2f} médiane={med(groupA):.2f}")
+print(f"Groupe B (1re cmd sans code):   n={len(groupB)} CLV moyenne={mean_b:.2f} médiane={med(groupB):.2f}")
+print(f"Welch t-test: t={t_stat:.3f} p={p_val:.4f}")
+print(f"Coût total des remises BIENVENUE10 attribuables à ces {len(groupA)} clients: {disc_cost_A:.2f} €")
+print(f"Coût moyen par client acquis via le code: {avg_disc_per_customer:.2f} €")
+print(f"CLV nette (CLV - coût d'acquisition) groupe A: {clv_net_A:.2f} € vs groupe B (coût 0): {mean_b:.2f} €")
+
+json.dump({
+ 'n_a': len(groupA), 'n_b': len(groupB),
+ 'mean_a': round(mean_a,2), 'mean_b': round(mean_b,2),
+ 'med_a': round(med(groupA),2), 'med_b': round(med(groupB),2),
+ 't_stat': round(t_stat,3), 'p_value': round(p_val,4),
+ 'disc_cost_total': round(disc_cost_A,2), 'disc_cost_per_customer': round(avg_disc_per_customer,2),
+ 'clv_net_a': round(clv_net_A,2),
+}, open('a1_clv.json','w'), ensure_ascii=False)

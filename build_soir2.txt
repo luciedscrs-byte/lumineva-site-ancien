@@ -1,0 +1,54 @@
+import csv, json
+from collections import defaultdict
+from svgutil import *
+
+NEWTAG = '<span style="display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 9px;border-radius:99px;background:var(--flame);color:#fff;margin-right:8px;vertical-align:2px">Nouveau · 22 sept. soir</span>'
+
+SRC = "../DONNEES/visites_par_referent.csv"
+rows = list(csv.DictReader(open(SRC, encoding="utf-8")))
+def to_i(s):
+    try: return int(s)
+    except: return 0
+
+tot_visits = sum(to_i(r["Visites"]) for r in rows)
+tot_prev = sum(to_i(r["Sessions (previous_period)"]) for r in rows)
+by_source = defaultdict(lambda: {"visits":0,"prev":0})
+for r in rows:
+    s = r["Source du référent"]
+    by_source[s]["visits"] += to_i(r["Visites"])
+    by_source[s]["prev"] += to_i(r["Sessions (previous_period)"])
+SRCN = {"direct":"Direct (lien tapé, favori)","social":"Réseaux sociaux","search":"Moteur de recherche","email":"E-mail","unknown":"Inconnu"}
+rows_t = []
+for s,v in sorted(by_source.items(), key=lambda kv:-kv[1]["visits"]):
+    chg = pct((v["visits"]/v["prev"]-1)*100,0) if v["prev"] else "—"
+    rows_t.append([SRCN.get(s,s), n(v["visits"]), n(v["prev"]), chg])
+t_src = table(["Source","Visites (période A)","Visites (période B)","Évolution"], rows_t, right=[1,2,3])
+
+by_name = defaultdict(lambda: {"visits":0,"prev":0})
+for r in rows:
+    nm = r["Nom du référent"] or "(sans détail)"
+    by_name[nm]["visits"] += to_i(r["Visites"])
+    by_name[nm]["prev"] += to_i(r["Sessions (previous_period)"])
+top_names = sorted(by_name.items(), key=lambda kv:-kv[1]["visits"])[:8]
+rows_n = [[nm, n(v["visits"]), n(v["prev"])] for nm,v in top_names]
+t_names = table(["Référent","Visites (période A)","Visites (période B)"], rows_n, right=[1,2])
+
+DATACENTER_CITIES = {"Boardman","Council Bluffs","Ashburn"}
+susp = sum(to_i(r["Visites"]) for r in rows if r["Source du référent"]=="direct" and r["Ville de la visite"] in DATACENTER_CITIES)
+
+body = f'''<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+{kpi("Visites, période A", n(tot_visits), "période la plus récente du rapport")}
+{kpi("Visites, période B", n(tot_prev), "période de comparaison du rapport")}
+{kpi("Évolution", pct((tot_visits/tot_prev-1)*100,1), "toutes sources confondues")}
+</div>
+<p class="hint" style="margin-top:12px;padding:10px 14px;background:var(--flame-soft);border-radius:8px"><b>Dates inconnues.</b> Ce rapport Shopify (« Visites par référent ») ne contient aucune date : « période A » et « période B » sont telles que Shopify les a nommées, sans plus de précision. En comparant ces volumes à nos propres commandes sur les 7, 14 ou 30 derniers jours avant le 20 septembre 2026, les taux de conversion obtenus (15 à 80&nbsp;%) sont irréalistes : ce rapport ne correspond donc à aucune de ces fenêtres simples. La période exacte a été demandée à la gérante ; les chiffres ci-dessous sont fiables en proportion, pas encore rattachables à une date précise.</p>
+<div class="grid" style="margin-top:14px">
+<div class="c6">{t_src}</div>
+<div class="c6">{t_names}</div>
+</div>
+<p class="hint" style="margin-top:12px"><b>Signal de trafic non humain</b> : {n(susp)} des {n(by_source["direct"]["visits"])} visites « direct » viennent de villes connues pour héberger des centres de données (Boardman OR, Council Bluffs IA, Ashburn VA) plutôt que de vrais visiteurs domiciliés là. Une partie du trafic « direct » est donc probablement automatisée (robots d’indexation ou de surveillance), pas des clientes potentielles.</p>'''
+
+panel_traffic = panel("c12", f"{NEWTAG}Trafic par source (rapport Shopify de la gérante)", "Premier vrai chiffre de trafic reçu depuis le début du projet.", body)
+section = f'<h3 style="margin:18px 0 4px 2px">{NEWTAG}Trafic du site</h3><div class="grid">{panel_traffic}</div>'
+open("frag_soir_croisement.html","w",encoding="utf-8").write(section)
+print("ok")

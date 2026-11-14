@@ -1,0 +1,84 @@
+# encoding: utf-8
+"""Profil des clients qui laissent un avis (étiquette « a écrit un avis Judge.me » du fichier clients), comparés aux autres clients.
+N'utilise AUCUN prénom, nom, e-mail ni adresse : uniquement l'étiquette, la clé pseudonymisée, les commandes et le code postal (commune)."""
+import csv, json, os
+from collections import Counter, defaultdict
+import numpy as np
+from scipy import stats
+from common import charger, famille, REF
+
+CHAMPS = ('customer_key', 'Tags', 'Accepts Email Marketing', 'Default Address Zip', 'Default Address Country Code')     # liste blanche : pas de prénom
+cm = {}
+for r in csv.DictReader(open('../DONNEES/customers.csv', encoding='utf-8')):
+    cm[r['customer_key']] = {c: r[c] for c in CHAMPS}
+cmds, clients = charger()
+avis = {k for k, r in cm.items() if 'Judge.me' in (r['Tags'] or '')}
+print('auteurs d’avis (étiquette) :', len(avis), '| avec commandes suivies :', len(avis & set(clients)), '| autres clients suivis :', len(set(clients) - avis))
+comm = json.load(open('cache/communes_par_cp.json'))
+def fiche(k):
+    os_ = clients[k]; tot = sum(o['total'] for o in os_)
+    fam = set(f for o in os_ for f in o['familles'])
+    cp = (cm.get(k, {}).get('Default Address Zip') or os_[0]['cp'] or '').strip()
+    c = comm.get(cp.zfill(5)[:5]) if cp else None
+    pop = max(c, key=lambda x: x.get('population') or 0).get('population') if c else None
+    return {'n': len(os_), 'depense': tot, 'panier': tot / len(os_), 'recence': (REF - os_[-1]['dt']).days, 'anciennete': (REF - os_[0]['dt']).days, 'local': float(np.mean([o['local'] for o in os_])) > 0.5,
+            'code': any(o['code'] for o in os_), 'fam': fam, 'pop': pop, 'dep': (c[0]['codeDepartement'] if c else None), 'cons': cm.get(k, {}).get('Accepts Email Marketing') == 'yes',
+            'premier_panier': os_[0]['total'], 'produits': set(o_ for o in os_ for o_ in o['produits'])}
+A = {k: fiche(k) for k in avis & set(clients)}; B = {k: fiche(k) for k in set(clients) - avis}
+def moy(d, c): return float(np.mean([v[c] for v in d.values()]))
+def med(d, c): return float(np.median([v[c] for v in d.values()]))
+res = {'n_avis': len(A), 'n_autres': len(B)}
+for c, lab in (('n', 'commandes'), ('depense', 'dépense totale (€)'), ('panier', 'panier moyen (€)'), ('anciennete', 'ancienneté (jours)'), ('recence', 'jours depuis la dernière commande')):
+    mw = stats.mannwhitneyu([v[c] for v in A.values()], [v[c] for v in B.values()], alternative='two-sided')
+    res[c] = {'avis_moy': moy(A, c), 'avis_med': med(A, c), 'autres_moy': moy(B, c), 'autres_med': med(B, c), 'p': float(mw.pvalue)}
+    print(f"{lab:36s} auteurs d'avis moy {moy(A,c):7.1f} méd {med(A,c):6.1f} | autres moy {moy(B,c):7.1f} méd {med(B,c):6.1f} | MW p={mw.pvalue:.4f}")
+def part(d, f): return float(np.mean([f(v) for v in d.values()]))
+for nom, f in (('au moins 2 commandes', lambda v: v['n'] >= 2), ('retrait local', lambda v: v['local']), ('a utilisé un code promo', lambda v: v['code']), ('accepte les e-mails', lambda v: v['cons']), ('habite une commune de moins de 5 000 habitants', lambda v: v['pop'] is not None and v['pop'] < 5000)):
+    a, b = [f(v) for v in A.values()], [f(v) for v in B.values()]
+    p = stats.chi2_contingency([[sum(a), len(a) - sum(a)], [sum(b), len(b) - sum(b)]])[1]
+    res[nom] = {'avis': float(np.mean(a)), 'autres': float(np.mean(b)), 'p': float(p)}
+    print(f"{nom:50s} {100*np.mean(a):5.1f} % contre {100*np.mean(b):5.1f} % (p={p:.3f})")
+# ce qu'ils achètent : part des clients de chaque groupe ayant déjà acheté chaque famille
+fams = sorted(set(f for v in list(A.values()) + list(B.values()) for f in v['fam']))
+pf = []
+for f in fams:
+    a = [f in v['fam'] for v in A.values()]; b = [f in v['fam'] for v in B.values()]
+    if sum(a) + sum(b) < 15: continue
+    p = stats.fisher_exact([[sum(a), len(a) - sum(a)], [sum(b), len(b) - sum(b)]])[1]
+    pf.append({'famille': f, 'avis': float(np.mean(a)), 'autres': float(np.mean(b)), 'p': float(p), 'n_avis': int(sum(a))})
+ps = sorted([(d['p'], i) for i, d in enumerate(pf)]); mx = 0
+for r_, (p, i) in enumerate(ps): mx = max(mx, min(1.0, p * (len(pf) - r_))); pf[i]['holm'] = mx
+pf.sort(key=lambda d: -d['avis'])
+for d in pf: print(f"  {d['famille']:26s} auteurs {100*d['avis']:5.1f} % autres {100*d['autres']:5.1f} % p={d['p']:.3f} (Holm {d['holm']:.2f})")
+dep = Counter(v['dep'] for v in A.values() if v['dep']).most_common(5)
+res['top_dep_avis'] = [[d, n] for d, n in dep]; res['familles'] = pf
+res['avis_par_commandes'] = {str(k): sum(1 for v in A.values() if v['n'] == k) for k in (1, 2, 3)}; res['avis_4plus'] = sum(1 for v in A.values() if v['n'] >= 4)
+# taux d'auteurs d'avis selon le nombre de commandes
+taux = {}
+for lo, hi, lab in ((1, 1, '1 commande'), (2, 2, '2 commandes'), (3, 4, '3 à 4 commandes'), (5, 99, '5 commandes et plus')):
+    tous = [k for k in clients if lo <= len(clients[k]) <= hi]; taux[lab] = {'clients': len(tous), 'auteurs': sum(1 for k in tous if k in avis), 'part': sum(1 for k in tous if k in avis) / len(tous) if tous else None}
+res['taux_par_nb_commandes'] = taux; print('part d’auteurs d’avis selon le nombre de commandes :', {k: (v['clients'], v['auteurs'], round(100 * v['part'], 1)) for k, v in taux.items()})
+
+# ---------- ce qu'ils achètent, en part des articles (et non en part de clients, qui dépend du nombre de commandes)
+def part_articles(d):
+    tot = Counter()
+    for k in d:
+        for o in clients[k]:
+            for l in o['lignes']: tot[famille(l['nom'])] += l['qte']
+    s = sum(tot.values()); return {f: v / s for f, v in tot.items()}, s
+pa, na_ = part_articles(A); pb, nb_ = part_articles(B)
+comp = []
+for f in sorted(pa, key=lambda f: -pa[f]):
+    comp.append({'famille': f, 'avis': pa[f], 'autres': pb.get(f, 0.0)})
+    print(f"  part des articles — {f:26s} auteurs {100*pa[f]:5.1f} % autres {100*pb.get(f,0):5.1f} %")
+res['part_articles'] = comp; res['n_articles'] = [na_, nb_]
+# ---------- régression logistique : qu'est-ce qui distingue un auteur d'avis, à nombre de commandes égal ?
+import statsmodels.api as sm
+ks = list(A) + list(B); y = np.array([1] * len(A) + [0] * len(B))
+X = np.column_stack([[np.log(v['n']) for v in (list(A.values()) + list(B.values()))], [v['panier'] / 10 for v in (list(A.values()) + list(B.values()))], [1.0 if v['code'] else 0.0 for v in (list(A.values()) + list(B.values()))],
+                     [1.0 if (v['pop'] is not None and v['pop'] < 5000) else 0.0 for v in (list(A.values()) + list(B.values()))], [v['anciennete'] / 100 for v in (list(A.values()) + list(B.values()))]])
+lg = sm.Logit(y, sm.add_constant(X)).fit(disp=0)
+noms = ['nombre de commandes (log)', 'panier moyen (par 10 €)', 'a utilisé un code', 'commune < 5 000 hab.', 'ancienneté (par 100 jours)']
+res['logit'] = [{'var': nm, 'or': float(np.exp(lg.params[i + 1])), 'lo': float(np.exp(lg.conf_int()[i + 1][0])), 'hi': float(np.exp(lg.conf_int()[i + 1][1])), 'p': float(lg.pvalues[i + 1])} for i, nm in enumerate(noms)]
+for r_ in res['logit']: print(f"  OR {r_['or']:.2f} [{r_['lo']:.2f} ; {r_['hi']:.2f}] p={r_['p']:.3f}  {r_['var']}")
+json.dump(res, open('o1_profil_avis.json', 'w'), ensure_ascii=False, default=float)

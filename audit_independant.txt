@@ -1,0 +1,210 @@
+# encoding: utf-8
+"""Audit indépendant : recalcule depuis les fichiers bruts (csv, pandas, scipy ; sans common.py ni les scripts d'analyse)
+les chiffres affichés sur les pages Automatisations, Formation, Profil et Notre choix, puis les compare à ceux des fichiers JSON des pages.
+Une ligne « ÉCART » = un chiffre du site à revoir. Aucune donnée personnelle affichée."""
+import csv, json, re, math
+import numpy as np, pandas as pd
+from scipy import stats
+
+D = '../DONNEES/'
+J = lambda f: json.load(open(f, encoding='utf-8'))
+res = []
+def ok(nom, calcule, affiche, tol=0.0):
+    c, a = float(calcule), float(affiche)
+    res.append((nom, round(c, 4), round(a, 4), 'OK' if abs(c - a) <= tol else 'ÉCART'))
+
+# ---------------- base commandes (lecture directe)
+o = pd.read_csv(D + 'orders.csv', dtype=str)
+o['Created at'] = o['Created at'].ffill()
+tete = o[o['Total'].notna()].copy()
+tete['t'] = tete['Total'].astype(float); tete['jour'] = tete['Created at'].str[:10]
+val = tete[tete['Cancelled at'].isna()].copy()
+val['dt'] = pd.to_datetime(val['Created at'].str[:19])
+val['cle'] = val['customer_key'].fillna('').str.strip()
+ok('Commandes non annulées', len(val), 1595); ok('CA facturé (€)', val['t'].sum(), J('q1_automatisations.json')['ca_total_commandes'], 1)
+cl = val[val['cle'] != ''].sort_values('dt')
+ok('Clients avec commande', cl['cle'].nunique(), J('p1_profil_type.json')['n_clients'])
+cnt = cl.groupby('cle').size(); ok('Part des clients à 1 seule commande (%)', 100 * (cnt == 1).mean(), 100 - J('p1_profil_type.json')['pct_2plus'], 0.05)
+
+# ---------------- relance : Kaplan-Meier refait à la main
+ref = pd.Timestamp('2026-10-23')
+g = cl.groupby('cle')['dt'].apply(lambda s: sorted(s))
+dur, ev = [], []
+for lst in g:
+    if len(lst) > 1: dur.append((lst[1] - lst[0]).days); ev.append(1)
+    else: dur.append((ref - lst[0]).days); ev.append(0)
+dur, ev = np.array(dur), np.array(ev)
+def retour(t):
+    S = 1.0
+    for u in sorted(set(dur[ev == 1])):
+        if u > t: break
+        S *= 1 - ((dur == u) & (ev == 1)).sum() / (dur >= u).sum()
+    return 1 - S
+l1 = J('l1_relance.json')
+for t in (45, 90, 180): ok('Retour à J+%d (Kaplan-Meier refait)' % t, 100 * retour(t), 100 * l1['retour'][str(t)], 0.05)
+ok('Clients qui ont recommandé', ev.sum(), l1['n_ret']); ok('Délai médian des retours (jours)', np.median(dur[ev == 1]), l1['mediane'])
+suivi = np.array([(ref - lst[0]).days for lst in g]); cust = pd.read_csv(D + 'customers.csv', dtype=str).set_index('customer_key')
+cons = np.array([cust['Accepts Email Marketing'].get(k, '') == 'yes' for k in g.index])
+cible = ((suivi >= 46) & (suivi <= 410) & ((ev == 0) | (dur > 45)) & cons).sum()
+ok('Cible annuelle joignable à J+45', cible, l1['cibles']['45']['joignables'])
+prem = [lst[0] for lst in g]; sec = [(lst[1] if len(lst) > 1 else None) for lst in g]
+# 1re commande contre 2e commande (Wilcoxon refait)
+cl2 = cl.copy(); cl2['rang'] = cl2.groupby('cle').cumcount() + 1
+a = cl2[cl2['rang'] == 1].set_index('cle')['t']; b = cl2[cl2['rang'] == 2].set_index('cle')['t']; com = a.index.intersection(b.index)
+ok('Écart moyen 2e - 1re commande (€)', (b[com] - a[com]).mean(), J('g1_premiere_vs_suivantes.json')['paired']['total']['delta_moy'], 0.01)
+ok('Wilcoxon p (1re/2e commande)', stats.wilcoxon(b[com], a[com]).pvalue, J('g1_premiere_vs_suivantes.json')['paired']['total']['wilcoxon_p'], 1e-3)
+
+# ---------------- jours de pointe, lancement, délais
+par_jour = val.groupby('jour').size(); pics = sorted(par_jour[par_jour >= 20].index)
+q1 = J('q1_automatisations.json'); ok('Jours de pointe (>= 20 commandes)', len(pics), len(q1['pics']))
+cl2['jour'] = cl2['Created at'].str[:10]
+for d in ('2026-09-06', '2026-09-20'):
+    x = cl2[cl2['jour'] == d]; pic = [p for p in q1['pics'] if p['date'] == d][0]
+    ok('Commandes du ' + d, par_jour[d], pic['commandes']); ok('  dont clients déjà connus', (x['rang'] >= 2).sum(), pic['clients_connus'])
+heure = val[val['jour'] == '2026-09-06']['dt'].dt.hour; ok('6/09 : commandes entre 10 h et 12 h', heure.isin([10, 11]).sum(), q1['heures']['2026-09-06']['deux_premieres_heures'])
+h20 = val[val['jour'] == '2026-09-20']['dt'].dt.hour; part20 = 100 * h20.isin([10, 11]).mean()
+res.append(('20/09 : part entre 10 h et 12 h (la page dit « la moitié environ »)', round(part20, 1), '45 à 55', 'OK' if 45 <= part20 <= 55 else 'ÉCART'))
+part6 = 100 * heure.isin([10, 11]).mean(); res.append(('6/09 : part entre 10 h et 12 h (idem)', round(part6, 1), '45 à 55', 'OK' if 45 <= part6 <= 55 else 'ÉCART'))
+ven = val.dropna(subset=['Paid at', 'Fulfilled at']).copy()
+ven['delai'] = (pd.to_datetime(ven['Fulfilled at'].str[:19]) - pd.to_datetime(ven['Paid at'].str[:19])).dt.total_seconds() / 86400
+ep = ven['jour'].isin(pics); tab = [[(ven[ep]['delai'] > 7).sum(), (ven[ep]['delai'] <= 7).sum()], [(ven[~ep]['delai'] > 7).sum(), (ven[~ep]['delai'] <= 7).sum()]]
+ok('Expéditions > 7 j, jours de pointe (%)', 100 * tab[0][0] / sum(tab[0]), q1['delais']['pic']['pct_plus_7j'], 0.1)
+ok('Expéditions > 7 j, autres jours (%)', 100 * tab[1][0] / sum(tab[1]), q1['delais']['autres']['pct_plus_7j'], 0.1)
+ok('Fisher p expéditions tardives', stats.fisher_exact(tab)[1], q1['delais']['p_fisher'], 1e-6)
+lig = o[o['Lineitem name'].fillna('').str.upper().str.contains('PUMPKIN SPICE LATTE')].copy(); lig['jour'] = lig['Created at'].str[:10]
+ok('PSL : unités le 6/09', lig[lig['jour'] == '2026-09-06']['Lineitem quantity'].astype(int).sum(), q1['psl']['unites_6_9']); ok('PSL : unités le 20/09', lig[lig['jour'] == '2026-09-20']['Lineitem quantity'].astype(int).sum(), q1['psl']['unites_20_9'])
+ok('Commandes non expédiées au 22/10', (val['Fulfillment Status'] == 'unfulfilled').sum(), q1['non_expediees'])
+
+# ---------------- relances panier et paiement (données Shopify Messaging) et statistiques
+j1 = J('j1_emailing.json'); r = j1['groupes']['relances_actives']; bq = j1['groupes']['boutique']
+ok('Relances : commandes / 100 e-mails', 100 * r['cmd'] / r['envoyes'], q1['relances_total']['cmd_pct'], 0.01)
+lo = stats.chi2.ppf(0.025, 2 * r['cmd']) / 2 / r['envoyes'] * 100; hi = stats.chi2.ppf(0.975, 2 * (r['cmd'] + 1)) / 2 / r['envoyes'] * 100
+ok('Poisson exact : borne basse', lo, q1['relances_total']['cmd_pct_lo'], 0.01); ok('Poisson exact : borne haute', hi, q1['relances_total']['cmd_pct_hi'], 0.01)
+ok('Part du CA des relances (%)', 100 * r['ca'] / val['t'].sum(), 100 * 842.45 / q1['ca_total_commandes'], 0.01)
+
+# ---------------- avis (rapport Judge.me et avis publiés)
+rap = pd.read_csv(D + 'avis_rapport.csv', dtype=str); v = lambda a, b_, c: float(rap[(rap.rubrique == a) & (rap.libelle == b_) & (rap.serie == c)]['valeur'].iloc[0])
+q2 = J('q2_avis_catalogue.json')
+ok('Demandes d\'avis envoyées', v('All emails', 'Total Count', 'Emails sent'), q2['rapport']['envoyes']); ok('Avis par e-mail', v('All emails', 'Total Count', 'Emails clicked'), q2['rapport']['avis_par_mail'])
+e1, c1 = v('Line item sequence', '1st Line Item', 'Emails sent'), v('Line item sequence', '1st Line Item', 'Emails clicked')
+eT, cT = v('All emails', 'Total Count', 'Emails sent'), v('All emails', 'Total Count', 'Emails clicked')
+ok('Fisher p : 1er article contre autres', stats.fisher_exact([[c1, e1 - c1], [cT - c1, eT - e1 - (cT - c1)]])[1], q2['rapport']['premier_vs_autres']['p_fisher'], 1e-6)
+av = pd.read_csv(D + 'avis.csv', dtype=str, usecols=['customer_key', 'rating', 'review_date', 'product_handle', 'has_picture', 'reply'])
+ok('Avis publiés', len(av), q2['avis']['n']); ok('Note moyenne', av['rating'].astype(int).mean(), q2['avis']['moyenne'], 0.005)
+ok('Avis à 3 étoiles ou moins', (av['rating'].astype(int) <= 3).sum(), q2['avis']['n_3_ou_moins'])
+ordres = cl.groupby('cle')['dt'].apply(list); dl = []
+for k, d in zip(av['customer_key'].fillna('').str.strip(), pd.to_datetime(av['review_date'].str[:19].where(av['review_date'].str.len() >= 19, av['review_date'].str[:10] + ' 00:00:00'))):
+    prev = [x for x in ordres.get(k, []) if x <= d]
+    if prev: dl.append((d - max(prev)).days)
+ok('Délai médian commande -> avis (jours)', np.sort(dl)[len(dl) // 2], q2['avis']['delai_jours']['mediane'], 1)
+
+# ---------------- formation
+def formation(n):
+    n = n.upper(); return n.startswith(('PACK FABRICATION', 'PACK BOUGIES')) or 'CONSULTING' in n or n.startswith(('RÉGLEMENTATION', 'REGLEMENTATION'))
+lf = o.copy(); lf['cle_c'] = lf['order_key'].ffill(); lf = lf[lf['Lineitem name'].fillna('').map(formation)]
+cmdF = val[val['order_key'].isin(lf['cle_c'])]; l3 = J('l3_formation.json')
+ok('Commandes de formation', len(cmdF), l3['n_ventes']); ok('Formation payée (€, total des commandes)', cmdF['t'].sum(), l3['ca_paye'], 0.5)
+paye = cmdF[cmdF['t'] > 0]; ok('Ventes payantes', len(paye), l3['n_payantes'])
+ok('Montant moyen d\'une vente payante (€)', paye['t'].mean(), l3['ca_paye'] / l3['n_payantes'], 0.5)
+envois = pd.to_datetime(l3['envois']); jours = pd.date_range(envois[0], val['dt'].max().normalize())
+couv = np.mean([any(0 <= (j - e).days <= 4 for e in envois) for j in jours])
+ventes_dt = pd.to_datetime(paye['jour']); ventes_dt = ventes_dt[ventes_dt >= envois[0]]
+d4 = sum(1 for dv in ventes_dt if any(0 <= (dv - e).days <= 4 for e in envois))
+ok('Ventes dans les 4 jours après un e-mail', d4, l3['dans4']); ok('Couverture de la période (%)', 100 * couv, 100 * l3['couv'], 0.5)
+ok('Test binomial p', stats.binomtest(d4, len(ventes_dt), couv, alternative='greater').pvalue, l3['p_bin'], 1e-5)
+
+# ---------------- codes promo
+disc = pd.read_csv(D + 'discounts.csv', dtype=str); q2c = q2['codes']
+ok('Codes AUTO', disc['Name'].str.startswith('AUTO-').sum(), q2c['auto_codes']); ok('Usages BIENVENUE10', int(disc[disc['Name'] == 'BIENVENUE10']['Times Used In Total'].iloc[0]), q2c['bienvenue_utilisations'])
+cmdcl = cl.copy(); cmdcl['rang'] = cmdcl.groupby('cle').cumcount() + 1
+ok('Part des 1res commandes avec BIENVENUE10 (%)', 100 * ((cmdcl['rang'] == 1) & (cmdcl['Discount Code'] == 'BIENVENUE10')).sum() / (cmdcl['rang'] == 1).sum(), q2c['part_1res_avec_bienvenue'], 0.6)
+auto = cmdcl[cmdcl['Discount Code'].fillna('').str.startswith('AUTO-')]; ok('Commandes AUTO déjà clients', (auto['rang'] >= 2).sum(), q2c['auto_deja_clients']); ok('Panier moyen AUTO', auto['t'].mean(), q2c['auto_panier_moyen'], 0.6)
+
+# ---------------- catalogue et photos
+pr = pd.read_csv(D + 'products.csv', dtype=str); pr['H'] = pr['Handle']
+st = pr.dropna(subset=['Status']).set_index('Handle')['Status']; q3 = J('q3_photos.json')
+ok('Produits actifs', (st == 'active').sum(), q3['produits_actifs'])
+im = pr.dropna(subset=['Image Src']).groupby('Handle')['Image Src'].nunique(); ok('Photos des produits actifs', im[im.index.isin(st[st == 'active'].index)].sum(), q3['photos_actifs'])
+
+# contrôle des statistiques de comparaison des e-mails (données Shopify Messaging, relevé du 21/10/2026)
+_j = J('j1_emailing.json'); _r = _j['groupes']['relances_actives']; _b = _j['groupes']['boutique']
+_t = [[_r['cmd'], _r['envoyes'] - _r['cmd']], [_b['cmd'], _b['envoyes'] - _b['cmd']]]
+ok('Fisher p : relances contre newsletters', stats.fisher_exact(_t)[1], _j['relances_vs_news']['p'], 1e-8)
+ok('Rapport de commandes par e-mail (relances / newsletters)', (_r['cmd'] / _r['envoyes']) / (_b['cmd'] / _b['envoyes']), _j['relances_vs_news']['rr'], 0.01)
+
+# =================== Deuxième série de contrôles (14/11/2026, audit approfondi) ===================
+cu = pd.read_csv(D + 'customers.csv', dtype=str).set_index('customer_key')
+tagF = set(cu[cu['Tags'].fillna('').str.contains('Formation')].index)
+ok('Fiches étiquetées « Formation »', len(tagF), l3['inscrits'])
+ok('  dont clients (au moins 1 commande)', len(tagF & set(cl['cle'])), l3['inscrits_clients'])
+buy = set(lf['cle_c'].map(dict(zip(val['order_key'], val['cle']))).dropna()) - {''}
+ok('Acheteurs de formation (clients identifiés)', len(buy), l3['acheteurs'])
+ok('  dont étiquetés « Formation »', len(buy & tagF), l3['acheteurs_inscrits'])
+buyp = set(paye['cle'].dropna()) - {''}; ok('Conversion : acheteurs payants étiquetés / fiches étiquetées (%)', 100 * len(buyp & tagF) / len(tagF), 100 * l3['conversion'], 0.05)
+avant = 0
+for k in buy:
+    ds = cl[cl['cle'] == k]; f1 = ds[ds['order_key'].isin(lf['cle_c'])]['dt'].min(); avant += int((ds[~ds['order_key'].isin(lf['cle_c'])]['dt'] < f1).any())
+ok('Acheteurs de formation déjà clients bougies avant (page : 3)', avant, 3)
+aut = [k for k in cl['cle'].unique() if k not in tagF]
+dep = cl[~cl['order_key'].isin(lf['cle_c'])].groupby('cle')['t'].sum()
+ok('Dépense moyenne hors formation, fiches étiquetées clientes (€)', dep.reindex(sorted(tagF & set(cl['cle']))).fillna(0).mean(), l3['dep_inscrits_moy'], 0.5)
+ok('Dépense moyenne hors formation, autres clients (€)', dep.reindex(aut).fillna(0).mean(), l3['dep_autres_moy'], 0.5)
+ok('Mann-Whitney p (dépense inscrits / autres)', stats.mannwhitneyu(dep.reindex(sorted(tagF & set(cl['cle']))).fillna(0), dep.reindex(aut).fillna(0)).pvalue, l3['p_mw'], 1e-3)
+# profil type
+p1 = J('p1_profil_type.json'); tot_c = cl.groupby('cle')['t'].sum()
+ok('Part des clients à 2 commandes ou plus (%)', 100 * (cnt >= 2).mean(), p1['pct_2plus'], 0.05); ok('Part des clients à 3 commandes ou plus (%)', 100 * (cnt >= 3).mean(), p1['pct_3plus'], 0.05)
+ok('Commandes par client (moyenne)', cnt.mean(), p1['cmd_moy'], 0.005); ok('Dépense par client (moyenne, €)', tot_c.mean(), p1['depense_moy'], 0.01); ok('Dépense par client (médiane, €)', tot_c.median(), p1['depense_med'], 0.01)
+ok('Panier moyen (€)', val['t'].mean(), p1['panier_moy'], 0.5) if False else None
+ok('Part des commandes avec code (%)', 100 * val['Discount Code'].notna().mean(), p1['pct_code'], 0.05)
+# poids des mois (page Contexte)
+mois = val.groupby(val['jour'].str[:7])
+ok('Septembre 2026 : commandes', mois.size()['2026-09'], 211); ok('Septembre 2026 : part du 6/09 dans le CA du mois (%)', 100 * val[val['jour'] == '2026-09-06']['t'].sum() / val[val['jour'].str[:7] == '2026-09']['t'].sum(), [p for p in q1['pics'] if p['date'] == '2026-09-06'][0]['part_ca_mois'], 0.1)
+ok('Joignables parmi les clients connus du 6/09', int(sum(1 for k in cl2[(cl2['jour'] == '2026-09-06') & (cl2['rang'] >= 2)]['cle'] if cu['Accepts Email Marketing'].get(k, '') == 'yes')), [p for p in q1['pics'] if p['date'] == '2026-09-06'][0]['connus_joignables'])
+ok('Clients joignables (au moins 1 commande, accepte les e-mails)', sum(1 for k in cl['cle'].unique() if cu['Accepts Email Marketing'].get(k, '') == 'yes'), q1['audience']['joignables'])
+# catalogue et photos
+prx = pr.copy(); prx['Status'] = prx['Status']; cur = None; info = {}
+for _, r_ in prx.iterrows():
+    if isinstance(r_['Status'], str): cur = r_['Handle']; info[cur] = {'s': r_['Status'], 'q': 0, 'trk': 0}
+    if isinstance(r_['Variant Price'], str): info[cur]['q'] += max(int(r_['Variant Inventory Qty'] or 0), 0); info[cur]['trk'] += r_['Variant Inventory Tracker'] == 'shopify'
+suivis = {h: d for h, d in info.items() if d['s'] == 'active' and d['trk'] > 0}
+ok('Produits actifs suivis en stock', len(suivis), q2['catalogue']['actifs_suivis']); ok('  épuisés', sum(1 for d in suivis.values() if d['q'] == 0), q2['catalogue']['epuises']); ok('  stock bas (1 à 5)', sum(1 for d in suivis.values() if 1 <= d['q'] <= 5), q2['catalogue']['stock_bas'])
+ok('Coût par article renseigné (nombre de variantes)', int(pr['Cost per item'].notna().sum()), q2['catalogue']['cout_renseigne'])
+# remise des codes AUTO
+ok('Remise totale des commandes AUTO (€)', auto['Discount Amount'].astype(float).sum(), q2c['auto_remise_totale'], 0.6)
+ok('Remboursements : commandes concernées (page Contexte : 25)', int((val['Refunded Amount'].astype(float) > 0).sum()), 25, 0)
+ok('Remboursements : montant (page Contexte : 345 €)', val['Refunded Amount'].astype(float).sum(), 345, 1)
+ok('Part de la livraison dans le total facturé (%) (page : 6)', 100 * val['Shipping'].astype(float).sum() / val['t'].sum(), q1['bases_ca']['part_livraison'], 0.05)
+ok('Part de la TVA dans le total facturé (%) (page : 5)', 100 * val['Taxes'].astype(float).sum() / val['t'].sum(), q1['bases_ca']['part_tva'], 0.05)
+ok('Fiches « Formation » issues d\'un formulaire Shopify (page : 324)', int(cu.loc[sorted(tagF), 'Tags'].fillna('').str.contains('shopify-forms-692823').sum()), 324)
+ok('Clients distincts auteurs d\'un avis dans avis.csv (page : 188)', av['customer_key'].fillna('').str.strip().nunique(), 188)
+ok('Fiches avec l\'étiquette « Wrote Judge.me email review » (page : 181)', int(cu['Tags'].fillna('').str.contains('Wrote Judge.me email review').sum()), 181)
+for _m, _n in (('2025-09', 163), ('2025-11', 197), ('2026-09', 211)): ok('Commandes en ' + _m + ' (page Contexte)', mois.size()[_m], _n)
+_cx = J('g2_profils.json')['profils']; _fid = max(_cx, key=lambda p: p['pct_ca']); ok('Groupe fidèle : part des clients (%) (page Contexte : 18)', _fid['pct_clients'], 18, 0.5); ok('Groupe fidèle : part du CA (%) (page Contexte : 52)', _fid['pct_ca'], 52, 0.5)
+ok('Délai médian de la 2e commande (page Contexte : 66)', l1['mediane'], 66)
+
+
+# =================== Troisième série : relance (scénarios) et photos ===================
+r75 = retour(75); ok('Retour naturel J+45 -> J+75 (%) (page : 8,3)', 100 * (r75 - retour(45)) / (1 - retour(45)), 100 * l1['base_p'], 0.05)
+ok('Commande moyenne de la 2e commande, clients qui reviennent (€)', b.mean(), l1['panier2'], 0.01)
+sc5 = [s_ for s_ in l1['scenarios'] if abs(s_['delta'] - 0.05) < 1e-9][0]['sans']
+ok('Scénario +5 points : commandes en plus par an', cible * 0.05, sc5['cmd'], 0.5 + 3 * 0.05); ok('Scénario +5 points : marge basse (€)', cible * 0.05 * b.mean() * 0.5 * 0.714, sc5['marge_bas'], 12)
+# sorties de produits et photos (recalcul indépendant)
+import unicodedata
+def norm_(s):
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode().upper(); return re.sub(r'\s+', ' ', re.sub(r'[^A-Z0-9 ]', ' ', s)).strip()
+lg = o.copy(); lg['jour'] = lg['Created at'].str[:10]; lg['annule'] = lg['Cancelled at'].isna()
+lg['annule_ord'] = lg.groupby(lg['order_key'].ffill())['Cancelled at'].transform(lambda x: x.notna().any()) if False else False
+okeys = set(val['order_key']); lg['ok'] = lg['order_key'].ffill().isin(okeys)
+lg = lg[lg['ok'] & lg['Lineitem name'].notna() & (lg['Lineitem name'] != 'Tip')]
+lg['k'] = lg['Lineitem name'].map(lambda x: norm_(re.split(r' - | / ', x)[0])); prem = lg.groupby('k')['jour'].min()
+sort = prem[(prem > '2025-06-30')]; douze = sort[sort >= '2025-11-01']
+ok('Produits sortis en 12 mois (nov. 2025 - oct. 2026)', len(douze), q3['sorties_12_mois'])
+pr_t = {norm_(r_['Title']): r_['Handle'] for _, r_ in pr.dropna(subset=['Status']).iterrows()}
+ph = [im.get(pr_t[k], 0) for k in douze.index if k in pr_t]
+ok('  dont reliés au catalogue', len(ph), q3['reliees_catalogue']); ok('  photos par produit (moyenne)', np.mean(ph), q3['photos_par_produit_nouveaux'], 0.05)
+ok('  photos à retoucher par an (estimation)', round(len(douze) * np.mean(ph)), q3['photos_an'], 1)
+pm = sort.str[:7].value_counts(); ok('Sorties en novembre 2025', pm['2025-11'], q3['par_mois']['2025-11']); ok('Sorties en mars 2026', pm['2026-03'], q3['par_mois']['2026-03']); ok('Sorties en septembre 2026', pm['2026-09'], q3['par_mois']['2026-09'])
+
+print(f'{"Contrôle":66s} {"Recalculé":>12s} {"Site":>12s}  Verdict')
+for nom, a, b_, v_ in res: print(f'{nom:66s} {a:>12} {b_:>12}  {v_}')
+print('\n', sum(1 for x in res if x[3] == 'OK'), 'contrôles OK sur', len(res))

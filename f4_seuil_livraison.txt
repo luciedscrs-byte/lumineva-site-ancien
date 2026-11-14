@@ -1,0 +1,65 @@
+# encoding: utf-8
+"""Teste formellement l'hypothèse d'un effet de seuil à 79€ de livraison gratuite :
+si des clients complètent leur panier pour l'atteindre, on doit voir moins de
+commandes juste EN DESSOUS de 79€ que juste AU-DESSUS (discontinuité de densité),
+et le mode de règlement des frais de port doit basculer net à 79€."""
+import csv, json
+from collections import defaultdict
+from scipy import stats
+import numpy as np
+
+orders = []
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total'] and not row.get('Cancelled at'):
+        orders.append(row)
+
+fr = [o for o in orders if (o['Shipping Country'] or o['Billing Country']) == 'FR'
+      and (o['Shipping Method'] or '').strip() and ('Mondial' in o['Shipping Method'] or 'Chronopost' in o['Shipping Method'])]
+subs = [float(o['Subtotal']) for o in fr]
+print(f"commandes FR en relais (Mondial Relay/Chronopost, seuil de gratuité applicable): n={len(fr)}")
+
+# 1) vérifier où bascule réellement la gratuité (déjà vu : 79€ dans les frais)
+ship_by_band = defaultdict(list)
+for o in fr:
+    s = float(o['Subtotal'])
+    band = int(s // 2) * 2
+    ship_by_band[band].append(float(o['Shipping']))
+print("frais de port moyens autour de 79€ (tranches de 2€) :")
+for b in range(70, 90, 2):
+    v = ship_by_band.get(b, [])
+    if v: print(f"  [{b}-{b+2}) n={len(v)} frais_moyen={np.mean(v):.2f}")
+
+# 2) test de discontinuité de densité (McCrary simplifié) : compare le nb de commandes juste sous vs juste au-dessus de 79
+for bw in (5, 8, 10):
+    below = sum(1 for s in subs if 79-bw <= s < 79)
+    above = sum(1 for s in subs if 79 <= s < 79+bw)
+    # test binomial : sous H0 (pas de discontinuité), on attend autant des deux côtés
+    n = below + above
+    bt = stats.binomtest(below, n, 0.5)
+    print(f"bande ±{bw}€ autour de 79€ : en dessous={below} au-dessus={above} (total={n}) -> test binomial p={bt.pvalue:.4f}")
+
+# 3) comparer avec un faux seuil (69€, où il ne devrait rien se passer) pour vérifier que ce n'est pas un artefact général de la distribution des prix
+for fake in (69, 89, 59):
+    for bw in (8,):
+        below = sum(1 for s in subs if fake-bw <= s < fake)
+        above = sum(1 for s in subs if fake <= s < fake+bw)
+        n = below+above
+        bt = stats.binomtest(below, n, 0.5)
+        print(f"[témoin] seuil fictif {fake}€ ±{bw}€ : en dessous={below} au-dessus={above} -> p={bt.pvalue:.4f}")
+
+# 4) répartition fine 60-100 pour graphique
+bins = list(range(55, 105, 3))
+hist = []
+for i in range(len(bins)-1):
+    c = sum(1 for s in subs if bins[i] <= s < bins[i+1])
+    hist.append({'lo': bins[i], 'hi': bins[i+1], 'n': c})
+
+below8 = sum(1 for s in subs if 71 <= s < 79); above8 = sum(1 for s in subs if 79 <= s < 87)
+bt_main = stats.binomtest(below8, below8+above8, 0.5)
+
+json.dump({
+ 'n_fr_relais': len(fr),
+ 'hist': hist,
+ 'below8': below8, 'above8': above8, 'p_main': round(bt_main.pvalue,4),
+ 'shipping_by_band': {str(k): round(np.mean(v),2) for k,v in sorted(ship_by_band.items()) if 60<=k<=100},
+}, open('f4_seuil_livraison.json','w'), ensure_ascii=False)

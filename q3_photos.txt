@@ -1,0 +1,45 @@
+# encoding: utf-8
+"""Retouche photo : combien de photos faut-il retoucher, et quand ? (agrégats seulement)
+Sources : products.csv (photos par produit, au 22/10/2026) et orders.csv (date de première vente d'un produit = sortie du produit).
+Limite : une « sortie » est la date de première vente ; le nom du produit sert de clé (la variante est retirée)."""
+import csv, json, re, unicodedata, collections, statistics as st
+
+D = '../DONNEES/'
+def norm(s):
+    s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode().upper()
+    return re.sub(r'\s+', ' ', re.sub(r'[^A-Z0-9 ]', ' ', s)).strip()
+
+imgs, info, cur = collections.defaultdict(set), {}, None
+for r in csv.DictReader(open(D + 'products.csv', encoding='utf-8')):
+    if r['Status']: cur = r['Handle']; info[cur] = {'t': r['Title'], 's': r['Status']}
+    if r['Image Src']: imgs[cur].add(r['Image Src'])
+actifs = [h for h, d in info.items() if d['s'] == 'active']
+n_act = [len(imgs[h]) for h in actifs]
+tit = {norm(d['t']): h for h, d in info.items()}
+
+premiere = {}
+cur = None
+for r in csv.DictReader(open(D + 'orders.csv', encoding='utf-8')):
+    if r['Total']: cur = r
+    if cur and r['Lineitem name'] and r['Lineitem name'] != 'Tip' and not cur['Cancelled at']:
+        k = norm(re.split(r' - | / ', r['Lineitem name'])[0]); d = cur['Created at'][:10]
+        if k not in premiere or d < premiere[k]: premiere[k] = d
+# on écarte le tout premier mois (produits d'ouverture de la boutique)
+sorties = {k: d for k, d in premiere.items() if d > '2025-06-30'}
+par_mois = collections.Counter(d[:7] for d in sorties.values())
+douze = {k: d for k, d in sorties.items() if d >= '2025-11-01'}
+reliees = [len(imgs[tit[k]]) for k in douze if k in tit]
+jours = collections.Counter(d for d in sorties.values())
+vagues_jours = sorted((d, c) for d, c in jours.items() if c >= 20)
+n_nouveaux = len(douze); photos_par_produit = st.mean(reliees)
+photos_an = round(n_nouveaux * photos_par_produit)
+vagues_mois = sorted((m, c) for m, c in par_mois.items() if m >= '2025-11' and c >= 25)
+sc = [{'minutes': m, 'heures_an': round(photos_an * m / 60), 'heures_vague': round(60 * 0 + (photos_an / 4) * m / 60, 1)} for m in (2, 5, 10)]
+out = {'produits_actifs': len(actifs), 'photos_actifs': sum(n_act), 'photos_par_produit_actifs': round(st.mean(n_act), 1), 'sans_photo': sum(1 for x in n_act if x == 0),
+       'brouillons': sum(1 for d in info.values() if d['s'] == 'draft'),
+       'sorties_12_mois': n_nouveaux, 'reliees_catalogue': len(reliees), 'photos_par_produit_nouveaux': round(photos_par_produit, 1),
+       'photos_an': photos_an, 'par_mois': dict(sorted(par_mois.items())), 'jours_de_sortie': vagues_jours, 'mois_vagues': vagues_mois,
+       'part_dans_vagues': round(100 * sum(c for m, c in par_mois.items() if m >= '2025-11' and c >= 25) / n_nouveaux),
+       'scenarios': sc}
+json.dump(out, open('q3_photos.json', 'w'), ensure_ascii=False, indent=1)
+print(json.dumps(out, ensure_ascii=False, indent=1)[:2500])

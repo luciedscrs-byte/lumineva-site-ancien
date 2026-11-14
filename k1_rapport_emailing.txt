@@ -1,0 +1,251 @@
+# encoding: utf-8
+"""Construit le rapport HTML « Analyse des résultats e-mailing » dans le dossier Newsletter Lumineva, à partir de j1_emailing.json."""
+import json, os, sys, re
+from datetime import datetime
+sys.path.insert(0, os.path.expanduser('~/Desktop/test/site/scripts'))
+from decisions_charts import n, eur, pct, pv, x, signe, forest
+import svgutil
+
+DOS = os.path.expanduser('~/Desktop/test/Newsletter Lumineva/')
+d = json.load(open(os.path.expanduser('~/Desktop/test/scripts/j1_emailing.json'), encoding='utf-8'))
+E = d['emails']; G = d['groupes']
+NL = sorted([e for e in E if e['type'] == 'newsletter'], key=lambda e: e['date'])
+BOUT = [e for e in NL if e['liste'] == 'Tous les abonnés']; FORM = [e for e in NL if e['liste'] != 'Tous les abonnés']
+AU = [e for e in E if e['type'] != 'newsletter']
+CR = {c['nom']: c for c in d['criteres']}
+fa = d['fatigue']; ev = d['evenement']; rv = d['relances_vs_news']
+
+
+def esc(t): return t.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+def jj(date): return datetime.strptime(date[:10], '%Y-%m-%d').strftime('%d/%m/%y')
+def court(o, k=44): return o if len(o) <= k else o[:k - 1].rstrip() + '…'
+def lab(e): return jj(e['date']) + ' · ' + court(re.sub(r'\s+', ' ', e['objet']), 38)
+
+
+# ------------------------------------------------------------------ graphiques
+def graphe_clic(lst, ref):
+    rows = []
+    for e in lst:
+        hors = e['clic_lo'] > ref or e['clic_hi'] < ref
+        rows.append({'label': lab(e), 'v': e['clic'], 'lo': e['clic_lo'], 'hi': e['clic_hi'], 'p': 0.01 if hors else 1.0})
+    xmax = max(r['hi'] for r in rows) + 1; pas = 2 if xmax <= 10 else 5
+    ticks = [t for t in range(0, 31, pas) if t <= xmax]
+    return forest(rows, ref, 0, xmax, ticks, lambda v: n(v, 0).replace(' ', ' ') + ' %', w=900, label_w=330, titre_axe='taux de clic, intervalle à 95 % ; trait noir = moyenne de la liste')
+
+def graphe_ca(lst, ref):
+    rows = []
+    for e in lst:
+        hors = e['ca_lo'] > ref or e['ca_hi'] < ref
+        rows.append({'label': lab(e), 'v': e['ca_pm'], 'lo': e['ca_lo'], 'hi': min(e['ca_hi'], 700), 'p': 0.01 if hors else 1.0})
+    return forest(rows, ref, 0, 700, [0, 100, 200, 300, 400, 500, 600, 700], lambda v: n(v, 0).replace(' ', ' ') + ' €', w=900, label_w=330, titre_axe='chiffre d’affaires attribué pour 1 000 e-mails envoyés (intervalle à 95 %, tronqué à 700 €)')
+
+def graphe_auto():
+    rows = []
+    for e in AU:
+        if e['envoyes'] > 100:
+            rows.append({'label': e['automatisation'], 'sous': n(e['envoyes']) + ' envois · ' + n(e['cmd']) + ' commandes', 'v': e['ca_pm'], 'lo': e['ca_lo'], 'hi': min(e['ca_hi'], 3600), 'p': 0.01 if e['ca_lo'] > G['boutique']['ca_pm'] else 1.0})
+    rows.append({'label': 'Newsletters boutique (12 envois)', 'sous': n(G['boutique']['envoyes']) + ' envois · ' + n(G['boutique']['cmd']) + ' commandes', 'v': G['boutique']['ca_pm'], 'lo': G['boutique']['ca_pm_lo'], 'hi': G['boutique']['ca_pm_hi'], 'p': 1.0})
+    return forest(rows, 0, 0, 3600, [0, 500, 1000, 1500, 2000, 2500, 3000, 3500], lambda v: n(v, 0).replace(' ', ' ') + ' €', w=900, label_w=330, titre_axe='chiffre d’affaires attribué pour 1 000 e-mails envoyés (intervalle à 95 %)')
+
+def graphe_fatigue():
+    auto = [e for e in BOUT if e['date'] >= '2026-09-10']
+    vals = [e['clic'] for e in auto]; labs = [jj(e['date']) for e in auto]
+    return svgutil.vbars(vals, labs, 640, 250, lambda v: n(v, 0) + ' %', 99, 2.0, rot=True, colors=['--flame' for _ in vals])
+
+def graphe_evenement():
+    rows = [{'label': 'le jour de l’envoi', 'v': ev['jour d’envoi']['rr'], 'lo': ev['jour d’envoi']['lo'], 'hi': ev['jour d’envoi']['hi'], 'p': ev['jour d’envoi']['p']},
+            {'label': '1 à 2 jours après l’envoi', 'v': ev['1 à 2 jours après']['rr'], 'lo': ev['1 à 2 jours après']['lo'], 'hi': ev['1 à 2 jours après']['hi'], 'p': ev['1 à 2 jours après']['p']}]
+    return forest(rows, 1, 0.6, 4.0, [0.7, 1, 2, 3, 4], lambda v: '× ' + n(v, 1).replace(' ', ' '), w=900, label_w=250, titre_axe='multiplicateur des commandes de toute la boutique')
+
+
+# ------------------------------------------------------------------ tableaux
+def table(head, rows, right=()):
+    h = ''.join('<th class="%s">%s</th>' % ('r' if i in right else '', c) for i, c in enumerate(head))
+    b = ''.join('<tr>' + ''.join('<td class="%s">%s</td>' % ('r' if i in right else '', c) for i, c in enumerate(r)) + '</tr>' for r in rows)
+    return '<div class="tw"><table><tr>%s</tr>%s</table></div>' % (h, b)
+
+def tab_news(lst):
+    rows = []
+    for e in lst:
+        rows.append([jj(e['date']), esc(court(re.sub(r'\s+', ' ', e['objet']), 52)), n(e['envoyes']), pct(e['ouv'], 1), pct(e['clic'], 2), n(e['cmd']), eur(e['ca']), eur(e['ca_pm']) if e['envoyes'] else '—',
+                     esc(e['theme']), n(e['nb_images']), esc(e['gras'].replace('nombreux passages', 'beaucoup').replace('quelques mots', 'un peu')), n(e['mots'])])
+    return table(['Date', 'Objet', 'Envois', 'Ouverture', 'Clic', 'Cmd', 'CA', 'CA / 1 000 envois', 'Thème', 'Photos', 'Gras', 'Mots'], rows, right=(2, 3, 4, 5, 6, 7, 9, 11))
+
+def tab_criteres():
+    rows = []
+    for c in d['criteres']:
+        signif = c['h_clic'] < 0.05
+        conf = abs(c['rho_temps']) >= 0.5
+        lect = ('<b>Écart net</b>' if signif else 'Écart non démontrable') + ('<br><span class="petit">se confond avec la date (' + signe(c['rho_temps'], 2) + ')</span>' if conf else '')
+        rows.append([esc(c['nom']), '%d / %d' % (c['n_oui'], c['n_non']), pct(c['clic_oui'], 2) + ' contre ' + pct(c['clic_non'], 2), pv(c['p_clic']) + ' <span class="petit">(corrigée ' + pv(c['h_clic']) + ')</span>',
+                     n(c['cmd_pm_oui'], 2) + ' contre ' + n(c['cmd_pm_non'], 2), n(c['p_cmd'], 2), lect])
+    return table(['Caractéristique de l’e-mail', 'Envois avec / sans', 'Clic avec contre sans', 'p-value du clic', 'Commandes pour 1 000 envois', 'p (commandes)', 'Lecture'], rows, right=(1,))
+
+def vignette(e, rang):
+    return ('<a class="vg" href="img/%s.jpg" target="_blank" rel="noopener"><div class="im" style="background-image:url(\'%s\')"></div><div class="cap"><b>%s</b>%s<br><span class="petit">clic %s · %s</span></div></a>'
+            % (e['id'], esc(e['image']), rang, esc(court(re.sub(r'\s+', ' ', e['objet']), 46)), pct(e['clic'], 2), eur(e['ca']) + ' attribués'))
+
+
+# ------------------------------------------------------------------ contenu
+B, F, R = G['boutique'], G['formation'], G['relances_actives']
+cl_sorted = sorted(BOUT, key=lambda e: -e['clic']); ca_sorted = sorted(BOUT, key=lambda e: -e['ca_pm'])
+top3 = cl_sorted[:3]; bas3 = cl_sorted[-3:]
+cr_off, cr_urg, cr_img, cr_mots, cr_gras, cr_tu, cr_promo = CR['Une offre (code, remise, jeu)'], CR['Un message d’urgence'], CR['7 photos (contre 5 ou moins)'], CR['Plus de 150 mots'], CR['Beaucoup de gras'], CR['Tutoiement (contre vouvoiement ou mixte)'], CR['Thème « promotion »']
+cr_lien = CR['Bouton principal vers une collection (contre une fiche produit)']; cr_emoji = CR['Emoji dans l’objet']
+pa = [e for e in AU if e['automatisation'] == 'Récupérer un paiement abandonné'][0]; pn = [e for e in AU if e['automatisation'] == 'Récupérer un panier abandonné'][0]
+bienv = [e for e in AU if e['automatisation'] == 'Bienvenue Newsletter Formation'][0]; nav = [e for e in AU if e['automatisation'].startswith('Convertir')][0]
+vieux = [e for e in AU if e['automatisation'].startswith('Recover')]
+MARGE_BAS, MARGE_HAUT = 0.50 * 0.714, 0.50
+ca_mail = d['ca_mail']
+
+CSS = '''
+:root{--bg:#FFFAEB;--surface:#fff;--ink:#0B3B2A;--muted:#4A6B5E;--brand:#0A714E;--brand-dark:#064E36;--rose:#FF9999;--rose-soft:#FFE3E0;--cream:#FFF3C2;--line:#EBDDB0;--accent:#0A714E;--flame:#E0686E;--good:#0A714E;--grid:#EFE6C8;--warn:#8A5A00;--bad:#B5383F}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:'Bitter',Georgia,serif;font-size:16.5px;line-height:1.6}
+.wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+header{background:var(--rose-soft);border-bottom:4px solid var(--rose)}header .wrap{padding-block:34px 28px}
+h1{font-size:clamp(26px,4.4vw,40px);line-height:1.15;margin:0 0 10px;color:var(--brand-dark)}
+h2{font-size:25px;margin:40px 0 8px;color:var(--brand-dark)}h3{font-size:18px;margin:22px 0 6px;color:var(--brand-dark)}
+.kicker{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--brand);font-weight:700;margin:0 0 8px}
+p{max-width:75ch}.lead{font-size:18px;max-width:70ch;margin:0}.petit{font-size:13.5px;color:var(--muted)}
+nav.toc{position:sticky;top:0;background:var(--brand);padding:9px 0;z-index:5}nav.toc .wrap{display:flex;flex-wrap:wrap;gap:4px 16px}nav.toc a{color:var(--cream);text-decoration:none;font-size:14.5px}nav.toc a:hover{text-decoration:underline}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:14px 0}
+.verdict{border:2px solid var(--brand);border-radius:14px;background:var(--surface);padding:6px 20px 14px;margin:14px 0}.verdict h3{color:var(--brand);margin-top:12px}
+.verdict ul,.card ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 8px;border-radius:99px;margin-right:7px;vertical-align:1px}
+.tag.f{background:#DFF0E7;color:var(--good)}.tag.i{background:var(--rose-soft);color:var(--warn)}.tag.l{background:var(--grid);color:var(--muted)}.tag.q{background:var(--cream);color:var(--brand-dark)}
+ul.fl{list-style:none;padding:0;margin:8px 0}ul.fl li{margin:9px 0}
+.tw{overflow-x:auto;margin:10px 0}table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:left;padding:0 12px 8px 0;border-bottom:1px solid var(--line)}
+td{padding:8px 12px 8px 0;border-top:1px solid var(--line);vertical-align:top}th.r,td.r{text-align:right;white-space:nowrap}
+.chart{overflow-x:auto}.chart svg{min-width:640px;max-width:100%;height:auto}.forest text{font-family:'Bitter',Georgia,serif}
+.vgs{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:10px 0}
+.vg{display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;color:var(--ink);text-decoration:none}
+.vg .im{height:300px;background-size:100% auto;background-position:top center;background-repeat:no-repeat;background-color:var(--cream)}
+.vg .cap{padding:10px 12px;font-size:14px;line-height:1.4}
+footer{border-top:1px solid var(--line);margin-top:50px;background:var(--rose-soft)}footer .wrap{padding-block:20px;font-size:14px;color:var(--muted)}
+.ok{color:var(--good);font-weight:700}.ko{color:var(--bad);font-weight:700}.mid{color:var(--warn);font-weight:700}
+@media (max-width:640px){body{font-size:16px}}
+'''
+
+sec_bref = ('<div class="verdict"><h3>En bref</h3><ul>'
+            '<li><b>Les e-mails automatiques de relance de panier et de paiement sont de loin ce qui rapporte le plus</b> : ' + eur(R['ca_pm']) + ' pour 1 000 e-mails envoyés (intervalle ' + eur(R['ca_pm_lo']) + ' à ' + eur(R['ca_pm_hi']) + '), contre ' + eur(B['ca_pm']) + ' (' + eur(B['ca_pm_lo']) + ' à ' + eur(B['ca_pm_hi']) + ') pour les newsletters de la boutique. Une relance fait environ ' + n(rv['rr'], 0) + ' fois plus de commandes par e-mail (intervalle ' + n(rv['lo'], 0) + ' à ' + n(rv['hi'], 0) + ', p ' + pv(rv['p']) + '). Ce n’est pas une question de rédaction : elles partent à des gens qui ont déjà un panier.</li>'
+            '<li><b>Entre les deux relances actives, on ne peut pas désigner de gagnante</b> : panier abandonné (' + eur(pn['ca_pm']) + ' pour 1 000) et paiement abandonné (' + eur(pa['ca_pm']) + ') se recouvrent largement (p = ' + n(d['p_paiement_panier'], 2) + ').</li>'
+            '<li><b>Parmi les newsletters de la boutique, trois se détachent sur le clic, aucune sur les ventes.</b> « L’automne s’installe… » (' + pct(top3[0]['clic'], 2) + '), « Une petite surprise valable seulement samedi » (' + pct(top3[1]['clic'], 2) + ') et « Bye bye l’été… Bonjour les petits prix » (' + pct(top3[2]['clic'], 2) + ') sont nettement au-dessus de la moyenne (' + pct(B['clic_pct'], 2) + '). Pour les ventes, la meilleure (« Bye bye l’été… », 4 commandes, ' + eur(ca_sorted[0]['ca']) + ') ne se distingue pas des autres : avec 4 commandes, la marge d’erreur est énorme.</li>'
+            '<li><b>Visuels, gras, boutons, ton, emoji : aucune caractéristique ne ressort de façon démontrable.</b> Sur 12 envois, il est impossible de séparer l’effet d’un visuel de celui de la saison ou de la fatigue de la liste. Les tendances (offre, promotion, urgence : plus de clics) restent à confirmer.</li>'
+            '<li><b>La liste se fatigue quand on envoie trop vite</b> : pendant les 5 semaines de septembre-octobre (7 envois), le taux de clic baisse de ' + n(abs(fa['pente']), 2) + ' point à chaque envoi (intervalle ' + n(abs(fa['pente_ic'][1]), 2) + ' à ' + n(abs(fa['pente_ic'][0]), 2) + ', p = ' + n(fa['pente_p'], 3) + '). C’est le constat le mieux appuyé du dossier.</li>'
+            '<li><b>Les jours d’envoi, la boutique reçoit plus de commandes</b> (× ' + n(ev['jour d’envoi']['rr'], 1) + ' le jour même, × ' + n(ev['1 à 2 jours après']['rr'], 1) + ' les deux jours suivants), bien plus que ce que Shopify rattache à l’e-mail : une newsletter coïncide souvent avec un événement (retour de produit, déstockage).</li>'
+            '<li><b>À l’échelle de l’entreprise, l’e-mail pèse peu</b> : ' + eur(ca_mail) + ' attribués aux newsletters et relances, soit ' + pct(100 * ca_mail / 90721, 1) + ' du chiffre d’affaires facturé.</li></ul></div>')
+
+sec_p = ('<h2 id="perimetre">1 · Ce qu’on compare, et comment lire les chiffres</h2>'
+         '<ul class="fl"><li><span class="tag f">Fait</span>19 newsletters envoyées de juillet 2025 à octobre 2026, dans deux listes : « Tous les abonnés » (12 envois, environ 1 450 personnes) et « Client intéressé par la formation » (7 envois, environ 270). Sept automatisations, dont quatre ont envoyé des e-mails et trois anciennes sont à l’arrêt.</li>'
+         '<li><span class="tag f">Fait</span>Les chiffres sont ceux de Shopify Messaging, relevés le 21 octobre 2026, cumulés depuis l’envoi. Les caractéristiques de chaque e-mail (nombre de photos, gras, boutons, ton, offre…) ont été relevées à la main sur l’aperçu : elles sont fiables à une marge de jugement près.</li>'
+         '<li><span class="tag f">Fait</span>On compare surtout le <b>taux de clic</b> (part des destinataires qui cliquent) et le <b>chiffre d’affaires attribué pour 1 000 e-mails envoyés</b>, calculé avec les commandes que Shopify rattache à l’e-mail. Chaque taux est donné avec son <b>intervalle de confiance à 95 %</b> : la plage où se trouve probablement la vraie valeur.</li>'
+         '<li><span class="tag l">Limite</span>Le <b>taux d’ouverture est gonflé</b> par les protections de confidentialité des messageries (certaines ouvrent les e-mails automatiquement). Il ne dit pas combien de personnes ont lu. On s’appuie sur le clic et les commandes.</li>'
+         '<li><span class="tag l">Limite</span>Les envois récents n’ont pas fini de produire leurs clics et leurs commandes : celui du 16 octobre n’a que 5 jours. Ses 0 commande n’est pas définitif.</li>'
+         '<li><span class="tag l">Limite</span>Avec 12 envois (et 17 commandes en tout), <b>une différence doit être très grande pour être démontrée</b>. « Non démontrable » veut dire « les données ne permettent pas de trancher », pas « cela ne marche pas ».</li></ul>')
+
+sec_news = ('<h2 id="newsletters">2 · Quelle newsletter marche le mieux ?</h2>'
+            '<h3>Liste boutique (« Tous les abonnés »), 12 envois</h3>'
+            '<p>Taux de clic de chaque envoi. <b>Vert</b> : l’intervalle est entièrement au-dessus ou en dessous de la moyenne de la liste (' + pct(B['clic_pct'], 2) + '), donc l’envoi se distingue vraiment. <b>Gris</b> : on ne peut pas le distinguer de la moyenne.</p>'
+            '<div class="card chart">' + graphe_clic(BOUT, B['clic_pct']) + '</div>'
+            '<p>Pour les ventes : chiffre d’affaires attribué pour 1 000 e-mails envoyés, avec la marge d’erreur liée au petit nombre de commandes (de 0 à 4 par envoi).</p>'
+            '<div class="card chart">' + graphe_ca(BOUT, B['ca_pm']) + '</div>'
+            '<ul class="fl"><li><span class="tag f">Fait</span><b>Plus cliquées :</b> « ' + esc(top3[0]['objet']) + ' » (' + pct(top3[0]['clic'], 2) + '), puis « ' + esc(top3[1]['objet']) + ' » (' + pct(top3[1]['clic'], 2) + ') et « ' + esc(top3[2]['objet']) + ' » (' + pct(top3[2]['clic'], 2) + ').</li>'
+            '<li><span class="tag f">Fait</span><b>Qui vend le plus :</b> « ' + esc(ca_sorted[0]['objet']) + ' » (' + n(ca_sorted[0]['cmd']) + ' commandes, ' + eur(ca_sorted[0]['ca']) + '), « ' + esc(ca_sorted[1]['objet']) + ' » (' + n(ca_sorted[1]['cmd']) + ' commandes, ' + eur(ca_sorted[1]['ca']) + ') et « ' + esc(ca_sorted[2]['objet']) + ' » (' + n(ca_sorted[2]['cmd']) + ' commandes, ' + eur(ca_sorted[2]['ca']) + ').</li>'
+            '<li><span class="tag f">Fait</span><b>Les plus cliquées se distinguent vraiment de la moyenne :</b> trois envois sont nettement au-dessus (intervalle entièrement au-dessus de ' + pct(B['clic_pct'], 2) + '). <b>Moins bonnes :</b> deux envois sont nettement en dessous, « ' + esc(bas3[-2]['objet']) + ' » (' + pct(bas3[-2]['clic'], 2) + ') et « ' + esc(bas3[-1]['objet']) + ' » (' + pct(bas3[-1]['clic'], 2) + '), tous deux de la série d’octobre ; le dernier n’a que 5 jours.</li>'
+            '<li><span class="tag l">Limite</span>Les trois meilleures pour les ventes ne se distinguent pas des suivantes : avec 4 commandes, la vraie valeur peut être trois fois plus basse ou plus haute. On peut dire que les envois à thème « promotion » ou « automne » se sont bien comportés, pas que l’un est le meilleur.</li></ul>'
+            '<h3>Les trois plus cliquées contre les trois moins cliquées (aperçu)</h3>'
+            '<div class="vgs">' + ''.join(vignette(e, '1er. ' if False else '') for e in top3) + '</div>'
+            '<p class="petit">En haut : les trois plus cliquées. En bas : les trois moins cliquées. Cliquer sur une vignette ouvre l’e-mail entier.</p>'
+            '<div class="vgs">' + ''.join(vignette(e, '') for e in bas3) + '</div>'
+            '<h3>Liste formation (« Client intéressé par la formation »), 7 envois</h3>'
+            '<div class="card chart">' + graphe_clic(FORM, F['clic_pct']) + '</div>'
+            '<ul class="fl"><li><span class="tag f">Fait</span>Cette liste <b>clique deux à trois fois plus</b> que la liste boutique : ' + pct(F['clic_pct'], 1) + ' contre ' + pct(B['clic_pct'], 1) + ' (médiane par envoi 6,8 % contre 3,4 % ; test de Mann-Whitney, p = ' + n(d['p_listes_clic'], 3) + '), mais <b>n’a généré aucune commande</b> rattachée à l’e-mail. Ce n’est pas démontré comme une différence avec la boutique : avec 1 678 envois, on attendait moins de 2 commandes au taux de la boutique (p = ' + n(d['p_listes_cmd'], 2) + ').</li>'
+            '<li><span class="tag f">Fait</span>Les deux meilleurs envois sont « ' + esc(FORM[-1]['objet'] if False else [e for e in FORM if e['id'] == '192859767051'][0]['objet']) + ' » (20,7 %, code promo, aucune photo) et « ' + esc([e for e in FORM if e['id'] == '192541884683'][0]['objet']) + ' » (18,1 %, un questionnaire) : des textes personnels, sans photo, avec un seul bouton. Les annonces de modules (6 ou 7 photos, beaucoup de gras) font 4,9 et 6,8 %.</li>'
+            '<li><span class="tag l">Limite</span>Ces deux envois sont aussi les <b>premiers</b> de la série, quand la nouvelle formation était annoncée : on ne peut pas séparer l’effet du format de l’effet de la nouveauté. Sept envois, c’est trop peu pour conclure.</li>'
+            '<li><span class="tag q">Pour trancher</span>Où se paient les packs de formation : s’ils ne passent pas par la boutique Shopify, leurs ventes n’apparaissent pas ici.</li></ul>'
+            '<h3>Les 19 newsletters côte à côte</h3>' + tab_news(NL))
+
+sec_auto = ('<h2 id="auto">3 · Quelle automatisation marche le mieux ?</h2>'
+            '<div class="card chart">' + graphe_auto() + '</div>'
+            '<ul class="fl"><li><span class="tag f">Fait</span><b>Les relances de panier et de paiement</b> : ' + n(R['envoyes']) + ' e-mails envoyés, ' + n(R['cmd']) + ' commandes, ' + eur(R['ca']) + ' de chiffre d’affaires, soit ' + eur(R['ca_pm']) + ' pour 1 000 e-mails (newsletters boutique : ' + eur(B['ca_pm']) + '). Environ ' + n(rv['rr'], 0) + ' fois plus de commandes par e-mail (intervalle ' + n(rv['lo'], 0) + ' à ' + n(rv['hi'], 0) + ', p ' + pv(rv['p']) + ').</li>'
+            '<li><span class="tag f">Fait</span><b>Panier abandonné</b> : 271 envois, ' + pct(pn['ouv'], 1) + ' d’ouverture, ' + pct(pn['clic'], 2) + ' de clic, 4 commandes (' + eur(pn['ca']) + '). <b>Paiement abandonné</b> : 451 envois, ' + pct(pa['ouv'], 1) + ' d’ouverture, ' + pct(pa['clic'], 2) + ' de clic, 3 commandes (' + eur(pa['ca']) + '). Écart non démontrable (p = ' + n(d['p_paiement_panier'], 2) + ').</li>'
+            '<li><span class="tag f">Fait</span><b>Bienvenue formation</b> : 320 envois, ' + pct(bienv['ouv'], 1) + ' d’ouverture mais ' + pct(bienv['clic'], 2) + ' de clic et aucune commande.</li>'
+            '<li><span class="tag f">Fait</span><b>Navigation abandonnée</b> : l’automatisation est active mais son e-mail est resté en brouillon avec des erreurs ; sur 26 envois passés, aucune commande et 3,8 % de désabonnement. <b>Trois anciennes relances en anglais</b> : 20 envois en tout, aucune vente.</li>'
+            '<li><span class="tag i">Interprétation possible</span>Les relances marchent parce qu’elles arrivent au moment où la personne hésite à acheter, pas grâce à leur rédaction : les deux utilisent le gabarit standard de Shopify, sans logo ni texte personnalisé.</li>'
+            '<li><span class="tag l">Limite</span>Les deux relances utilisent le même gabarit : on ne peut <b>rien dire sur le visuel, le gras ou le bouton</b> de ces e-mails, faute de variante à comparer. Et 7 commandes en tout : les intervalles sont larges (entre ' + eur(R['ca_pm_lo']) + ' et ' + eur(R['ca_pm_hi']) + ' pour 1 000 envois).</li></ul>'
+            + table(['Automatisation', 'Déclencheur', 'Statut', 'Envois', 'Ouverture', 'Clic', 'Commandes', 'CA', 'CA / 1 000 envois'],
+                    [[esc(a['automatisation']), esc(a['declencheur']), esc(a['statut_auto']), n(a['envoyes']), pct(a['ouv'], 1) if a['ouv'] is not None else '—', pct(a['clic'], 2) if a['clic'] is not None else '—', n(a['cmd']), eur(a['ca']), eur(a['ca_pm'])] for a in AU], right=(3, 4, 5, 6, 7, 8)))
+
+sec_crit = ('<h2 id="criteres">4 · Visuels, gras, boutons, ton… est-ce que ça marche ?</h2>'
+            '<p>Pour chaque caractéristique, on compare le taux de clic des newsletters de la boutique qui l’ont à celui des autres. On teste onze caractéristiques à la fois, donc une correction de Holm évite de prendre un hasard pour un résultat (colonne « corrigée »). La dernière colonne signale quand la caractéristique se confond avec la date : par exemple, tous les e-mails à 7 photos datent de septembre-octobre 2026, au moment où la liste se fatigue.</p>'
+            + tab_criteres() +
+            '<ul class="fl"><li><span class="tag f">Fait</span><b>Aucune caractéristique ne produit un écart démontrable</b> après correction. La seule qui passe 5 % avant correction est « plus de 150 mots » (' + pct(cr_mots['clic_oui'], 2) + ' contre ' + pct(cr_mots['clic_non'], 2) + ', p = ' + n(cr_mots['p_clic'], 3) + ', corrigée ' + n(cr_mots['h_clic'], 2) + '), et elle se confond presque totalement avec la date (' + signe(cr_mots['rho_temps'], 2) + ').</li>'
+            '<li><span class="tag f">Fait</span><b>Photos :</b> les e-mails à 7 photos cliquent moins (' + pct(cr_img['clic_oui'], 2) + ' contre ' + pct(cr_img['clic_non'], 2) + ') mais tous datent de la série d’automne : impossible de savoir si c’est le nombre de photos ou la fatigue de la liste. <b>Gras :</b> seulement 2 envois en ont beaucoup (' + pct(cr_gras['clic_oui'], 2) + ' contre ' + pct(cr_gras['clic_non'], 2) + ') : trop peu pour juger. <b>Emoji dans l’objet :</b> ' + pct(cr_emoji['clic_oui'], 2) + ' contre ' + pct(cr_emoji['clic_non'], 2) + ', non démontrable.</li>'
+            '<li><span class="tag f">Fait</span><b>Bouton principal :</b> un bouton vers une collection entière ne fait pas mieux qu’un bouton vers une fiche produit (' + pct(cr_lien['clic_oui'], 2) + ' contre ' + pct(cr_lien['clic_non'], 2) + ', p = ' + n(cr_lien['p_clic'], 2) + ' ; ' + n(cr_lien['cmd_pm_oui'], 2) + ' contre ' + n(cr_lien['cmd_pm_non'], 2) + ' commandes pour 1 000 envois). Ce que les envois à collection ont de commun, c’est surtout leur saison.</li>'
+            '<li><span class="tag f">Fait</span><b>Tendances dans le même sens, mais sans preuve :</b> une offre (code, remise, jeu) → ' + pct(cr_off['clic_oui'], 2) + ' contre ' + pct(cr_off['clic_non'], 2) + ' de clic et ' + n(cr_off['cmd_pm_oui'], 2) + ' contre ' + n(cr_off['cmd_pm_non'], 2) + ' commandes pour 1 000 envois ; un message d’urgence → ' + pct(cr_urg['clic_oui'], 2) + ' contre ' + pct(cr_urg['clic_non'], 2) + ' ; le thème « promotion » → ' + pct(cr_promo['clic_oui'], 2) + ' contre ' + pct(cr_promo['clic_non'], 2) + '. Elles sont cohérentes entre elles, mais chacune repose sur 3 à 8 envois.</li>'
+            '<li><span class="tag i">Interprétation possible</span>Une raison concrète d’agir maintenant (promotion, quantité limitée, date butoir) pousse davantage à cliquer qu’une simple annonce. C’est plausible et cohérent avec les chiffres, sans être démontré ici.</li>'
+            '<li><span class="tag l">Limite</span>Ce sont des caractéristiques qui varient ensemble (les e-mails de l’automne cumulent photos, texte long, urgence). Pour isoler l’effet de <b>un</b> élément, il faut un test où l’on ne change que lui, sur la même liste, au même moment.</li></ul>')
+
+sec_moments = ('<h2 id="moments">5 · À quel moment ? Rythme, jour, heure</h2>'
+               '<h3>Le rythme d’envoi : la liste se fatigue</h3>'
+               '<div class="card chart" style="max-width:700px">' + graphe_fatigue() + '</div>'
+               '<p class="petit">Taux de clic des 7 envois de la série d’automne (10 septembre → 16 octobre), dans l’ordre.</p>'
+               '<ul class="fl"><li><span class="tag f">Fait</span>Du 10 septembre au 16 octobre, la boutique a envoyé <b>7 newsletters en 5 semaines</b>, contre 5 entre juillet 2025 et mai 2026. Le taux de clic perd en moyenne <b>' + n(abs(fa['pente']), 2) + ' point à chaque envoi</b> (intervalle ' + n(abs(fa['pente_ic'][1]), 2) + ' à ' + n(abs(fa['pente_ic'][0]), 2) + ' point, p = ' + n(fa['pente_p'], 3) + '), de 5,85 % à 2,06 %.</li>'
+               '<li><span class="tag f">Fait</span>Sur les 12 envois, plus l’envoi est tardif dans la série, moins il clique (corrélation de rang ' + n(fa['rho_ordre'], 2) + ', p = ' + n(fa['p_ordre'], 3) + ') ; plus l’écart avec l’envoi précédent est grand, plus il clique (' + signe(fa['rho_ecart'], 2) + ', p = ' + n(fa['p_ecart'], 3) + ', tendance).</li>'
+               '<li><span class="tag f">Fait</span>Pour le dernier envoi, Shopify a écarté 212 destinataires sur 1 677 qu’il juge peu susceptibles d’interagir : signe que la liste fatigue aussi pour l’outil.</li>'
+               '<li><span class="tag l">Limite</span>Le contenu change aussi pendant cette série (7 photos, textes plus longs) : fatigue et contenu se mêlent. Le résultat reste le mieux appuyé du dossier, mais il repose sur 7 envois.</li></ul>'
+               '<h3>Jour et heure d’envoi</h3>'
+               '<ul class="fl"><li><span class="tag f">Fait</span>L’heure d’envoi n’a aucun lien visible avec le clic (corrélation ' + n(d['heure']['rho_clic'], 2) + ', p = ' + n(d['heure']['p_clic'], 2) + ') ni avec l’ouverture (' + n(d['heure']['rho_ouv'], 2) + ', p = ' + n(d['heure']['p_ouv'], 2) + '). Les envois ont eu lieu entre 8 h et 22 h, dont seulement 3 le week-end.</li>'
+               '<li><span class="tag l">Limite</span>Douze envois ne permettent pas de comparer des jours de la semaine entre eux ; ce n’est pas testable, il faudrait un test volontaire (même e-mail, deux créneaux).</li></ul>'
+               '<h3>Les jours d’envoi, la boutique reçoit plus de commandes</h3>'
+               '<div class="card chart">' + graphe_evenement() + '</div>'
+               '<ul class="fl"><li><span class="tag f">Fait</span>Sur les ' + n(d['n_envois_fenetre']) + ' newsletters boutique envoyées pendant la période des commandes (hors jours de lancement), les commandes de <b>toute la boutique</b> sont ' + x(ev['jour d’envoi']['rr'], 2) + ' plus nombreuses le jour de l’envoi (intervalle ' + n(ev['jour d’envoi']['lo'], 2) + ' à ' + n(ev['jour d’envoi']['hi'], 2) + ', p = ' + n(ev['jour d’envoi']['p'], 3) + ') et ' + x(ev['1 à 2 jours après']['rr'], 2) + ' les deux jours suivants (' + n(ev['1 à 2 jours après']['lo'], 2) + ' à ' + n(ev['1 à 2 jours après']['hi'], 2) + ', p = ' + n(ev['1 à 2 jours après']['p'], 3) + '), à jour de semaine, mois et lancements égaux.</li>'
+               '<li><span class="tag i">Interprétation possible</span>Cet effet est plus grand que ce que Shopify rattache à l’e-mail (17 commandes en tout) : une partie des clients passe par le site directement après avoir lu l’e-mail, et surtout <b>la newsletter coïncide avec un événement</b> (retour d’un produit, déstockage) qui fait vendre par lui-même.</li>'
+               '<li><span class="tag l">Limite</span>7 envois seulement et deux tests (la correction de Holm garde le premier à p = 0,012 et le second à 0,046) : à prendre comme un signal, pas comme un chiffrage.</li></ul>')
+
+sec_bilan = ('<h2 id="bilan">6 · Les constats du « Bilan e-mailing » déjà dans le dossier, vérifiés</h2>'
+             '<p>Le dossier contient déjà un « Bilan e-mailing LUMINEVA ». Voici ce que les statistiques permettent de confirmer ou non.</p>'
+             + table(['Constat du bilan', 'Ce que montre le test', 'Verdict'], [
+                 ['Les relances de panier et de paiement rapportent le plus, de loin.', '× ' + n(rv['rr'], 0) + ' de commandes par e-mail contre les newsletters (p ' + pv(rv['p']) + ').', '<span class="ok">Confirmé</span> (avec la réserve : elles partent à des gens qui ont un panier)'],
+                 ['Le rythme de l’automne fatigue la liste.', 'Pente ' + signe(fa['pente'], 2) + ' point de clic par envoi, p = ' + n(fa['pente_p'], 3) + '.', '<span class="ok">Appuyé</span>, mais 7 envois et un contenu qui change en même temps'],
+                 ['Un bouton vers une collection fait cliquer et vendre.', 'Collection ' + pct(cr_lien['clic_oui'], 2) + ' contre fiche produit ' + pct(cr_lien['clic_non'], 2) + ' (p = ' + n(cr_lien['p_clic'], 2) + ').', '<span class="ko">Non démontré</span>'],
+                 ['Cinq photos marchent mieux que sept.', pct(cr_img['clic_non'], 2) + ' contre ' + pct(cr_img['clic_oui'], 2) + ' (p = ' + n(cr_img['p_clic'], 2) + '), tout le groupe « 7 photos » date de l’automne.', '<span class="mid">Possible, non démontrable</span> (confondu avec la fatigue)'],
+                 ['Le gras partout ne sert pas.', 'Seulement 2 envois avec beaucoup de gras (' + pct(cr_gras['clic_oui'], 2) + ' contre ' + pct(cr_gras['clic_non'], 2) + ', p = ' + n(cr_gras['p_clic'], 2) + ').', '<span class="mid">Trop peu d’envois pour juger</span>'],
+                 ['Une promesse dans l’objet fait ouvrir.', 'Offre : ' + pct(cr_off['ouv_oui'], 1) + ' d’ouverture contre ' + pct(cr_off['ouv_non'], 1) + ' (p = ' + n(cr_off['p_ouv'], 2) + ') ; et l’ouverture est gonflée par les messageries.', '<span class="mid">Non démontré</span>'],
+                 ['Pour la formation : une lettre personnelle avec un seul bouton.', 'Les deux meilleurs envois (20,7 et 18,1 %) sont aussi les deux premiers de la série.', '<span class="mid">Descriptif, à confirmer</span>']]))
+
+sec_reco = ('<h2 id="reco">7 · Que faire, et que tester ensuite</h2>'
+            '<div class="verdict"><h3>Recommandations</h3><ul>'
+            '<li><b>1. Soigner d’abord les automatisations.</b> C’est là que l’argent se fait : ' + n(R['envoyes']) + ' e-mails ont rapporté ' + eur(R['ca']) + '. Remettre en marche la relance de navigation (e-mail en brouillon avec des erreurs), supprimer les trois anciennes relances en anglais, et mettre les deux relances actives aux couleurs de Lumineva (logo, ton de la marque, une photo).</li>'
+            '<li><b>2. Espacer les newsletters de la boutique</b> d’au moins 10 à 15 jours : la fatigue est le seul effet démontré. Garder les envois forts pour un vrai événement (retour d’un produit, promotion limitée).</li>'
+            '<li><b>3. Mettre une raison d’agir dans les e-mails</b> (offre, quantité limitée, date butoir) : c’est la tendance la plus cohérente, à vérifier par un test.</li>'
+            '<li><b>4. Ne pas tirer de règle de style</b> (nombre de photos, gras, couleur du bouton) de ces 12 envois : les données ne le permettent pas.</li>'
+            '<li><b>5. Liste formation :</b> garder des envois courts et espacés, et vérifier où se règlent les packs, car aucune vente n’est rattachée à ces e-mails.</li></ul>'
+            '<p class="petit">Ordre de grandeur : l’e-mail attribue ' + eur(ca_mail) + ' de chiffre d’affaires, soit environ ' + eur(ca_mail * MARGE_BAS) + ' à ' + eur(ca_mail * MARGE_HAUT) + ' de marge brute (50 % sur les bougies, qui font 71 % des ventes). Le levier est surtout du côté des relances.</p></div>'
+            '<div class="card"><h3>Pour savoir vraiment ce qui marche : un test, un seul changement à la fois</h3>'
+            '<p>Avec environ 1 450 abonnés, on ne détecte qu’une grosse différence entre deux versions envoyées en même temps : par exemple un taux de clic qui passerait de 3,5 % à 6 % ou plus. Pour des écarts plus petits, il faut répéter le test sur plusieurs envois (une moitié de la liste reçoit la version A, l’autre la version B, à chaque fois). Une première série utile : <b>avec ou sans offre dans l’objet</b>, puis <b>5 photos contre 2</b>, puis <b>un bouton plein contre un lien texte</b>. C’est l’objet du cours sur les tests A/B.</p></div>'
+            '<div class="card"><h3>Ce qui manquerait pour aller plus loin</h3><ul>'
+            '<li>Le détail des clics par bouton (ici, on n’a que les clics par adresse), pour mesurer le bouton du milieu contre celui du bas.</li>'
+            '<li>La durée de la fenêtre d’attribution de Shopify (combien de jours après l’envoi une commande est rattachée à l’e-mail).</li>'
+            '<li>L’évolution du nombre d’abonnés et les désabonnements par envoi, pour mesurer le coût de chaque envoi en abonnés perdus.</li>'
+            '<li>Les dates exactes de création des automatisations, pour comparer à durée égale.</li></ul></div>')
+
+sec_methode = ('<h2 id="methode">Méthode</h2><p class="petit">Données : un fichier par e-mail (résultats Shopify Messaging et caractéristiques relevées à la main) dans le dossier « donnees ». '
+               'Taux de clic : intervalle de Wilson à 95 %. Chiffre d’affaires pour 1 000 envois : intervalle de Poisson exact sur le nombre de commandes. '
+               'Comparaisons de caractéristiques : test de permutation (écart de taux de clic pondéré par le nombre d’envois) avec correction de Holm sur 11 tests. '
+               'Liste formation contre boutique : test de Mann-Whitney. Relances contre newsletters : test exact de Fisher. Rythme : corrélation de rang de Spearman et régression linéaire. '
+               'Commandes de la boutique et jours d’envoi : modèle de comptage (régression de Poisson, erreurs robustes HC3) avec jour de la semaine, mois et jours de lancement. '
+               'Code : <code>scripts/j1_emailing.py</code> (calculs) et <code>scripts/k1_rapport_emailing.py</code> (ce rapport).</p>')
+
+html = ('<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Analyse des résultats e-mailing · Lumineva</title>'
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&display=swap"><style>' + CSS + '</style></head><body>'
+        '<header><div class="wrap"><p class="kicker">Lumineva · e-mailing · résultats relevés le 21 octobre 2026</p><h1>Quelle newsletter, quelle automatisation marche le mieux ?</h1>'
+        '<p class="lead">Analyse des 19 newsletters et des 7 automatisations : ce qui marche, ce qui ne se démontre pas encore, et à quels moments.</p></div></header>'
+        '<nav class="toc"><div class="wrap"><a href="#bref">En bref</a><a href="#perimetre">Comment lire</a><a href="#newsletters">Newsletters</a><a href="#auto">Automatisations</a><a href="#criteres">Visuels, gras, boutons</a><a href="#moments">Moments</a><a href="#bilan">Bilan vérifié</a><a href="#reco">Recommandations</a></div></nav>'
+        '<main class="wrap"><div id="bref">' + sec_bref + '</div>' + sec_p + sec_news + sec_auto + sec_crit + sec_moments + sec_bilan + sec_reco + sec_methode + '</main>'
+        '<footer><div class="wrap"><p>Données de la boutique Lumineva remises par convention (module Smart Data Marketing, IAE Clermont Auvergne). Chiffres agrégés par e-mail, aucune donnée de destinataire. Ne pas diffuser hors du groupe.</p></div></footer></body></html>')
+out = DOS + 'Analyse des résultats e-mailing.html'
+open(out, 'w', encoding='utf-8').write(html)
+print('écrit :', out, len(html) // 1024, 'Ko')

@@ -1,0 +1,87 @@
+# encoding: utf-8
+"""Que change-t-il entre la 1re commande d'un client et les suivantes (prix, quantité, produits) ?"""
+import json
+import numpy as np
+from collections import defaultdict, Counter
+from scipy import stats
+from common import charger, FAMILLES
+
+commandes, clients = charger()
+rec = {k: v for k, v in clients.items() if len(v) >= 2}          # clients ayant recommandé
+print(len(rec), 'clients récurrents')
+
+def resume(orders):
+    tot = [o['total'] for o in orders]; q = [o['qte'] for o in orders]
+    pu = [o['prix_unit'] for o in orders if o['prix_unit']]
+    fam_par_cmd = [len(o['familles']) for o in orders]
+    return {
+        'n': len(orders), 'total_moy': round(np.mean(tot), 2), 'total_med': round(float(np.median(tot)), 2),
+        'qte_moy': round(np.mean(q), 2), 'prix_unit_moy': round(np.mean(pu), 2),
+        'fam_moy': round(np.mean(fam_par_cmd), 2),
+        'pct_code': round(100 * np.mean([1 if o['code'] else 0 for o in orders]), 1),
+        'pct_local': round(100 * np.mean([o['local'] for o in orders]), 1),
+        'pct_multi_fam': round(100 * np.mean([1 if len(o['familles']) >= 2 else 0 for o in orders]), 1),
+    }
+
+# --- A) Profil moyen des commandes selon leur rang, chez les clients qui reviennent
+par_rang = {'1re': [], '2e': [], '3e': [], '4e et +': []}
+for v in rec.values():
+    for o in v:
+        k = '1re' if o['rang'] == 1 else '2e' if o['rang'] == 2 else '3e' if o['rang'] == 3 else '4e et +'
+        par_rang[k].append(o)
+tab_rang = {k: resume(v) for k, v in par_rang.items() if v}
+# repère : 1re commande des clients qui ne reviennent pas (tous, y compris récents)
+uniques = [v[0] for k, v in clients.items() if len(v) == 1]
+tab_rang['Client à 1 seule commande'] = resume(uniques)
+for k, v in tab_rang.items(): print(k, v)
+
+# part de chaque famille dans les commandes selon le rang
+fam_part = {}
+for k, orders in par_rang.items():
+    if not orders: continue
+    c = Counter(f for o in orders for f in o['familles'])
+    fam_part[k] = {f: round(100 * c[f] / len(orders), 1) for f in FAMILLES}
+
+# --- B) Comparaison appariée : la 1re et la 2e commande du MÊME client
+p1 = [v[0] for v in rec.values()]; p2 = [v[1] for v in rec.values()]
+def pair(champ):
+    a = np.array([o[champ] for o in p1], dtype=float); b = np.array([o[champ] for o in p2], dtype=float)
+    d = b - a
+    w, pw = stats.wilcoxon(d) if np.any(d != 0) else (0, 1)
+    return {'moy1': round(a.mean(), 2), 'moy2': round(b.mean(), 2), 'delta_moy': round(d.mean(), 2),
+            'delta_med': round(float(np.median(d)), 2), 'wilcoxon_p': float(pw),
+            'plus': int((d > 0).sum()), 'moins': int((d < 0).sum()), 'egal': int((d == 0).sum())}
+paired = {'total': pair('total'), 'qte': pair('qte')}
+pu1 = np.array([o['prix_unit'] for o in p1]); pu2 = np.array([o['prix_unit'] for o in p2])
+d = pu2 - pu1; w, pw = stats.wilcoxon(d)
+paired['prix_unit'] = {'moy1': round(pu1.mean(), 2), 'moy2': round(pu2.mean(), 2), 'delta_moy': round(d.mean(), 2),
+                       'delta_med': round(float(np.median(d)), 2), 'wilcoxon_p': float(pw),
+                       'plus': int((d > 0).sum()), 'moins': int((d < 0).sum()), 'egal': int((d == 0).sum())}
+print('appariés', json.dumps(paired, ensure_ascii=False)[:600])
+
+# --- C) Ce qu'on rachète : mêmes produits / mêmes familles entre la 1re et la 2e commande
+meme_prod = sum(1 for a, b in zip(p1, p2) if set(a['produits']) & set(b['produits']))
+meme_fam = sum(1 for a, b in zip(p1, p2) if set(a['familles']) & set(b['familles']))
+meme_fam_dom = sum(1 for a, b in zip(p1, p2) if a['fam_dom'] == b['fam_dom'])
+# part des produits de la 2e commande qui étaient déjà dans la 1re
+deja = sum(len(set(b['produits']) & set(a['produits'])) for a, b in zip(p1, p2))
+tot_prod2 = sum(len(b['produits']) for b in p2)
+# variété : nouveaux produits jamais achetés avant, sur l'ensemble des commandes suivantes
+nouv_fam = sum(1 for a, b in zip(p1, p2) if set(b['familles']) - set(a['familles']))
+recompra = {'n': len(rec), 'meme_produit': meme_prod, 'meme_famille': meme_fam, 'meme_famille_dominante': meme_fam_dom,
+            'part_produits_deja_achetes': round(100 * deja / tot_prod2, 1), 'avec_nouvelle_famille': nouv_fam}
+print('rachat', recompra)
+
+# --- D) Matrice famille dominante 1re commande -> 2e commande (lignes = 1re)
+mat = defaultdict(Counter)
+for a, b in zip(p1, p2): mat[a['fam_dom']][b['fam_dom']] += 1
+matrice = {f: {g: mat[f][g] for g in FAMILLES} for f in FAMILLES if sum(mat[f].values()) > 0}
+tot_ligne = {f: sum(matrice[f].values()) for f in matrice}
+
+# --- E) trajectoire de prix : le 2e panier est-il plus grand, plus petit, égal ?
+delta_tot = [b['total'] - a['total'] for a, b in zip(p1, p2)]
+plus = sum(1 for d in delta_tot if d > 5); moins = sum(1 for d in delta_tot if d < -5); stable = len(delta_tot) - plus - moins
+
+json.dump({'tab_rang': tab_rang, 'fam_part': fam_part, 'paired': paired, 'recompra': recompra,
+           'matrice': matrice, 'tot_ligne': tot_ligne, 'trajectoire': {'plus': plus, 'moins': moins, 'stable': stable, 'n': len(delta_tot)}},
+          open('g1_premiere_vs_suivantes.json', 'w'), ensure_ascii=False)

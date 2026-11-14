@@ -1,0 +1,179 @@
+# encoding: utf-8
+"""Construit le fragment HTML de l'onglet « Parcours clients » à partir de g1, g2, g3 puis l'insère dans dashboard.html."""
+import json, re, shutil, os
+from svgutil import n, eur, pct, esc, table, panel
+
+NRET = json.load(open('l1_relance.json'))['n_ret']   # clients qui ont commandé au moins 2 fois
+g1 = json.load(open('g1_premiere_vs_suivantes.json')); g2 = json.load(open('g2_profils.json')); g3 = json.load(open('g3_premiere_commande.json'))
+def pv(p): return '&lt; 0,001' if p < 0.001 else n(p, 3)
+def cell(v, mx, txt=None):
+    a = 0 if mx == 0 else min(v / mx, 1)
+    return f'<td class="r" style="background:color-mix(in srgb,var(--accent) {int(a*50)}%,transparent)">{txt if txt is not None else v}</td>'
+def lecture(t): return f'<p class="hint" style="margin-top:10px">{t}</p>'
+def cols(a, b): return f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:10px">{a}{b}</div>'
+def box(titre, items):
+    return f'<div class="howto"><b>{titre}</b><ul style="margin:6px 0 0 18px;padding:0">' + ''.join(f'<li>{i}</li>' for i in items) + '</ul></div>'
+BADGE = '<span style="font-size:12px;background:var(--accent);color:#fff;border-radius:99px;padding:2px 9px;margin-left:8px;vertical-align:2px">nouveau</span>'
+def h3(t): return f'<h3 style="margin:26px 0 4px 2px">{t}{BADGE}</h3>'
+
+# ------------------------------------------------------------------ A. première commande vs suivantes
+tr = g1['tab_rang']
+rows = []
+for k, v in tr.items():
+    rows.append([f'<b>{k}</b>' if k != 'Client à 1 seule commande' else f'<i>{k}</i>', n(v['n']), eur(v['total_moy'], 2), eur(v['total_med'], 2), n(v['qte_moy'], 1), eur(v['prix_unit_moy'], 2), pct(v['pct_code'], 0), pct(v['pct_local'], 0), pct(v['pct_multi_fam'], 0)])
+A1 = panel('c12', 'Commande par commande : montant et contenu selon le rang', 'Sur les ' + str(NRET) + ' clients qui ont commandé au moins 2 fois (les commandes annulées et le « pourboire » sont exclus). La dernière ligne est à part : ce sont les clients qui n\'ont commandé qu\'une fois.',
+    table(['Rang de la commande', 'Commandes', 'Montant moyen', 'Montant médian', 'Articles', 'Prix moyen / article', 'Avec code promo', 'Retrait local', 'Plusieurs familles'], rows, right=range(1, 9)))
+pr = g1['paired']
+prow = []
+for lab, k, f in [('Montant de la commande', 'total', lambda v: eur(v, 2)), ('Nombre d\'articles', 'qte', lambda v: n(v, 2)), ('Prix moyen par article', 'prix_unit', lambda v: eur(v, 2))]:
+    d = pr[k]; prow.append([lab, f(d['moy1']), f(d['moy2']), ('+' if d['delta_moy'] >= 0 else '') + n(d['delta_moy'], 2).replace('-', '−'), f'{d["plus"]} / {d["moins"]}', pv(d['wilcoxon_p']), '<b style="color:var(--good)">significatif</b>' if d['wilcoxon_p'] < 0.05 else 'non significatif'])
+A2 = panel('c12', '1re contre 2e commande, pour chaque client (test apparié)', 'Chaque client est comparé à lui-même. Test de Wilcoxon (adapté aux montants très inégaux).',
+    table(['Ce qu\'on compare', '1re commande', '2e commande', 'Écart moyen', 'Hausse / baisse (nb clients)', 'p-value', 'Verdict'], prow, right=range(1, 6))
+    + lecture(f'<b>Fait</b> : le panier grimpe de {n(pr["total"]["delta_moy"], 2)} € en moyenne, mais le nombre d\'articles ne bouge pas : la hausse vient du prix des articles choisis ({"+" if pr["prix_unit"]["delta_moy"] >= 0 else "−"}{n(abs(pr["prix_unit"]["delta_moy"]), 2)} € par article en moyenne), pas d\'un panier plus rempli. <b>Interprétation possible</b> : le client qui revient choisit des produits un peu plus chers, ou n\'a plus besoin du code promo (très fréquent à la 1re commande, rare à la 2e : voir le tableau ci-dessus). <b>Limite</b> : on ne sait pas si c\'est la fin de la remise ou un goût qui évolue ; {g1["trajectoire"]["plus"]} clients dépensent plus, {g1["trajectoire"]["moins"]} moins : l\'écart moyen cache des trajectoires très variées.'))
+r = g1['recompra']; tj = g1['trajectoire']
+A3 = panel('c12', 'Ce qui change et ce qui ne change pas d\'une commande à l\'autre', '',
+    cols(box('Ce qui ne change pas', [f'Le nombre d\'articles (≈ 3,5 par commande).', f'La famille de produits : {r["meme_famille"]} clients sur {r["n"]} ({pct(100*r["meme_famille"]/r["n"],0)}) rachètent au moins une famille déjà achetée à la 1re commande.', 'Le poids des bougies gourmandes (71 % des 1res commandes, 65 % des 2es).', 'Le retrait local (≈ 18 à 19 % des commandes).']),
+         box('Ce qui change', [f'Le produit exact : seulement {r["meme_produit"]} clients sur {r["n"]} ({pct(100*r["meme_produit"]/r["n"],0)}) rachètent le même produit ; {pct(r["part_produits_deja_achetes"],0)} des produits de la 2e commande ont déjà été achetés.', f'La famille dominante : identique pour {r["meme_famille_dominante"]} clients sur {r["n"]} ({pct(100*r["meme_famille_dominante"]/r["n"],0)}).', f'{r["avec_nouvelle_famille"]} clients sur {r["n"]} ({pct(100*r["avec_nouvelle_famille"]/r["n"],0)}) découvrent une nouvelle famille à la 2e commande.', 'Le code promo : 53,6 % → 13,3 %.', f'Le montant de la 2e commande : plus élevé pour {tj["plus"]} clients, moins pour {tj["moins"]}, à ±5 € pour {tj["stable"]}.']))
+    + lecture('<b>Interprétation possible</b> : le client fidèle reste sur l\'univers « bougie » mais change de parfum, ce qui est cohérent avec un catalogue de parfums de saison. <b>Limite</b> : le catalogue change avec les lancements, donc « ne rachète pas le même produit » peut simplement vouloir dire que le produit n\'existe plus.'))
+fams = list(g1['matrice'].keys()); mat = g1['matrice']; mx = max(v for a in mat.values() for v in a.values())
+used = [f for f in fams if g1['tot_ligne'][f] > 0]
+head = '<th>1re commande ↓ · 2e →</th>' + ''.join(f'<th class="r" style="font-size:11px">{esc(f)}</th>' for f in used)
+body = ''.join(f'<tr><td><b>{esc(a)}</b> <span class="hint">({g1["tot_ligne"][a]})</span></td>' + ''.join(cell(mat[a][b], mx, mat[a][b] or '·') for b in used) + '</tr>' for a in used)
+A4 = panel('c12', 'Trajectoire : famille dominante de la 1re commande → famille dominante de la 2e', 'Chaque case compte des clients. Plus la case est foncée, plus le passage est fréquent. La famille dominante = celle qui pèse le plus en euros dans la commande.',
+    f'<div class="tablewrap"><table><tr>{head}</tr>{body}</table></div>' + lecture(f'<b>Fait</b> : la diagonale (même famille dominante) est très nette pour les bougies gourmandes ({g1["matrice"]["Bougies gourmandes"]["Bougies gourmandes"]} clients sur {sum(g1["matrice"]["Bougies gourmandes"].values())}). Pour les familles d\'au moins 10 clients (bougies boisson, autres bougies, fondants), la destination la plus fréquente est la bougie gourmande. <b>Limite</b> : beaucoup de familles ont moins de 10 clients, donc lire les grandes cases seulement.'))
+fp = g1['fam_part']; ordre = list(fp['1re'].keys())
+A5 = panel('c12', 'Part des commandes contenant chaque famille (1re, 2e, 3e commande)', 'En % des commandes de ce rang.',
+    table(['Famille', '1re', '2e', '3e'], [[esc(f)] + [pct(fp[k][f], 0) for k in ('1re', '2e', '3e')] for f in ordre], right=(1, 2, 3)))
+
+# ------------------------------------------------------------------ B. profils
+NOMS = {'fidele': ('Le fidèle', 'Commande plus de 4 fois, panier le plus haut, peu dépendant du code promo.'),
+        'promo': ('Le chasseur de promo', 'Presque toutes ses commandes ont un code promo, une seule commande en général.'),
+        'curieux': ('Le curieux', 'Une commande, un code promo une fois sur deux.'),
+        'plein': ('L\'acheteur plein tarif', 'Une commande, quasiment jamais de code promo, panier le plus bas hors locaux.'),
+        'local': ('Le local', 'Récupère presque toujours sa commande sur place, petit panier.')}
+# le numéro d'un groupe k-means n'est pas stable : on nomme chaque groupe d'après ses caractéristiques
+_p = list(g2['profils']); noms = {}
+_loc = max(_p, key=lambda p: p['pct_local']); noms[_loc['cluster']] = NOMS['local']; _p.remove(_loc)
+_fid = max(_p, key=lambda p: p['commandes_moy']); noms[_fid['cluster']] = NOMS['fidele']; _p.remove(_fid)
+_pro = max(_p, key=lambda p: p['pct_code']); noms[_pro['cluster']] = NOMS['promo']; _p.remove(_pro)
+_ple = min(_p, key=lambda p: p['pct_code']); noms[_ple['cluster']] = NOMS['plein']; _p.remove(_ple)
+noms[_p[0]['cluster']] = NOMS['curieux']
+cards = ''
+for p in sorted(g2['profils'], key=lambda p: -p['pct_ca']):
+    nm, desc = noms[p['cluster']]
+    fam = ', '.join(f'{esc(a)}' for a, b in p['fam_dom'])
+    cards += (f'<div class="howto" style="min-width:250px"><b style="font-size:16px">{nm}</b><br><span class="hint">{desc}</span>'
+              f'<div style="margin-top:8px;font-size:22px;font-weight:700">{pct(p["pct_ca"],0)} <span style="font-size:13px;font-weight:400">du CA · {n(p["n"])} clients ({pct(p["pct_clients"],0)})</span></div>'
+              f'<ul style="margin:6px 0 0 18px;padding:0;font-size:14px"><li>{n(p["commandes_moy"],1)} commande(s) en moyenne</li><li>panier moyen {eur(p["panier_moy"])}</li><li>code promo dans {pct(p["pct_code"],0)} des commandes</li><li>retrait local : {pct(p["pct_local"],0)}</li><li>dernière commande il y a {n(p["recence_med"])} jours (médiane)</li><li>niveau de vie de la commune : {eur(p["revenu_med"])} / an / UC</li><li>ville : {esc(p["taille_dom"])} ({n(p["taille_dom_pct"])} %)</li><li>1re commande surtout : {fam}</li></ul></div>')
+B1 = panel('c12', 'Les 5 profils de clients', f'Regroupement automatique (k-means) de {n(g2["n_fiches"])} clients identifiés, à partir de 10 variables : nombre de commandes, dépense, panier, ancienneté de la dernière commande, retrait local, codes promo, variétés de familles, week-end, niveau de vie et taille de la commune. Triés par poids dans le chiffre d\'affaires.',
+    f'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px">{cards}</div>')
+sil = g2['silhouette']
+B2 = panel('c12', 'Ville et niveau de vie : ne distinguent presque pas les profils', '',
+    lecture(f'<b>Fait</b> : le niveau de vie médian de la commune est quasi identique d\'un profil à l\'autre (de {eur(min(p["revenu_med"] for p in g2["profils"]))} à {eur(max(p["revenu_med"] for p in g2["profils"]))} par an et par unité de consommation, Insee 2020), et la taille de la commune aussi. Ce sont les <b>comportements</b> (fidélité, code promo, retrait local) qui séparent les profils. Source du niveau de vie : médiane de la commune de livraison ({n(g2["n_revenu_commune"])} clients), à défaut celle du département ; {n(g2["n_fiches"]-g2["n_geo"])} clients hors France reçoivent la valeur médiane.')
+    + lecture(f'<b>Interprétation possible</b> : la clientèle est géographiquement et socialement homogène (petites villes) ; la segmentation utile est comportementale. <b>Limite importante</b> : la séparation entre groupes est faible (indice de silhouette {n(sil["5"],2).replace(".",",")} pour 5 groupes, {n(sil["3"],2)} pour 3 ; en dessous de 0,25 les groupes se chevauchent). Le choix de 5 profils est un choix de lecture, pas une frontière naturelle. Le profil « fidèle » est en partie défini par le nombre de commandes : c\'est attendu, pas une découverte. Le niveau de vie est celui de la commune, pas du client.'))
+
+def arbre_html(nd, label=''):
+    tete = f'<span class="tnode"><b>{nd["taux"]:.0f} %</b> reviennent <span class="hint">({nd["n"]} clients)</span></span>'
+    if 'var' not in nd:
+        return f'<li>{label}{tete}</li>'
+    if nd['bin']: q_non, q_oui = 'non', 'oui'
+    else:
+        sv = nd['seuil']; sv = f'{int(sv)}' if abs(sv - int(sv) - 0.5) < 1e-6 else n(sv, 1)
+        q_non, q_oui = f'≤ {sv}', f'&gt; {sv}'
+    q = f'<span class="tq">{esc(nd["var"])}{" ?" if nd["bin"] else ""}</span>'
+    return f'<li>{label}{tete}<div class="tq2">{q}</div><ul>{arbre_html(nd["non"], f"<i class=tl>{q_non}</i> ")}{arbre_html(nd["oui"], f"<i class=tl>{q_oui}</i> ")}</ul></li>'
+B3 = panel('c12', 'Arbre de décision : quels facteurs de la 1re commande annoncent un retour ?', f'Sur {n(g2["n_base_arbre"])} clients ayant au moins 90 jours de recul, {pct(g2["taux_base"],0)} ont recommandé. L\'arbre coupe à chaque étape selon le critère qui sépare le mieux les clients qui reviennent de ceux qui ne reviennent pas (profondeur 3, 30 clients minimum par feuille).',
+    f'<ul class="tree"><li>{arbre_html(g2["arbre"])[4:-5]}</li></ul>'
+    + lecture(f'<b>Ce qu\'il faut retenir avant de lire l\'arbre</b> : l\'arbre est testé sur des clients qu\'il n\'a pas vus (validation croisée en 5 parties). Résultat : AUC = {n(g2["auc_cv"],2)} ± {n(g2["auc_sd"],2)}, alors que 0,50 = hasard pur. <b>Conclusion honnête</b> : ni le contenu de la 1re commande, ni le lieu, ni le niveau de vie ne permettent de prévoir correctement qui reviendra (l\'AUC reste proche de 0,50). Les branches ci-dessus décrivent l\'échantillon mais ne se généralisent pas ; elles sont montrées pour la démonstration de la méthode et ne doivent pas servir à cibler des clients.'))
+
+# ------------------------------------------------------------------ C. première commande
+N = g3['N']
+fc = g3['fam_cnt']
+C1 = panel('c6', 'Ce qui se trouve dans une 1re commande', f'Sur {n(N)} clients identifiés. Une même commande peut contenir plusieurs familles.',
+    table(['Famille', 'Clients', 'Part'], [[esc(a), n(b), pct(100*b/N, 0)] for a, b in fc], right=(1, 2)))
+C2 = panel('c6', 'Produits les plus présents en 1re commande', 'Produits regroupés (parfum ou taille confondus lorsque le nom commence pareil).',
+    table(['Produit', 'Clients', 'Part'], [[esc(a.title() if a.isupper() else a), n(b), pct(100*b/N, 1)] for a, b in g3['prod_cnt']], right=(1, 2)))
+tot_art = sum(g3['nb_art'].values())
+na = g3['nb_art']
+C3 = panel('c12', 'Taille de la 1re commande', '',
+    lecture(f'<b>Fait</b> : {pct(100*g3["seuls"]/N,0)} des clients ({n(g3["seuls"])}) n\'ont pris qu\'un seul produit distinct ; {pct(100*(N-g3["seuls"])/N,0)} ont pris au moins deux produits différents dès la 1re commande. Nombre d\'articles : 1 article {pct(100*na["1"]/N,0)}, 2 à 3 articles {pct(100*(na.get("2",0)+na.get("3",0))/N,0)}, 4 à 5 articles {pct(100*(na.get("4",0)+na.get("5",0))/N,0)}, 6 et plus {pct(100*na.get("6",0)/N,0)}.'))
+# arbre de composition
+def comp_tree():
+    out = '<ul class="tree"><li><span class="tnode"><b>1re commande</b> <span class="hint">(' + n(N) + ' clients)</span></span><ul>'
+    lab = {1: 'Un seul produit', 2: 'Deux produits', 3: 'Trois produits ou plus'}
+    for nd in g3['arbre']:
+        out += f'<li><span class="tnode"><b>{lab[nd["nb"]]}</b> <span class="hint">{n(nd["n"])} clients · {pct(nd["pct"],0)}</span></span><ul>'
+        for f in nd['fam']:
+            cp = ' ; '.join(f'{esc(g)} {pct(pc,0)}' for g, m, pc in f['comp']) or 'aucun complément'
+            out += f'<li><span class="tnode">famille dominante : <b>{esc(f["nom"])}</b> <span class="hint">{n(f["n"])} ({pct(f["pct"],0)})</span></span><div class="tq2">compléments les plus fréquents : {cp}</div></li>'
+        out += '</ul></li>'
+    return out + '</ul></li></ul>'
+C4 = panel('c12', 'Schéma : de quoi est faite une 1re commande typique ?', 'Lecture de gauche à droite : nombre de produits distincts → famille qui pèse le plus → compléments les plus fréquents à côté de cette famille (part des commandes de ce groupe).', comp_tree())
+pf = g3['pair_fam']
+C5 = panel('c6', 'Compléments fréquents (familles) à la 1re commande', 'Lift = combien de fois plus souvent que par hasard. 1 = indépendant ; au-dessus de 1,5, le lien est net.',
+    table(['Association', 'Clients', 'Lift'], [[f'{esc(d["a"])} + {esc(d["b"])}', n(d['n']), n(d['lift'], 2)] for d in pf[:8]], right=(1, 2)))
+pp = g3['pair_prod']
+C6 = panel('c6', 'Compléments fréquents (produits) à la 1re commande', 'Uniquement les paires présentes chez au moins 6 clients.',
+    table(['Association', 'Clients', 'Lift'], [[f'{esc(d["a"].title())} + {esc(d["b"].title())}', n(d['n']), n(d['lift'], 1)] for d in pp[:8]], right=(1, 2)))
+C7 = panel('c12', 'Constat : les compléments sont-ils toujours les mêmes ?', '',
+    lecture(f'<b>Fait</b> : parmi les familles, seul le lien « Accessoires et cadeaux + Fondants » dépasse nettement le hasard (lift {n(next(d["lift"] for d in pf if {d["a"], d["b"]} == {"Accessoires et cadeaux", "Fondants"}),2)}). Le duo bougie gourmande + autre bougie est le plus fréquent en nombre ({pf[0]["n"]} clients) mais n\'est pas plus fréquent que le hasard (lift {n(pf[0]["lift"],2)}) : il reflète simplement le poids des bougies. Au niveau des produits, les liens forts sont des <b>paires de produits jumeaux</b> (deux tablettes de fondant, Nuit de Noël + Pain d\'épices, poudre + suspension voiture) achetés par peu de clients chacun. <b>Interprétation possible</b> : il n\'existe pas un complément universel ; les compléments dépendent du produit de départ (produits de la même gamme ou de la même saison). <b>Limite</b> : peu de clients par paire (6 à 19) ; à traiter comme des pistes de bundle à tester, pas comme des règles.'))
+rf = [d for d in g3['ret_fam'] if d['n_back'] >= 20]
+C8 = panel('c6', 'Les familles de la 1re commande reviennent-elles ensuite ?', f'Parmi les {NRET} clients qui ont recommandé. Part de ceux qui rachètent la même famille dans une commande suivante.',
+    table(['Famille prise à la 1re commande', 'Clients revenus', 'Rachètent la famille'], [[esc(d['nom']), n(d['n_back']), pct(d['pct'], 0)] for d in rf], right=(1, 2)))
+rp = g3['ret_prod']
+C9 = panel('c6', 'Et les produits ?', 'Produits pris à la 1re commande par au moins 8 clients revenus : part qui rachète ce même produit.',
+    table(['Produit de la 1re commande', 'Clients revenus', 'Le rachètent'], [[esc(d['nom'].title()), n(d['n_back']), pct(d['pct'], 0)] for d in rp[:8]], right=(1, 2)))
+cp = g3['comp']
+C10 = panel('c12', 'Les compléments sont-ils rachetés ?', '',
+    lecture(f'<b>Fait</b> : sur {n(cp["clients"])} clients revenus dont la 1re commande contenait au moins 2 produits, {n(cp["tot"])} produits ont été achetés en 1re commande, et seulement {n(cp["again"])} ({pct(cp["pct"],0)}) réapparaissent dans une commande suivante du même client. La <b>famille</b> revient beaucoup plus souvent (bougies gourmandes : {pct(next(d["pct"] for d in g3["ret_fam"] if d["nom"]=="Bougies gourmandes"),0)}) que le <b>produit</b>. <b>Interprétation possible</b> : les clients fidèles restent fidèles à un univers, mais pas à un parfum ; les accessoires et cadeaux (achats ponctuels) reviennent peu. Les produits saisonniers (ex. Mystic Pumpkin : 0 rachat sur 19 clients) ne peuvent pas être rachetés hors saison.'))
+rpf = g3['ret_par_fam']
+tv = g3['ret_par_taille']; tt = g3['ret_tranche']
+SIG_T = 'écart significatif' if g3['chi_taille']['p'] < 0.05 else 'écart non significatif'
+C11 = panel('c6', 'La 1re commande annonce-t-elle un retour ? Par taille et par montant', f'Sur {n(g3["n_base"])} clients ayant au moins 90 jours de recul ; taux de retour global {pct(g3["taux_base"],1)}.',
+    table(['Taille de la 1re commande', 'Clients', 'Recommandent'], [[d['nom'], n(d['n']), pct(d['pct'], 0)] for d in tv], right=(1, 2))
+    + table(['Montant de la 1re commande', 'Clients', 'Recommandent'], [[d['nom'], n(d['n']), pct(d['pct'], 0)] for d in tt], right=(1, 2))
+    + lecture(f'Test du χ² sur la taille : p = {pv(g3["chi_taille"]["p"])} ({SIG_T}). <b>Fait</b> : les commandes d\'un seul article reviennent le moins ({pct(tv[0]["pct"], 0)}) ; à partir de 50 € le taux monte ({pct(tt[2]["pct"], 0)} puis {pct(tt[3]["pct"], 0)}). <b>Limite</b> : corrélation, pas causalité, et le taux ne monte pas de façon continue ({pct(tv[3]["pct"], 0)} à 6 articles et plus).'))
+C12 = panel('c6', 'La famille achetée en 1re commande annonce-t-elle un retour ?', 'Taux de retour des clients ayant cette famille dans leur 1re commande, contre ceux qui ne l\'ont pas (test exact de Fisher).',
+    table(['Famille dans la 1re commande', 'Clients', 'Reviennent', 'Sans cette famille', 'p-value'], [[esc(d['nom']), n(d['n']), pct(d['pct'], 0), pct(d['pct_sans'], 0), pv(d['p'])] for d in rpf], right=(1, 2, 3, 4))
+    + lecture(f'<b>Fait</b> : {n(len([d for d in rpf if d["p"] < 0.05]))} familles ont un taux de retour différent de celui des autres clients à 5 % : ' + ' ; '.join(esc(d["nom"]) + ' (' + pct(d["pct"], 0) + ' contre ' + pct(d["pct_sans"], 0) + ')' for d in rpf if d["p"] < 0.05) + f'. <b>Prudence</b> : {n(len(rpf))} familles testées en même temps ; avec {n(len(rpf))} tests, un résultat « significatif » à 5 % apparaît par hasard une fois sur trois environ. Après correction de Bonferroni (seuil 0,05 / {n(len(rpf))} = {n(0.05 / len(rpf), 4)}), restent significatives : ' + (', '.join(esc(d["nom"]) for d in rpf if d["p"] < 0.05 / len(rpf)) or 'aucune') + '. Un petit effectif (' + ' ; '.join(esc(d["nom"]) + ' : ' + n(d["n"]) + ' clients' for d in rpf if d["p"] < 0.05 / len(rpf)) + ') : à confirmer plus tard.'))
+# note sur bougie taille S etc.
+
+CSS = '''
+ul.tree,ul.tree ul{list-style:none;margin:0;padding-left:26px;position:relative}
+ul.tree{padding-left:0}
+ul.tree ul::before{content:"";position:absolute;left:8px;top:0;bottom:14px;border-left:2px solid var(--grid,#ccc)}
+ul.tree li{position:relative;margin:8px 0;padding-left:14px}
+ul.tree li::before{content:"";position:absolute;left:-18px;top:14px;width:16px;border-top:2px solid var(--grid,#ccc)}
+ul.tree>li::before{display:none}
+.tnode{display:inline-block;padding:6px 12px;border:1px solid var(--grid,#ccc);border-radius:10px;background:var(--panel,#fff)}
+.tq{font-weight:700;color:var(--accent)}
+.tq2{margin:4px 0 0 4px;font-size:14px}
+i.tl{font-style:normal;font-size:12.5px;background:var(--accent-soft);border-radius:99px;padding:1px 9px;margin-right:6px}
+'''
+def sec(titre, contenu): return h3(titre) + f'<div class="grid">{contenu}</div>'
+intro = ('<div class="howto"><b>Comment lire cet onglet.</b> Trois questions sur le parcours des clients : (1) qu\'est-ce qui change entre la 1re commande et les suivantes ? (2) quels profils de clients trouve-t-on ? (3) que contient une 1re commande, et le retrouve-t-on ensuite ? '
+         'Base : clients identifiés, commandes annulées exclues, ligne « pourboire » exclue. Les 25 commandes sans identifiant client ne peuvent pas être suivies. '
+         'Chaque bloc distingue le <b>fait</b>, l\'<b>interprétation possible</b> et la <b>limite</b>. Aucun nom, e-mail ou adresse n\'est utilisé : uniquement des agrégats.</div>')
+tab = (f'<section id="parcours"><h2>Parcours clients</h2><p class="src">Source : orders.csv (clients identifiés : {n(N)}, dont {NRET} ont commandé au moins 2 fois) · niveau de vie : Insee Filosofi 2020 · Python (pandas, scikit-learn, scipy)</p>{intro}'
+       + sec('1. Première commande contre commandes suivantes', A1 + A2 + A3 + A4 + A5)
+       + sec('2. Profils de clients', B1 + B2 + B3)
+       + sec('3. Que contient la première commande ?', C1 + C2 + C3 + C4 + C5 + C6 + C7 + C8 + C9 + C10 + C11 + C12) + '</section>')
+open('frag_parcours.html', 'w', encoding='utf-8').write(tab)
+
+# ------------------------------------------------------------------ insertion dans le dashboard
+D = os.path.expanduser('~/Desktop/test/dashboard.html')
+html = open(D, encoding='utf-8').read()
+if 'id="parcours"' in html:
+    html = re.sub(r'<section id="parcours">.*?</section>\n?(?=<section id="analyse")', '', html, flags=re.S)
+    html = html.replace(CSS, '')
+else:
+    shutil.copy(D, os.path.expanduser('~/Desktop/test/scripts/dashboard.before-parcours.html.bak'))
+    html = html.replace('<input type="radio" name="tab" id="r-analyse" class="tabradio">', '<input type="radio" name="tab" id="r-parcours" class="tabradio"><input type="radio" name="tab" id="r-analyse" class="tabradio">', 1)
+    html = html.replace('<label for="r-analyse">', '<label for="r-parcours">Parcours clients</label><label for="r-analyse">', 1)
+    css_tab = ('#r-parcours:checked ~ section#parcours{display:flex}\n#r-parcours:checked ~ nav label[for="r-parcours"]{background:var(--accent);border-color:var(--accent);color:#fff}\n'
+               '#r-parcours:focus-visible ~ nav label[for="r-parcours"]{outline:2px solid var(--accent);outline-offset:2px}\n')
+    html = html.replace('#r-analyse:checked ~ section#analyse{display:flex}', css_tab + '#r-analyse:checked ~ section#analyse{display:flex}', 1)
+html = html.replace('@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav.top label{}}', CSS + '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav.top label{}}', 1)
+html = html.replace('<section id="analyse">', tab + '\n<section id="analyse">', 1)
+open(D, 'w', encoding='utf-8').write(html)
+print('ok', len(html), 'octets ; balises "<" suspectes :', len(re.findall(r'<[0-9 ]', tab)))

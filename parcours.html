@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parcours clients · Lumineva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="style.css?v=17">
+
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+<nav class="topnav" aria-label="Navigation principale"><div class="wrap"><a class="brand" href="index.html">Lumineva · données</a><div class="links"><a href="index.html">Accueil</a><a href="contexte.html">Contexte</a><a href="analyses.html" aria-current="page">Premières analyses</a><a href="choix.html">Notre choix</a><a href="automatisations.html">Automatisations</a><a href="q-formation.html">Formation</a><a href="recommandations.html">Recommandations</a><a href="faq.html">FAQ</a><a href="methode.html">Méthode</a></div></div></nav>
+<nav class="subnav meta" aria-label="Premières analyses"><div class="wrap"><span class="lab">Premières analyses</span><a href="analyses.html">Présentation</a><a href="perimetre.html">Périmètre</a><a href="observations.html" aria-current="page">Observations</a><a href="explications.html">Explications</a><a href="externe.html">Externe</a><a href="decision-emailing.html">Décision e-mailing</a></div></nav><nav class="subnav" aria-label="Observations"><div class="wrap"><span class="lab">Observations</span><a href="observations.html">Synthèse</a><a href="ventes.html">Ventes et paiements</a><a href="clients.html">Clients</a><a href="profil-type.html">Profil type</a><a href="parcours.html" aria-current="page">Parcours clients</a><a href="profil-avis.html">Qui laisse un avis ?</a><a href="catalogue.html">Catalogue et stock</a></div></nav>
+<header class="hero"><div class="wrap"><p class="kicker">Observations</p><h1>Parcours clients</h1><p class="lead">Comment un client évolue entre sa première commande et les suivantes, quels profils se dégagent, et ce que contient une première commande.</p></div></header>
+<main class="wrap" id="contenu">
+<div class="gabarit"><div class="row"><b>Ce que ça mesure</b><div>Ce qui change et ne change pas entre la 1re commande et les suivantes (montant, prix, produits), des profils de clients construits automatiquement, et la composition d’une 1re commande.</div></div><div class="row"><b>Sur quel périmètre</b><div>829 clients identifiés dont 248 ont commandé au moins 2 fois. Commandes annulées et ligne « pourboire » exclues. Le niveau de vie est la médiane de la commune de livraison (Insee 2020), à défaut du département.</div></div><div class="row"><b>Ce que ça permet de conclure</b><div>Voir que le panier monte de 4,38 € entre la 1re et la 2e commande par le prix des articles et non par leur nombre, que les clients restent sur une famille de produits mais changent de produit, et que cinq profils de comportement se distinguent.</div></div><div class="row"><b>Ce que ça ne permet pas de conclure</b><div>Prédire qui reviendra : l’arbre de décision ne fait guère mieux que le hasard (AUC 0,55). Le lieu et le niveau de vie ne distinguent presque pas les profils ; ce sont les comportements qui les séparent.</div></div></div>
+<div class="dash"><div class="howto"><b>Comment lire cette page.</b> Trois questions sur le parcours des clients : (1) qu'est-ce qui change entre la 1re commande et les suivantes ? (2) quels profils de clients trouve-t-on ? (3) que contient une 1re commande, et le retrouve-t-on ensuite ? Base : clients identifiés, commandes annulées exclues, ligne « pourboire » exclue. Les 25 commandes sans identifiant client ne peuvent pas être suivies. Chaque bloc distingue le <b>fait</b>, l'<b>interprétation possible</b> et la <b>limite</b>. Aucun nom, e-mail ou adresse n'est utilisé : uniquement des agrégats.</div><h3 style="margin:26px 0 4px 2px">1. Première commande contre commandes suivantes</h3><div class="grid"><section class="panel c12"><h3>Commande par commande : montant et contenu selon le rang</h3><p class="hint">Sur les 280 clients qui ont commandé au moins 2 fois (les commandes annulées et le « pourboire » sont exclus). La dernière ligne est à part : ce sont les clients qui n'ont commandé qu'une fois.</p><div class="tablewrap"><table><tr><th class="">Rang de la commande</th><th class="r">Commandes</th><th class="r">Montant moyen</th><th class="r">Montant médian</th><th class="r">Articles</th><th class="r">Prix moyen / article</th><th class="r">Avec code promo</th><th class="r">Retrait local</th><th class="r">Plusieurs familles</th></tr><tr><td class=""><b>1re</b></td><td class="r">280</td><td class="r">63,97 €</td><td class="r">53,70 €</td><td class="r">3,5</td><td class="r">20,66 €</td><td class="r">53 %</td><td class="r">18 %</td><td class="r">62 %</td></tr><tr><td class=""><b>2e</b></td><td class="r">280</td><td class="r">67,73 €</td><td class="r">57,70 €</td><td class="r">3,4</td><td class="r">20,90 €</td><td class="r">13 %</td><td class="r">18 %</td><td class="r">61 %</td></tr><tr><td class=""><b>3e</b></td><td class="r">124</td><td class="r">67,74 €</td><td class="r">63,65 €</td><td class="r">3,5</td><td class="r">18,02 €</td><td class="r">10 %</td><td class="r">18 %</td><td class="r">64 %</td></tr><tr><td class=""><b>4e et +</b></td><td class="r">253</td><td class="r">70,71 €</td><td class="r">59,50 €</td><td class="r">3,8</td><td class="r">19,87 €</td><td class="r">17 %</td><td class="r">30 %</td><td class="r">65 %</td></tr><tr><td class=""><i>Client à 1 seule commande</i></td><td class="r">633</td><td class="r">56,10 €</td><td class="r">48,02 €</td><td class="r">3,0</td><td class="r">20,17 €</td><td class="r">52 %</td><td class="r">9 %</td><td class="r">53 %</td></tr></table></div></section><section class="panel c12"><h3>1re contre 2e commande, pour chaque client (test apparié)</h3><p class="hint">Chaque client est comparé à lui-même. Test de Wilcoxon (adapté aux montants très inégaux).</p><div class="tablewrap"><table><tr><th class="">Ce qu'on compare</th><th class="r">1re commande</th><th class="r">2e commande</th><th class="r">Écart moyen</th><th class="r">Hausse / baisse (nb clients)</th><th class="r">p-value</th><th class="">Verdict</th></tr><tr><td class="">Montant de la commande</td><td class="r">63,97 €</td><td class="r">67,73 €</td><td class="r">+3,76</td><td class="r">148 / 126</td><td class="r">0,028</td><td class=""><b style="color:var(--good)">significatif</b></td></tr><tr><td class="">Nombre d'articles</td><td class="r">3,50</td><td class="r">3,40</td><td class="r">−0,10</td><td class="r">112 / 105</td><td class="r">0,669</td><td class="">non significatif</td></tr><tr><td class="">Prix moyen par article</td><td class="r">20,58 €</td><td class="r">20,75 €</td><td class="r">+0,16</td><td class="r">179 / 92</td><td class="r">&lt; 0,001</td><td class=""><b style="color:var(--good)">significatif</b></td></tr></table></div><p class="hint" style="margin-top:10px"><b>Fait</b> : le panier grimpe de 3,76 € en moyenne, mais le nombre d'articles ne bouge pas : la hausse vient du prix des articles choisis (+0,16 € par article en moyenne), pas d'un panier plus rempli. <b>Interprétation possible</b> : le client qui revient choisit des produits un peu plus chers, ou n'a plus besoin du code promo (très fréquent à la 1re commande, rare à la 2e : voir le tableau ci-dessus). <b>Limite</b> : on ne sait pas si c'est la fin de la remise ou un goût qui évolue ; 133 clients dépensent plus, 101 moins : l'écart moyen cache des trajectoires très variées.</p></section><section class="panel c12"><h3>Ce qui change et ce qui ne change pas d'une commande à l'autre</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:10px"><div class="howto"><b>Ce qui ne change pas</b><ul style="margin:6px 0 0 18px;padding:0"><li>Le nombre d'articles (≈ 3,5 par commande).</li><li>La famille de produits : 226 clients sur 280 (81 %) rachètent au moins une famille déjà achetée à la 1re commande.</li><li>Le poids des bougies gourmandes (71 % des 1res commandes, 65 % des 2es).</li><li>Le retrait local (≈ 18 à 19 % des commandes).</li></ul></div><div class="howto"><b>Ce qui change</b><ul style="margin:6px 0 0 18px;padding:0"><li>Le produit exact : seulement 69 clients sur 280 (25 %) rachètent le même produit ; 10 % des produits de la 2e commande ont déjà été achetés.</li><li>La famille dominante : identique pour 130 clients sur 280 (46 %).</li><li>172 clients sur 280 (61 %) découvrent une nouvelle famille à la 2e commande.</li><li>Le code promo : 53,6 % → 13,3 %.</li><li>Le montant de la 2e commande : plus élevé pour 133 clients, moins pour 101, à ±5 € pour 46.</li></ul></div></div><p class="hint" style="margin-top:10px"><b>Interprétation possible</b> : le client fidèle reste sur l'univers « bougie » mais change de parfum, ce qui est cohérent avec un catalogue de parfums de saison. <b>Limite</b> : le catalogue change avec les lancements, donc « ne rachète pas le même produit » peut simplement vouloir dire que le produit n'existe plus.</p></section><section class="panel c12"><h3>Trajectoire : famille dominante de la 1re commande → famille dominante de la 2e</h3><p class="hint">Chaque case compte des clients. Plus la case est foncée, plus le passage est fréquent. La famille dominante = celle qui pèse le plus en euros dans la commande.</p><div class="tablewrap"><table><tr><th>1re commande ↓ · 2e →</th><th class="r" style="font-size:11px">Bougies gourmandes</th><th class="r" style="font-size:11px">Bougies boisson</th><th class="r" style="font-size:11px">Bougies taille S</th><th class="r" style="font-size:11px">Autres bougies</th><th class="r" style="font-size:11px">Fondants</th><th class="r" style="font-size:11px">Voiture</th><th class="r" style="font-size:11px">Diffuseurs maison</th><th class="r" style="font-size:11px">Poudre parfumée</th><th class="r" style="font-size:11px">Élixirs</th><th class="r" style="font-size:11px">Accessoires et cadeaux</th><th class="r" style="font-size:11px">Formation</th></tr><tr><td><b>Bougies gourmandes</b> <span class="hint">(162)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 50%,transparent)">102</td><td class="r" style="background:color-mix(in srgb,var(--accent) 1%,transparent)">3</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">2</td><td class="r" style="background:color-mix(in srgb,var(--accent) 12%,transparent)">26</td><td class="r" style="background:color-mix(in srgb,var(--accent) 7%,transparent)">16</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 1%,transparent)">3</td><td class="r" style="background:color-mix(in srgb,var(--accent) 1%,transparent)">3</td><td class="r" style="background:color-mix(in srgb,var(--accent) 1%,transparent)">4</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td></tr><tr><td><b>Bougies boisson</b> <span class="hint">(12)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 4%,transparent)">9</td><td class="r" style="background:color-mix(in srgb,var(--accent) 1%,transparent)">3</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Bougies taille S</b> <span class="hint">(3)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">2</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Autres bougies</b> <span class="hint">(39)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 7%,transparent)">15</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 5%,transparent)">11</td><td class="r" style="background:color-mix(in srgb,var(--accent) 2%,transparent)">5</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">2</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">2</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Fondants</b> <span class="hint">(33)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 5%,transparent)">11</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 4%,transparent)">9</td><td class="r" style="background:color-mix(in srgb,var(--accent) 4%,transparent)">9</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Voiture</b> <span class="hint">(3)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Diffuseurs maison</b> <span class="hint">(1)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Poudre parfumée</b> <span class="hint">(4)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Élixirs</b> <span class="hint">(9)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">2</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">2</td><td class="r" style="background:color-mix(in srgb,var(--accent) 1%,transparent)">3</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Accessoires et cadeaux</b> <span class="hint">(9)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 3%,transparent)">7</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">1</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td></tr><tr><td><b>Formation</b> <span class="hint">(5)</span></td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">2</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 0%,transparent)">·</td><td class="r" style="background:color-mix(in srgb,var(--accent) 1%,transparent)">3</td></tr></table></div><p class="hint" style="margin-top:10px"><b>Fait</b> : la diagonale (même famille dominante) est très nette pour les bougies gourmandes (102 clients sur 162). Pour les familles d'au moins 10 clients (bougies boisson, autres bougies, fondants), la destination la plus fréquente est la bougie gourmande. <b>Limite</b> : beaucoup de familles ont moins de 10 clients, donc lire les grandes cases seulement.</p></section><section class="panel c12"><h3>Part des commandes contenant chaque famille (1re, 2e, 3e commande)</h3><p class="hint">En % des commandes de ce rang.</p><div class="tablewrap"><table><tr><th class="">Famille</th><th class="r">1re</th><th class="r">2e</th><th class="r">3e</th></tr><tr><td class="">Bougies gourmandes</td><td class="r">70 %</td><td class="r">66 %</td><td class="r">70 %</td></tr><tr><td class="">Bougies boisson</td><td class="r">7 %</td><td class="r">8 %</td><td class="r">9 %</td></tr><tr><td class="">Bougies taille S</td><td class="r">9 %</td><td class="r">8 %</td><td class="r">11 %</td></tr><tr><td class="">Autres bougies</td><td class="r">35 %</td><td class="r">35 %</td><td class="r">38 %</td></tr><tr><td class="">Fondants</td><td class="r">36 %</td><td class="r">34 %</td><td class="r">32 %</td></tr><tr><td class="">Voiture</td><td class="r">10 %</td><td class="r">11 %</td><td class="r">10 %</td></tr><tr><td class="">Diffuseurs maison</td><td class="r">0 %</td><td class="r">3 %</td><td class="r">6 %</td></tr><tr><td class="">Poudre parfumée</td><td class="r">9 %</td><td class="r">8 %</td><td class="r">11 %</td></tr><tr><td class="">Élixirs</td><td class="r">13 %</td><td class="r">9 %</td><td class="r">6 %</td></tr><tr><td class="">Accessoires et cadeaux</td><td class="r">19 %</td><td class="r">13 %</td><td class="r">13 %</td></tr><tr><td class="">Formation</td><td class="r">2 %</td><td class="r">1 %</td><td class="r">0 %</td></tr></table></div></section></div><h3 style="margin:26px 0 4px 2px">2. Profils de clients</h3><div class="grid"><section class="panel c12"><h3>Les 5 profils de clients</h3><p class="hint">Regroupement automatique (k-means) de 913 clients identifiés, à partir de 10 variables : nombre de commandes, dépense, panier, ancienneté de la dernière commande, retrait local, codes promo, variétés de familles, week-end, niveau de vie et taille de la commune. Triés par poids dans le chiffre d'affaires.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px"><div class="howto" style="min-width:250px"><b style="font-size:16px">Le fidèle</b><br><span class="hint">Commande plus de 4 fois, panier le plus haut, peu dépendant du code promo.</span><div style="margin-top:8px;font-size:22px;font-weight:700">52 % <span style="font-size:13px;font-weight:400">du CA · 162 clients (18 %)</span></div><ul style="margin:6px 0 0 18px;padding:0;font-size:14px"><li>4,2 commande(s) en moyenne</li><li>panier moyen 81 €</li><li>code promo dans 24 % des commandes</li><li>retrait local : 12 %</li><li>dernière commande il y a 46 jours (médiane)</li><li>niveau de vie de la commune : 21 800 € / an / UC</li><li>ville : Petite ville (2 000 à 20 000) (54 %)</li><li>1re commande surtout : Bougies gourmandes, Autres bougies</li></ul></div><div class="howto" style="min-width:250px"><b style="font-size:16px">Le curieux</b><br><span class="hint">Une commande, un code promo une fois sur deux.</span><div style="margin-top:8px;font-size:22px;font-weight:700">17 % <span style="font-size:13px;font-weight:400">du CA · 250 clients (27 %)</span></div><ul style="margin:6px 0 0 18px;padding:0;font-size:14px"><li>1,2 commande(s) en moyenne</li><li>panier moyen 57 €</li><li>code promo dans 48 % des commandes</li><li>retrait local : 0 %</li><li>dernière commande il y a 278 jours (médiane)</li><li>niveau de vie de la commune : 21 800 € / an / UC</li><li>ville : Petite ville (2 000 à 20 000) (51 %)</li><li>1re commande surtout : Bougies gourmandes, Autres bougies</li></ul></div><div class="howto" style="min-width:250px"><b style="font-size:16px">Le chasseur de promo</b><br><span class="hint">Presque toutes ses commandes ont un code promo, une seule commande en général.</span><div style="margin-top:8px;font-size:22px;font-weight:700">15 % <span style="font-size:13px;font-weight:400">du CA · 222 clients (24 %)</span></div><ul style="margin:6px 0 0 18px;padding:0;font-size:14px"><li>1,1 commande(s) en moyenne</li><li>panier moyen 58 €</li><li>code promo dans 95 % des commandes</li><li>retrait local : 0 %</li><li>dernière commande il y a 260 jours (médiane)</li><li>niveau de vie de la commune : 21 800 € / an / UC</li><li>ville : Petite ville (2 000 à 20 000) (53 %)</li><li>1re commande surtout : Bougies gourmandes, Fondants</li></ul></div><div class="howto" style="min-width:250px"><b style="font-size:16px">L'acheteur plein tarif</b><br><span class="hint">Une commande, quasiment jamais de code promo, panier le plus bas hors locaux.</span><div style="margin-top:8px;font-size:22px;font-weight:700">11 % <span style="font-size:13px;font-weight:400">du CA · 185 clients (20 %)</span></div><ul style="margin:6px 0 0 18px;padding:0;font-size:14px"><li>1,1 commande(s) en moyenne</li><li>panier moyen 52 €</li><li>code promo dans 0 % des commandes</li><li>retrait local : 0 %</li><li>dernière commande il y a 261 jours (médiane)</li><li>niveau de vie de la commune : 21 800 € / an / UC</li><li>ville : Petite ville (2 000 à 20 000) (55 %)</li><li>1re commande surtout : Bougies gourmandes, Fondants</li></ul></div><div class="howto" style="min-width:250px"><b style="font-size:16px">Le local</b><br><span class="hint">Récupère presque toujours sa commande sur place, petit panier.</span><div style="margin-top:8px;font-size:22px;font-weight:700">6 % <span style="font-size:13px;font-weight:400">du CA · 94 clients (10 %)</span></div><ul style="margin:6px 0 0 18px;padding:0;font-size:14px"><li>1,5 commande(s) en moyenne</li><li>panier moyen 42 €</li><li>code promo dans 35 % des commandes</li><li>retrait local : 96 %</li><li>dernière commande il y a 202 jours (médiane)</li><li>niveau de vie de la commune : 23 660 € / an / UC</li><li>ville : Petite ville (2 000 à 20 000) (71 %)</li><li>1re commande surtout : Bougies gourmandes, Fondants</li></ul></div></div></section><section class="panel c12"><h3>Ville et niveau de vie : ne distinguent presque pas les profils</h3><p class="hint" style="margin-top:10px"><b>Fait</b> : le niveau de vie médian de la commune est quasi identique d'un profil à l'autre (de 21 800 € à 23 660 € par an et par unité de consommation, Insee 2020), et la taille de la commune aussi. Ce sont les <b>comportements</b> (fidélité, code promo, retrait local) qui séparent les profils. Source du niveau de vie : médiane de la commune de livraison (798 clients), à défaut celle du département ; 115 clients hors France reçoivent la valeur médiane.</p><p class="hint" style="margin-top:10px"><b>Interprétation possible</b> : la clientèle est géographiquement et socialement homogène (petites villes) ; la segmentation utile est comportementale. <b>Limite importante</b> : la séparation entre groupes est faible (indice de silhouette 0,17 pour 5 groupes, 0,24 pour 3 ; en dessous de 0,25 les groupes se chevauchent). Le choix de 5 profils est un choix de lecture, pas une frontière naturelle. Le profil « fidèle » est en partie défini par le nombre de commandes : c'est attendu, pas une découverte. Le niveau de vie est celui de la commune, pas du client.</p></section><section class="panel c12"><h3>Arbre de décision : quels facteurs de la 1re commande annoncent un retour ?</h3><p class="hint">Sur 736 clients ayant au moins 90 jours de recul, 36 % ont recommandé. L'arbre coupe à chaque étape selon le critère qui sépare le mieux les clients qui reviennent de ceux qui ne reviennent pas (profondeur 3, 30 clients minimum par feuille).</p><ul class="tree"><li><span class="tnode"><b>36 %</b> reviennent <span class="hint">(736 clients)</span></span><div class="tq2"><span class="tq">Familles de produits dans la 1re commande</span></div><ul><li><i class=tl>≤ 2</i> <span class="tnode"><b>32 %</b> reviennent <span class="hint">(558 clients)</span></span><div class="tq2"><span class="tq">Montant de la 1re commande (€)</span></div><ul><li><i class=tl>≤ 65,3</i> <span class="tnode"><b>28 %</b> reviennent <span class="hint">(432 clients)</span></span><div class="tq2"><span class="tq">Retrait local à la 1re commande ?</span></div><ul><li><i class=tl>non</i> <span class="tnode"><b>26 %</b> reviennent <span class="hint">(364 clients)</span></span></li><li><i class=tl>oui</i> <span class="tnode"><b>40 %</b> reviennent <span class="hint">(68 clients)</span></span></li></ul></li><li><i class=tl>&gt; 65,3</i> <span class="tnode"><b>44 %</b> reviennent <span class="hint">(126 clients)</span></span><div class="tq2"><span class="tq">Habitants de la commune</span></div><ul><li><i class=tl>≤ 3 142,0</i> <span class="tnode"><b>59 %</b> reviennent <span class="hint">(34 clients)</span></span></li><li><i class=tl>&gt; 3 142,0</i> <span class="tnode"><b>38 %</b> reviennent <span class="hint">(92 clients)</span></span></li></ul></li></ul></li><li><i class=tl>&gt; 2</i> <span class="tnode"><b>47 %</b> reviennent <span class="hint">(178 clients)</span></span><div class="tq2"><span class="tq">Articles dans la 1re commande</span></div><ul><li><i class=tl>≤ 5</i> <span class="tnode"><b>54 %</b> reviennent <span class="hint">(110 clients)</span></span><div class="tq2"><span class="tq">Habitants de la commune</span></div><ul><li><i class=tl>≤ 5 215,0</i> <span class="tnode"><b>47 %</b> reviennent <span class="hint">(47 clients)</span></span></li><li><i class=tl>&gt; 5 215,0</i> <span class="tnode"><b>60 %</b> reviennent <span class="hint">(63 clients)</span></span></li></ul></li><li><i class=tl>&gt; 5</i> <span class="tnode"><b>35 %</b> reviennent <span class="hint">(68 clients)</span></span><div class="tq2"><span class="tq">Montant de la 1re commande (€)</span></div><ul><li><i class=tl>≤ 97,5</i> <span class="tnode"><b>27 %</b> reviennent <span class="hint">(37 clients)</span></span></li><li><i class=tl>&gt; 97,5</i> <span class="tnode"><b>45 %</b> reviennent <span class="hint">(31 clients)</span></span></li></ul></li></ul></li></ul></li></ul><p class="hint" style="margin-top:10px"><b>Ce qu'il faut retenir avant de lire l'arbre</b> : l'arbre est testé sur des clients qu'il n'a pas vus (validation croisée en 5 parties). Résultat : AUC = 0,55 ± 0,03, alors que 0,50 = hasard pur. <b>Conclusion honnête</b> : ni le contenu de la 1re commande, ni le lieu, ni le niveau de vie ne permettent de prévoir correctement qui reviendra (l'AUC reste proche de 0,50). Les branches ci-dessus décrivent l'échantillon mais ne se généralisent pas ; elles sont montrées pour la démonstration de la méthode et ne doivent pas servir à cibler des clients.</p></section></div><h3 style="margin:26px 0 4px 2px">3. Que contient la première commande ?</h3><div class="grid"><section class="panel c6"><h3>Ce qui se trouve dans une 1re commande</h3><p class="hint">Sur 913 clients identifiés. Une même commande peut contenir plusieurs familles.</p><div class="tablewrap"><table><tr><th class="">Famille</th><th class="r">Clients</th><th class="r">Part</th></tr><tr><td class="">Bougies gourmandes</td><td class="r">619</td><td class="r">68 %</td></tr><tr><td class="">Fondants</td><td class="r">298</td><td class="r">33 %</td></tr><tr><td class="">Autres bougies</td><td class="r">269</td><td class="r">29 %</td></tr><tr><td class="">Accessoires et cadeaux</td><td class="r">165</td><td class="r">18 %</td></tr><tr><td class="">Bougies taille S</td><td class="r">86</td><td class="r">9 %</td></tr><tr><td class="">Voiture</td><td class="r">75</td><td class="r">8 %</td></tr><tr><td class="">Élixirs</td><td class="r">74</td><td class="r">8 %</td></tr><tr><td class="">Bougies boisson</td><td class="r">69</td><td class="r">8 %</td></tr><tr><td class="">Poudre parfumée</td><td class="r">57</td><td class="r">6 %</td></tr><tr><td class="">Diffuseurs maison</td><td class="r">14</td><td class="r">2 %</td></tr><tr><td class="">Formation</td><td class="r">12</td><td class="r">1 %</td></tr></table></div></section><section class="panel c6"><h3>Produits les plus présents en 1re commande</h3><p class="hint">Produits regroupés (parfum ou taille confondus lorsque le nom commence pareil).</p><div class="tablewrap"><table><tr><th class="">Produit</th><th class="r">Clients</th><th class="r">Part</th></tr><tr><td class="">Box De Fondants</td><td class="r">137</td><td class="r">15,0 %</td></tr><tr><td class="">Bougie Parfumee Taille S</td><td class="r">86</td><td class="r">9,4 %</td></tr><tr><td class="">Bougie Gourmande Mystic Pumpkin</td><td class="r">74</td><td class="r">8,1 %</td></tr><tr><td class="">Bougie Gourmande Citron Meringue</td><td class="r">60</td><td class="r">6,6 %</td></tr><tr><td class="">Bougie Gourmande Rocher Praline</td><td class="r">59</td><td class="r">6,5 %</td></tr><tr><td class="">Bougie Gourmande Balineva</td><td class="r">55</td><td class="r">6,0 %</td></tr><tr><td class="">Suspension Voiture</td><td class="r">55</td><td class="r">6,0 %</td></tr><tr><td class="">Poudre Parfumee</td><td class="r">48</td><td class="r">5,3 %</td></tr><tr><td class="">Bougie Gourmande Pain D'Epices</td><td class="r">46</td><td class="r">5,0 %</td></tr><tr><td class="">Bougie Gourmande Orange Epicee</td><td class="r">46</td><td class="r">5,0 %</td></tr><tr><td class="">Bougie Gourmande Nuit De Noël</td><td class="r">41</td><td class="r">4,5 %</td></tr><tr><td class="">Bougie Gourmande Caramel Beurre Sale</td><td class="r">40</td><td class="r">4,4 %</td></tr></table></div></section><section class="panel c12"><h3>Taille de la 1re commande</h3><p class="hint" style="margin-top:10px"><b>Fait</b> : 27 % des clients (242) n'ont pris qu'un seul produit distinct ; 73 % ont pris au moins deux produits différents dès la 1re commande. Nombre d'articles : 1 article 21 %, 2 à 3 articles 47 %, 4 à 5 articles 21 %, 6 et plus 11 %.</p></section><section class="panel c12"><h3>Schéma : de quoi est faite une 1re commande typique ?</h3><p class="hint">Lecture de gauche à droite : nombre de produits distincts → famille qui pèse le plus → compléments les plus fréquents à côté de cette famille (part des commandes de ce groupe).</p><ul class="tree"><li><span class="tnode"><b>1re commande</b> <span class="hint">(913 clients)</span></span><ul><li><span class="tnode"><b>Un seul produit</b> <span class="hint">242 clients · 26 %</span></span><ul><li><span class="tnode">famille dominante : <b>Bougies gourmandes</b> <span class="hint">132 (54 %)</span></span><div class="tq2">compléments les plus fréquents : aucun complément</div></li><li><span class="tnode">famille dominante : <b>Fondants</b> <span class="hint">37 (15 %)</span></span><div class="tq2">compléments les plus fréquents : aucun complément</div></li><li><span class="tnode">famille dominante : <b>Autres bougies</b> <span class="hint">32 (13 %)</span></span><div class="tq2">compléments les plus fréquents : aucun complément</div></li></ul></li><li><span class="tnode"><b>Deux produits</b> <span class="hint">256 clients · 28 %</span></span><ul><li><span class="tnode">famille dominante : <b>Bougies gourmandes</b> <span class="hint">143 (56 %)</span></span><div class="tq2">compléments les plus fréquents : Autres bougies 19 % ; Fondants 9 %</div></li><li><span class="tnode">famille dominante : <b>Autres bougies</b> <span class="hint">36 (14 %)</span></span><div class="tq2">compléments les plus fréquents : Bougies gourmandes 14 % ; Élixirs 8 %</div></li><li><span class="tnode">famille dominante : <b>Fondants</b> <span class="hint">28 (11 %)</span></span><div class="tq2">compléments les plus fréquents : Bougies gourmandes 21 % ; Autres bougies 14 %</div></li></ul></li><li><span class="tnode"><b>Trois produits ou plus</b> <span class="hint">415 clients · 46 %</span></span><ul><li><span class="tnode">famille dominante : <b>Bougies gourmandes</b> <span class="hint">239 (58 %)</span></span><div class="tq2">compléments les plus fréquents : Autres bougies 38 % ; Fondants 38 %</div></li><li><span class="tnode">famille dominante : <b>Autres bougies</b> <span class="hint">55 (13 %)</span></span><div class="tq2">compléments les plus fréquents : Bougies gourmandes 58 % ; Fondants 42 %</div></li><li><span class="tnode">famille dominante : <b>Fondants</b> <span class="hint">54 (13 %)</span></span><div class="tq2">compléments les plus fréquents : Accessoires et cadeaux 37 % ; Bougies gourmandes 30 %</div></li></ul></li></ul></li></ul></section><section class="panel c6"><h3>Compléments fréquents (familles) à la 1re commande</h3><p class="hint">Lift = combien de fois plus souvent que par hasard. 1 = indépendant ; au-dessus de 1,5, le lien est net.</p><div class="tablewrap"><table><tr><th class="">Association</th><th class="r">Clients</th><th class="r">Lift</th></tr><tr><td class="">Autres bougies + Bougies gourmandes</td><td class="r">165</td><td class="r">0,90</td></tr><tr><td class="">Bougies gourmandes + Fondants</td><td class="r">147</td><td class="r">0,73</td></tr><tr><td class="">Accessoires et cadeaux + Bougies gourmandes</td><td class="r">100</td><td class="r">0,89</td></tr><tr><td class="">Accessoires et cadeaux + Fondants</td><td class="r">98</td><td class="r">1,82</td></tr><tr><td class="">Autres bougies + Fondants</td><td class="r">72</td><td class="r">0,82</td></tr><tr><td class="">Bougies gourmandes + Bougies taille S</td><td class="r">54</td><td class="r">0,93</td></tr><tr><td class="">Bougies boisson + Bougies gourmandes</td><td class="r">51</td><td class="r">1,09</td></tr><tr><td class="">Bougies gourmandes + Voiture</td><td class="r">47</td><td class="r">0,92</td></tr></table></div></section><section class="panel c6"><h3>Compléments fréquents (produits) à la 1re commande</h3><p class="hint">Uniquement les paires présentes chez au moins 6 clients.</p><div class="tablewrap"><table><tr><th class="">Association</th><th class="r">Clients</th><th class="r">Lift</th></tr><tr><td class="">Bougie Gourmande Nuit De Noël + Bougie Gourmande Pain D'Epices</td><td class="r">19</td><td class="r">9,2</td></tr><tr><td class="">Bougie Gourmande Mystic Pumpkin + Box De Fondants</td><td class="r">17</td><td class="r">1,5</td></tr><tr><td class="">Bougie Parfumee Taille S + Box De Fondants</td><td class="r">13</td><td class="r">1,0</td></tr><tr><td class="">Poudre Parfumee + Suspension Voiture</td><td class="r">13</td><td class="r">4,5</td></tr><tr><td class="">Tablette Fondant Adoucissant + Tablette Fondant Linge Propre</td><td class="r">12</td><td class="r">19,0</td></tr><tr><td class="">Box De Fondants + Poudre Parfumee</td><td class="r">11</td><td class="r">1,5</td></tr><tr><td class="">Bougie Gourmande Caramel Beurre Sale + Bougie Gourmande Citron Meringue</td><td class="r">10</td><td class="r">3,8</td></tr><tr><td class="">Box De Fondants + Suspension Voiture</td><td class="r">10</td><td class="r">1,2</td></tr></table></div></section><section class="panel c12"><h3>Constat : les compléments sont-ils toujours les mêmes ?</h3><p class="hint" style="margin-top:10px"><b>Fait</b> : parmi les familles, seul le lien « Accessoires et cadeaux + Fondants » dépasse nettement le hasard (lift 1,82). Le duo bougie gourmande + autre bougie est le plus fréquent en nombre (165 clients) mais n'est pas plus fréquent que le hasard (lift 0,90) : il reflète simplement le poids des bougies. Au niveau des produits, les liens forts sont des <b>paires de produits jumeaux</b> (deux tablettes de fondant, Nuit de Noël + Pain d'épices, poudre + suspension voiture) achetés par peu de clients chacun. <b>Interprétation possible</b> : il n'existe pas un complément universel ; les compléments dépendent du produit de départ (produits de la même gamme ou de la même saison). <b>Limite</b> : peu de clients par paire (6 à 19) ; à traiter comme des pistes de bundle à tester, pas comme des règles.</p></section><section class="panel c6"><h3>Les familles de la 1re commande reviennent-elles ensuite ?</h3><p class="hint">Parmi les 280 clients qui ont recommandé. Part de ceux qui rachètent la même famille dans une commande suivante.</p><div class="tablewrap"><table><tr><th class="">Famille prise à la 1re commande</th><th class="r">Clients revenus</th><th class="r">Rachètent la famille</th></tr><tr><td class="">Bougies gourmandes</td><td class="r">196</td><td class="r">81 %</td></tr><tr><td class="">Fondants</td><td class="r">100</td><td class="r">66 %</td></tr><tr><td class="">Autres bougies</td><td class="r">97</td><td class="r">61 %</td></tr><tr><td class="">Accessoires et cadeaux</td><td class="r">53</td><td class="r">36 %</td></tr><tr><td class="">Élixirs</td><td class="r">36</td><td class="r">39 %</td></tr><tr><td class="">Voiture</td><td class="r">27</td><td class="r">44 %</td></tr><tr><td class="">Poudre parfumée</td><td class="r">25</td><td class="r">56 %</td></tr><tr><td class="">Bougies taille S</td><td class="r">24</td><td class="r">42 %</td></tr></table></div></section><section class="panel c6"><h3>Et les produits ?</h3><p class="hint">Produits pris à la 1re commande par au moins 8 clients revenus : part qui rachète ce même produit.</p><div class="tablewrap"><table><tr><th class="">Produit de la 1re commande</th><th class="r">Clients revenus</th><th class="r">Le rachètent</th></tr><tr><td class="">Box De Fondants</td><td class="r">47</td><td class="r">57 %</td></tr><tr><td class="">Bougie Parfumee Taille S</td><td class="r">24</td><td class="r">42 %</td></tr><tr><td class="">Bougie Gourmande Mystic Pumpkin</td><td class="r">23</td><td class="r">9 %</td></tr><tr><td class="">Poudre Parfumee</td><td class="r">22</td><td class="r">54 %</td></tr><tr><td class="">Bougie Gourmande Rocher Praline</td><td class="r">22</td><td class="r">36 %</td></tr><tr><td class="">Suspension Voiture</td><td class="r">21</td><td class="r">29 %</td></tr><tr><td class="">Bougie Gourmande Balineva</td><td class="r">19</td><td class="r">10 %</td></tr><tr><td class="">Bougie Gourmande Pain D'Epices</td><td class="r">18</td><td class="r">6 %</td></tr></table></div></section><section class="panel c12"><h3>Les compléments sont-ils rachetés ?</h3><p class="hint" style="margin-top:10px"><b>Fait</b> : sur 228 clients revenus dont la 1re commande contenait au moins 2 produits, 817 produits ont été achetés en 1re commande, et seulement 121 (15 %) réapparaissent dans une commande suivante du même client. La <b>famille</b> revient beaucoup plus souvent (bougies gourmandes : 81 %) que le <b>produit</b>. <b>Interprétation possible</b> : les clients fidèles restent fidèles à un univers, mais pas à un parfum ; les accessoires et cadeaux (achats ponctuels) reviennent peu. Les produits saisonniers (ex. Mystic Pumpkin : 0 rachat sur 19 clients) ne peuvent pas être rachetés hors saison.</p></section><section class="panel c6"><h3>La 1re commande annonce-t-elle un retour ? Par taille et par montant</h3><p class="hint">Sur 736 clients ayant au moins 90 jours de recul ; taux de retour global 35,5 %.</p><div class="tablewrap"><table><tr><th class="">Taille de la 1re commande</th><th class="r">Clients</th><th class="r">Recommandent</th></tr><tr><td class="">1 article</td><td class="r">139</td><td class="r">27 %</td></tr><tr><td class="">2 à 3 articles</td><td class="r">336</td><td class="r">36 %</td></tr><tr><td class="">4 à 5 articles</td><td class="r">168</td><td class="r">44 %</td></tr><tr><td class="">6 articles et plus</td><td class="r">93</td><td class="r">33 %</td></tr></table></div><div class="tablewrap"><table><tr><th class="">Montant de la 1re commande</th><th class="r">Clients</th><th class="r">Recommandent</th></tr><tr><td class="">moins de 30 €</td><td class="r">139</td><td class="r">30 %</td></tr><tr><td class="">30 à 50 €</td><td class="r">233</td><td class="r">31 %</td></tr><tr><td class="">50 à 79 €</td><td class="r">193</td><td class="r">40 %</td></tr><tr><td class="">79 € et plus</td><td class="r">171</td><td class="r">40 %</td></tr></table></div><p class="hint" style="margin-top:10px">Test du χ² sur la taille : p = 0,022 (écart significatif). <b>Fait</b> : les commandes d'un seul article reviennent le moins (27 %) ; à partir de 50 € le taux monte (40 % puis 40 %). <b>Limite</b> : corrélation, pas causalité, et le taux ne monte pas de façon continue (33 % à 6 articles et plus).</p></section><section class="panel c6"><h3>La famille achetée en 1re commande annonce-t-elle un retour ?</h3><p class="hint">Taux de retour des clients ayant cette famille dans leur 1re commande, contre ceux qui ne l'ont pas (test exact de Fisher).</p><div class="tablewrap"><table><tr><th class="">Famille dans la 1re commande</th><th class="r">Clients</th><th class="r">Reviennent</th><th class="r">Sans cette famille</th><th class="r">p-value</th></tr><tr><td class="">Élixirs</td><td class="r">64</td><td class="r">55 %</td><td class="r">34 %</td><td class="r">0,001</td></tr><tr><td class="">Poudre parfumée</td><td class="r">51</td><td class="r">47 %</td><td class="r">35 %</td><td class="r">0,094</td></tr><tr><td class="">Autres bougies</td><td class="r">226</td><td class="r">41 %</td><td class="r">33 %</td><td class="r">0,037</td></tr><tr><td class="">Voiture</td><td class="r">66</td><td class="r">41 %</td><td class="r">35 %</td><td class="r">0,347</td></tr><tr><td class="">Bougies gourmandes</td><td class="r">493</td><td class="r">37 %</td><td class="r">32 %</td><td class="r">0,141</td></tr><tr><td class="">Accessoires et cadeaux</td><td class="r">134</td><td class="r">37 %</td><td class="r">35 %</td><td class="r">0,619</td></tr><tr><td class="">Fondants</td><td class="r">247</td><td class="r">37 %</td><td class="r">35 %</td><td class="r">0,625</td></tr><tr><td class="">Bougies taille S</td><td class="r">79</td><td class="r">29 %</td><td class="r">36 %</td><td class="r">0,262</td></tr><tr><td class="">Bougies boisson</td><td class="r">67</td><td class="r">28 %</td><td class="r">36 %</td><td class="r">0,229</td></tr></table></div><p class="hint" style="margin-top:10px"><b>Fait</b> : 2 familles ont un taux de retour différent de celui des autres clients à 5 % : Élixirs (55 % contre 34 %) ; Autres bougies (41 % contre 33 %). <b>Prudence</b> : 9 familles testées en même temps ; avec 9 tests, un résultat « significatif » à 5 % apparaît par hasard une fois sur trois environ. Après correction de Bonferroni (seuil 0,05 / 9 = 0,0056), restent significatives : Élixirs. Un petit effectif (Élixirs : 64 clients) : à confirmer plus tard.</p></section></div></div>
+<details class="pli" name="obs-p"><summary>Le code</summary><div class="corps"><div class="codes"><details class="pli" name="code-common.py"><summary><code>common.py</code> · Lit les commandes, classe les produits en familles, regroupe les commandes par client. Base des analyses « parcours clients ».</summary><div class="corps"><p class="meta">78 lignes · <a href="common.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Base commune aux analyses de parcours client : lecture de orders.csv (hors commandes annulées),
+familles de produits, clés produit, commandes rangées par client."""
+import csv, re
+from datetime import datetime
+from collections import defaultdict
+
+ORDERS_CSV = '../DONNEES/orders.csv'
+REF = datetime(2026, 10, 23)
+
+FAMILLES = ['Bougies gourmandes', 'Bougies boisson', 'Bougies taille S', 'Autres bougies', 'Fondants',
+            'Voiture', 'Diffuseurs maison', 'Poudre parfumée', 'Élixirs', 'Accessoires et cadeaux', 'Formation']
+
+def famille(name):
+    n = name.upper()
+    if n.startswith('BOUGIE GOURMANDE'): return 'Bougies gourmandes'
+    if n.startswith(('BOUGIE BOISSON', 'BOUGIE LATTE', 'BOUGIE ICED')): return 'Bougies boisson'
+    if n.startswith('BOUGIE PARFUMEE TAILLE S'): return 'Bougies taille S'
+    if n.startswith('BOUGIE'): return 'Autres bougies'
+    if n.startswith(('BOX DE FONDANTS', 'BOUQUET DE FONDANTS', 'TABLETTE', 'FONDANT')): return 'Fondants'
+    if n.startswith(('SUSPENSION VOITURE', 'DIFFUSEUR VOITURE')): return 'Voiture'
+    if n.startswith(('DIFFUSEUR', 'RECHARGE MELANGE')): return 'Diffuseurs maison'
+    if n.startswith('POUDRE'): return 'Poudre parfumée'
+    if n.startswith('ELIXIR'): return 'Élixirs'
+    if n.startswith(('PACK FABRICATION', 'PACK BOUGIES')) or 'CONSULTING' in n or n.startswith('RÉGLEMENTATION') or n.startswith('REGLEMENTATION'): return 'Formation'
+    return 'Accessoires et cadeaux'
+
+def cle_produit(name):
+    """Produit au sens marketing : on retire la variante après ' - ' ou ' / ' (parfum, taille)."""
+    return re.split(r' - | / ', name)[0].strip()
+
+def joli(s):
+    t = s.replace('BOUGIE GOURMANDE ', 'Bougie ')
+    t = t.translate(str.maketrans('ÉÈÊÀÂÎÔÛÇÏËÖ', 'éèêàâîôûçïëö')).lower()
+    return t[0].upper() + t[1:]
+
+def charger():
+    """Retourne (commandes, clients) : commandes = liste de dicts ; clients = {cle: [commandes triées par date]}."""
+    rows = []
+    cur = None
+    with open(ORDERS_CSV, encoding='utf-8') as f:
+        for r in csv.DictReader(f):
+            if r['Total']:
+                cur = {'r': r, 'lignes': []}
+                rows.append(cur)
+            if cur and r['Lineitem name'] and r['Lineitem name'] != 'Tip':
+                cur['lignes'].append({'nom': r['Lineitem name'], 'qte': int(r['Lineitem quantity']), 'prix': float(r['Lineitem price'])})
+    commandes = []
+    for o in rows:
+        r = o['r']
+        if r.get('Cancelled at'): continue
+        sm = r['Shipping Method'] or ''
+        d = {
+            'date': r['Created at'][:10], 'dt': datetime.strptime(r['Created at'][:19], '%Y-%m-%d %H:%M:%S'),
+            'cle': r['customer_key'].strip(), 'total': float(r['Total']), 'sous_total': float(r['Subtotal']),
+            'code': r['Discount Code'] or '', 'remise': float(r['Discount Amount'] or 0),
+            'local': 1 if re.match(r'^\d|otissement', sm) else 0,
+            'pays': (r['Shipping Country'] or r['Billing Country'] or '').strip(),
+            'cp': re.sub(r'\D', '', (r['Shipping Zip'] or r['Billing Zip'] or '')).zfill(5)[:5],
+            'ordre_key': r['order_key'],
+            'lignes': o['lignes'],
+        }
+        d['qte'] = sum(l['qte'] for l in d['lignes'])
+        d['familles'] = sorted(set(famille(l['nom']) for l in d['lignes']))
+        d['produits'] = sorted(set(cle_produit(l['nom']) for l in d['lignes']))
+        val = defaultdict(float)
+        for l in d['lignes']: val[famille(l['nom'])] += l['qte'] * l['prix']
+        d['fam_dom'] = max(val.items(), key=lambda kv: kv[1])[0] if val else None
+        d['prix_unit'] = (d['sous_total'] / d['qte']) if d['qte'] else None
+        commandes.append(d)
+    clients = defaultdict(list)
+    for d in commandes:
+        if d['cle'] and d['lignes']: clients[d['cle']].append(d)
+    for v in clients.values(): v.sort(key=lambda d: d['dt'])
+    for v in clients.values():
+        for i, d in enumerate(v): d['rang'] = i + 1
+    return commandes, clients
+</code></pre></div></details><details class="pli" name="code-g1_premiere_vs_suivantes.py"><summary><code>g1_premiere_vs_suivantes.py</code> · Ce qui change entre la 1re commande et les suivantes (montant, articles, produits, familles).</summary><div class="corps"><p class="meta">88 lignes · <a href="g1_premiere_vs_suivantes.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Que change-t-il entre la 1re commande d'un client et les suivantes (prix, quantité, produits) ?"""
+import json
+import numpy as np
+from collections import defaultdict, Counter
+from scipy import stats
+from common import charger, FAMILLES
+
+commandes, clients = charger()
+rec = {k: v for k, v in clients.items() if len(v) &gt;= 2}          # clients ayant recommandé
+print(len(rec), 'clients récurrents')
+
+def resume(orders):
+    tot = [o['total'] for o in orders]; q = [o['qte'] for o in orders]
+    pu = [o['prix_unit'] for o in orders if o['prix_unit']]
+    fam_par_cmd = [len(o['familles']) for o in orders]
+    return {
+        'n': len(orders), 'total_moy': round(np.mean(tot), 2), 'total_med': round(float(np.median(tot)), 2),
+        'qte_moy': round(np.mean(q), 2), 'prix_unit_moy': round(np.mean(pu), 2),
+        'fam_moy': round(np.mean(fam_par_cmd), 2),
+        'pct_code': round(100 * np.mean([1 if o['code'] else 0 for o in orders]), 1),
+        'pct_local': round(100 * np.mean([o['local'] for o in orders]), 1),
+        'pct_multi_fam': round(100 * np.mean([1 if len(o['familles']) &gt;= 2 else 0 for o in orders]), 1),
+    }
+
+# --- A) Profil moyen des commandes selon leur rang, chez les clients qui reviennent
+par_rang = {'1re': [], '2e': [], '3e': [], '4e et +': []}
+for v in rec.values():
+    for o in v:
+        k = '1re' if o['rang'] == 1 else '2e' if o['rang'] == 2 else '3e' if o['rang'] == 3 else '4e et +'
+        par_rang[k].append(o)
+tab_rang = {k: resume(v) for k, v in par_rang.items() if v}
+# repère : 1re commande des clients qui ne reviennent pas (tous, y compris récents)
+uniques = [v[0] for k, v in clients.items() if len(v) == 1]
+tab_rang['Client à 1 seule commande'] = resume(uniques)
+for k, v in tab_rang.items(): print(k, v)
+
+# part de chaque famille dans les commandes selon le rang
+fam_part = {}
+for k, orders in par_rang.items():
+    if not orders: continue
+    c = Counter(f for o in orders for f in o['familles'])
+    fam_part[k] = {f: round(100 * c[f] / len(orders), 1) for f in FAMILLES}
+
+# --- B) Comparaison appariée : la 1re et la 2e commande du MÊME client
+p1 = [v[0] for v in rec.values()]; p2 = [v[1] for v in rec.values()]
+def pair(champ):
+    a = np.array([o[champ] for o in p1], dtype=float); b = np.array([o[champ] for o in p2], dtype=float)
+    d = b - a
+    w, pw = stats.wilcoxon(d) if np.any(d != 0) else (0, 1)
+    return {'moy1': round(a.mean(), 2), 'moy2': round(b.mean(), 2), 'delta_moy': round(d.mean(), 2),
+            'delta_med': round(float(np.median(d)), 2), 'wilcoxon_p': float(pw),
+            'plus': int((d &gt; 0).sum()), 'moins': int((d &lt; 0).sum()), 'egal': int((d == 0).sum())}
+paired = {'total': pair('total'), 'qte': pair('qte')}
+pu1 = np.array([o['prix_unit'] for o in p1]); pu2 = np.array([o['prix_unit'] for o in p2])
+d = pu2 - pu1; w, pw = stats.wilcoxon(d)
+paired['prix_unit'] = {'moy1': round(pu1.mean(), 2), 'moy2': round(pu2.mean(), 2), 'delta_moy': round(d.mean(), 2),
+                       'delta_med': round(float(np.median(d)), 2), 'wilcoxon_p': float(pw),
+                       'plus': int((d &gt; 0).sum()), 'moins': int((d &lt; 0).sum()), 'egal': int((d == 0).sum())}
+print('appariés', json.dumps(paired, ensure_ascii=False)[:600])
+
+# --- C) Ce qu'on rachète : mêmes produits / mêmes familles entre la 1re et la 2e commande
+meme_prod = sum(1 for a, b in zip(p1, p2) if set(a['produits']) &amp; set(b['produits']))
+meme_fam = sum(1 for a, b in zip(p1, p2) if set(a['familles']) &amp; set(b['familles']))
+meme_fam_dom = sum(1 for a, b in zip(p1, p2) if a['fam_dom'] == b['fam_dom'])
+# part des produits de la 2e commande qui étaient déjà dans la 1re
+deja = sum(len(set(b['produits']) &amp; set(a['produits'])) for a, b in zip(p1, p2))
+tot_prod2 = sum(len(b['produits']) for b in p2)
+# variété : nouveaux produits jamais achetés avant, sur l'ensemble des commandes suivantes
+nouv_fam = sum(1 for a, b in zip(p1, p2) if set(b['familles']) - set(a['familles']))
+recompra = {'n': len(rec), 'meme_produit': meme_prod, 'meme_famille': meme_fam, 'meme_famille_dominante': meme_fam_dom,
+            'part_produits_deja_achetes': round(100 * deja / tot_prod2, 1), 'avec_nouvelle_famille': nouv_fam}
+print('rachat', recompra)
+
+# --- D) Matrice famille dominante 1re commande -&gt; 2e commande (lignes = 1re)
+mat = defaultdict(Counter)
+for a, b in zip(p1, p2): mat[a['fam_dom']][b['fam_dom']] += 1
+matrice = {f: {g: mat[f][g] for g in FAMILLES} for f in FAMILLES if sum(mat[f].values()) &gt; 0}
+tot_ligne = {f: sum(matrice[f].values()) for f in matrice}
+
+# --- E) trajectoire de prix : le 2e panier est-il plus grand, plus petit, égal ?
+delta_tot = [b['total'] - a['total'] for a, b in zip(p1, p2)]
+plus = sum(1 for d in delta_tot if d &gt; 5); moins = sum(1 for d in delta_tot if d &lt; -5); stable = len(delta_tot) - plus - moins
+
+json.dump({'tab_rang': tab_rang, 'fam_part': fam_part, 'paired': paired, 'recompra': recompra,
+           'matrice': matrice, 'tot_ligne': tot_ligne, 'trajectoire': {'plus': plus, 'moins': moins, 'stable': stable, 'n': len(delta_tot)}},
+          open('g1_premiere_vs_suivantes.json', 'w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-g2_profils.py"><summary><code>g2_profils.py</code> · Fiche de chaque client, niveau de vie de la commune, 5 profils (k-means), arbre de décision du réachat.</summary><div class="corps"><p class="meta">144 lignes · <a href="g2_profils.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Profils de clients : fiche par client (habitudes, ville, niveau de vie), segmentation automatique (k-means),
+et arbre de décision des facteurs de réachat (première commande + lieu)."""
+import json, csv
+import numpy as np
+from collections import Counter, defaultdict
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
+from sklearn.tree import DecisionTreeClassifier
+from common import charger, REF
+
+commandes, clients = charger()
+
+# ---- niveau de vie : médiane du niveau de vie de la commune (Insee-Filosofi 2020), à défaut du département
+def lire(f):
+    d = {}
+    for r in csv.DictReader(open(f, encoding='utf-8'), delimiter=';'):
+        try: d[r['CODGEO']] = float(r['MED20'].replace(',', '.'))
+        except Exception: pass
+    return d
+inc_com = lire('cache/cc_filosofi_2020_COM.csv'); inc_dep = lire('cache/cc_filosofi_2020_DEP.csv')
+comm_cp = json.load(open('cache/communes_par_cp.json'))
+
+def geo(cp):
+    cs = comm_cp.get(cp) or []
+    if not cs: return None
+    c = max(cs, key=lambda x: x.get('population') or 0)
+    dep = c.get('codeDepartement') or cp[:2]
+    inc = inc_com.get(c['code']); src = 'commune'
+    if inc is None:
+        inc = inc_dep.get(dep); src = 'département'
+    return {'commune': c['nom'], 'pop': c.get('population') or 0, 'dep': dep, 'revenu': inc, 'src_revenu': src}
+
+def taille(p):
+    return 'Village (&lt; 2 000 hab.)' if p &lt; 2000 else 'Petite ville (2 000 à 20 000)' if p &lt; 20000 else 'Ville (20 000 à 100 000)' if p &lt; 100000 else 'Grande ville (&gt; 100 000)'
+
+# ---- paiement par commande
+pay = {}
+for r in csv.DictReader(open('../DONNEES/payment_transactions.csv', encoding='utf-8')):
+    if r['Type'] == 'charge' and r['order_key'] not in pay: pay[r['order_key']] = r['Payment Method Name']
+
+fiches = []
+for k, os_ in clients.items():
+    p = os_[0]
+    g = geo(p['cp']) if p['pays'] == 'FR' else None
+    fam_dist = set(f for o in os_ for f in o['familles'])
+    dep_first = p['cp'][:2]
+    f = {
+        'cle': k, 'n': len(os_), 'depense': sum(o['total'] for o in os_),
+        'panier': float(np.mean([o['total'] for o in os_])), 'recence': (REF - os_[-1]['dt']).days,
+        'anciennete': (REF - p['dt']).days,
+        'pct_local': float(np.mean([o['local'] for o in os_])), 'pct_code': float(np.mean([1 if o['code'] else 0 for o in os_])),
+        'pct_we': float(np.mean([1 if o['dt'].weekday() &gt;= 5 else 0 for o in os_])),
+        'pct_paypal': float(np.mean([1 if pay.get(o['ordre_key']) == 'paypal' else 0 for o in os_])),
+        'n_fam': len(fam_dist), 'pays': p['pays'], 'geo': g,
+        'p_qte': p['qte'], 'p_total': p['total'], 'p_code': 1 if p['code'] else 0, 'p_local': p['local'],
+        'p_we': 1 if p['dt'].weekday() &gt;= 5 else 0, 'p_paypal': 1 if pay.get(p['ordre_key']) == 'paypal' else 0,
+        'p_nfam': len(p['familles']), 'p_gourmande': 1 if 'Bougies gourmandes' in p['familles'] else 0,
+        'p_fondant': 1 if 'Fondants' in p['familles'] else 0, 'p_fam_dom': p['fam_dom'],
+        'repeat': 1 if len(os_) &gt;= 2 else 0,
+    }
+    fiches.append(f)
+print(len(fiches), 'fiches clients ;', sum(1 for f in fiches if f['geo']), 'avec ville/niveau de vie')
+
+# imputation simple : médiane nationale pour les clients sans géolocalisation (Belgique, etc.)
+med_rev = float(np.median([f['geo']['revenu'] for f in fiches if f['geo'] and f['geo']['revenu']]))
+med_pop = float(np.median([f['geo']['pop'] for f in fiches if f['geo']]))
+for f in fiches:
+    g = f['geo']
+    f['revenu'] = g['revenu'] if g and g['revenu'] else med_rev
+    f['pop'] = g['pop'] if g else med_pop
+    f['taille'] = taille(f['pop']) if g else 'Hors France'
+    f['dep'] = g['dep'] if g else None
+
+# ---- segmentation automatique
+cols = ['ln_n', 'ln_dep', 'ln_panier', 'recence', 'pct_local', 'pct_code', 'n_fam', 'revenu', 'ln_pop', 'pct_we']
+X = np.array([[np.log1p(f['n']), np.log1p(f['depense']), np.log1p(f["panier"]), f['recence'], f['pct_local'], f['pct_code'],
+               f['n_fam'], f['revenu'], np.log1p(f['pop']), f['pct_we']] for f in fiches])
+Xs = StandardScaler().fit_transform(X)
+scores = {}
+for k in (3, 4, 5, 6):
+    km = KMeans(n_clusters=k, n_init=20, random_state=7).fit(Xs)
+    scores[k] = float(silhouette_score(Xs, km.labels_))
+print('silhouette par k :', {k: round(v, 3) for k, v in scores.items()})
+K = 5
+km = KMeans(n_clusters=K, n_init=30, random_state=7).fit(Xs)
+for f, l in zip(fiches, km.labels_): f['cluster'] = int(l)
+
+tot_ca = sum(f['depense'] for f in fiches)
+profils = []
+for c in range(K):
+    fs = [f for f in fiches if f['cluster'] == c]
+    fam = Counter(f['p_fam_dom'] for f in fs).most_common(2)
+    tail = Counter(f['taille'] for f in fs).most_common(1)[0]
+    profils.append({
+        'cluster': c, 'n': len(fs), 'pct_clients': round(100 * len(fs) / len(fiches), 1),
+        'pct_ca': round(100 * sum(f['depense'] for f in fs) / tot_ca, 1),
+        'commandes_med': float(np.median([f['n'] for f in fs])), 'commandes_moy': round(float(np.mean([f['n'] for f in fs])), 2),
+        'depense_moy': round(float(np.mean([f['depense'] for f in fs])), 1), 'panier_moy': round(float(np.mean([f['panier'] for f in fs])), 1),
+        'recence_med': float(np.median([f['recence'] for f in fs])), 'anciennete_med': float(np.median([f['anciennete'] for f in fs])),
+        'pct_local': round(100 * float(np.mean([f['pct_local'] for f in fs])), 1), 'pct_code': round(100 * float(np.mean([f['pct_code'] for f in fs])), 1),
+        'pct_we': round(100 * float(np.mean([f['pct_we'] for f in fs])), 1), 'pct_paypal': round(100 * float(np.mean([f['pct_paypal'] for f in fs])), 1),
+        'nfam_moy': round(float(np.mean([f['n_fam'] for f in fs])), 2),
+        'revenu_med': round(float(np.median([f['revenu'] for f in fs])), 0), 'pop_med': round(float(np.median([f['pop'] for f in fs])), 0),
+        'pct_fr': round(100 * float(np.mean([1 if f['pays'] == 'FR' else 0 for f in fs])), 1),
+        'pct_repeat': round(100 * float(np.mean([f['repeat'] for f in fs])), 1),
+        'taille_dom': tail[0], 'taille_dom_pct': round(100 * tail[1] / len(fs), 0),
+        'fam_dom': [[a, b] for a, b in fam],
+        'deps': [[d, n] for d, n in Counter(f['dep'] for f in fs if f['dep']).most_common(3)],
+    })
+    print(profils[-1]['cluster'], profils[-1]['n'], 'clients', profils[-1]['pct_ca'], '% CA', 'cmd', profils[-1]['commandes_moy'], 'panier', profils[-1]['panier_moy'], 'local', profils[-1]['pct_local'], 'code', profils[-1]['pct_code'], 'rec', profils[-1]['recence_med'], 'rev', profils[-1]['revenu_med'], 'pop', profils[-1]['pop_med'], taille := profils[-1]['taille_dom'])
+
+# ---- arbre des facteurs de réachat (clients avec &gt;= 90 jours de recul)
+base = [f for f in fiches if f['anciennete'] &gt;= 90]
+feat = ['p_qte', 'p_total', 'p_code', 'p_local', 'p_we', 'p_paypal', 'p_nfam', 'p_gourmande', 'p_fondant', 'revenu', 'pop']
+NOMS = {'p_qte': 'Articles dans la 1re commande', 'p_total': 'Montant de la 1re commande (€)', 'p_code': 'Code promo utilisé à la 1re commande',
+        'p_local': 'Retrait local à la 1re commande', 'p_we': '1re commande le week-end', 'p_paypal': 'Paiement PayPal (1re commande)',
+        'p_nfam': 'Familles de produits dans la 1re commande', 'p_gourmande': 'Bougie gourmande dans la 1re commande',
+        'p_fondant': 'Fondant dans la 1re commande', 'revenu': 'Niveau de vie de la commune (€/UC)', 'pop': 'Habitants de la commune'}
+Xt = np.array([[f[c] for c in feat] for f in base], dtype=float); yt = np.array([f['repeat'] for f in base])
+tree = DecisionTreeClassifier(max_depth=3, min_samples_leaf=30, random_state=7).fit(Xt, yt)
+t = tree.tree_
+def noeud(i):
+    n = int(t.n_node_samples[i]); pos = float(t.value[i][0][1]); neg = float(t.value[i][0][0])
+    taux = pos / (pos + neg) if (pos + neg) else 0
+    d = {'n': n, 'taux': round(100 * taux, 1)}
+    if t.children_left[i] != -1:
+        d['var'] = NOMS[feat[t.feature[i]]]; d['seuil'] = round(float(t.threshold[i]), 2); d['bin'] = feat[t.feature[i]] in ('p_code', 'p_local', 'p_we', 'p_paypal', 'p_gourmande', 'p_fondant')
+        d['non'] = noeud(t.children_left[i]); d['oui'] = noeud(t.children_right[i])
+    return d
+arbre = noeud(0)
+print('arbre racine:', arbre['n'], arbre['taux'], '% ; premier critère:', arbre.get('var'), arbre.get('seuil'))
+# précision honnête : comparaison avec le hasard (taux de base)
+from sklearn.model_selection import cross_val_score
+cv = cross_val_score(DecisionTreeClassifier(max_depth=3, min_samples_leaf=30, random_state=7), Xt, yt, cv=5, scoring='roc_auc')
+print('AUC validation croisée (0,5 = hasard) :', round(cv.mean(), 3), '+/-', round(cv.std(), 3))
+
+n_com = sum(1 for f in fiches if f['geo'] and f['geo']['src_revenu'] == 'commune')
+json.dump({'n_revenu_commune': n_com, 'silhouette': scores, 'K': K, 'profils': profils, 'arbre': arbre, 'auc_cv': round(float(cv.mean()), 3), 'auc_sd': round(float(cv.std()), 3),
+           'n_base_arbre': len(base), 'taux_base': round(100 * float(yt.mean()), 1),
+           'n_fiches': len(fiches), 'n_geo': sum(1 for f in fiches if f['geo'])},
+          open('g2_profils.json', 'w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-g3_premiere_commande.py"><summary><code>g3_premiere_commande.py</code> · Contenu d’une 1re commande, compléments, retour des produits, lien avec le réachat.</summary><div class="corps"><p class="meta">122 lignes · <a href="g3_premiere_commande.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Contenu de la première commande : produits/familles fréquents, compléments récurrents, retour dans les commandes suivantes, lien avec le réachat."""
+import json, itertools
+import numpy as np
+from collections import Counter
+from scipy.stats import chi2_contingency, fisher_exact
+from common import charger, REF
+
+commandes, clients = charger()
+prem = {k: o[0] for k, o in clients.items()}
+N = len(prem)
+anc = {k: (REF - o[0]['dt']).days for k, o in clients.items()}
+rep = {k: len(o) &gt;= 2 for k, o in clients.items()}
+
+# 1) taille de la première commande
+nb_art = Counter(min(p['qte'], 6) for p in prem.values())
+nb_fam = Counter(len(p['familles']) for p in prem.values())
+nb_prod = Counter(min(len(p['produits']), 4) for p in prem.values())
+
+# 2) familles et produits présents en 1re commande
+fam_cnt = Counter(f for p in prem.values() for f in set(p['familles']))
+prod_cnt = Counter(x for p in prem.values() for x in set(p['produits']))
+fam_dom = Counter(p['fam_dom'] for p in prem.values())
+
+# 3) compléments : paires de familles et de produits en 1re commande (support, confiance, lift)
+def paires(getter, minsup):
+    c1 = Counter(); c2 = Counter()
+    for p in prem.values():
+        s = sorted(set(getter(p)))
+        c1.update(s); c2.update(itertools.combinations(s, 2))
+    out = []
+    for (a, b), n in c2.items():
+        if n &lt; minsup: continue
+        lift = n * N / (c1[a] * c1[b])
+        out.append({'a': a, 'b': b, 'n': n, 'pct': round(100 * n / N, 1), 'conf_a': round(100 * n / c1[a], 1), 'conf_b': round(100 * n / c1[b], 1), 'lift': round(lift, 2)})
+    return sorted(out, key=lambda d: -d['n'])
+pair_fam = paires(lambda p: p['familles'], 8)
+pair_prod = paires(lambda p: p['produits'], 6)
+seuls = sum(1 for p in prem.values() if len(p['produits']) == 1)
+
+# 4) les complémentaires reviennent-ils ? pour chaque produit acheté en 1re commande par un client qui rachète
+rep_clients = [k for k in clients if rep[k]]
+def retour(getter):
+    """part des clients qui rachètent AU MOINS une fois le même élément dans une commande suivante, parmi ceux qui l'ont pris en 1re commande et sont revenus"""
+    res = {}
+    for k in rep_clients:
+        first = set(getter(clients[k][0])); later = set(x for o in clients[k][1:] for x in getter(o))
+        for x in first:
+            r = res.setdefault(x, [0, 0]); r[0] += 1; r[1] += 1 if x in later else 0
+    return res
+rf = retour(lambda o: o['familles']); rp = retour(lambda o: o['produits'])
+ret_fam = sorted([{'nom': k, 'n_first': prod_first, 'n_back': v[0], 'n_again': v[1], 'pct': round(100 * v[1] / v[0], 1)} for k, v in rf.items() for prod_first in [fam_cnt[k]]], key=lambda d: -d['n_back'])
+ret_prod = sorted([{'nom': k, 'n_first': prod_cnt[k], 'n_back': v[0], 'n_again': v[1], 'pct': round(100 * v[1] / v[0], 1)} for k, v in rp.items() if v[0] &gt;= 8], key=lambda d: -d['n_back'])[:12]
+
+# le complément (article n° 2 et suivants d'une 1re commande multi-produits) est-il racheté ?
+comp_tot = comp_again = 0; comp_prod = Counter(); comp_prod_again = Counter()
+for k in rep_clients:
+    f = clients[k][0]
+    if len(f['produits']) &lt; 2: continue
+    later = set(x for o in clients[k][1:] for x in o['produits'])
+    for x in f['produits']:
+        comp_tot += 1; comp_again += 1 if x in later else 0
+multi_rep = sum(1 for k in rep_clients if len(clients[k][0]['produits']) &gt;= 2)
+
+# 5) la 1re commande prédit-elle le retour ? (recul &gt;= 90 jours)
+base = [k for k in clients if anc[k] &gt;= 90]
+def taux(sel):
+    ks = [k for k in base if sel(prem[k])]; r = sum(rep[k] for k in ks)
+    return len(ks), r
+ret_par_fam = []
+for f in fam_cnt:
+    n, r = taux(lambda p, f=f: f in p['familles'])
+    if n &gt;= 25:
+        n0, r0 = taux(lambda p, f=f: f not in p['familles'])
+        pval = fisher_exact([[r, n - r], [r0, n0 - r0]])[1]
+        ret_par_fam.append({'nom': f, 'n': n, 'retour': r, 'pct': round(100 * r / n, 1), 'pct_sans': round(100 * r0 / n0, 1), 'p': float(pval)})
+ret_par_fam.sort(key=lambda d: -d['pct'])
+ret_par_taille = []
+for lab, cond in [('1 article', lambda p: p['qte'] == 1), ('2 à 3 articles', lambda p: 2 &lt;= p['qte'] &lt;= 3), ('4 à 5 articles', lambda p: 4 &lt;= p['qte'] &lt;= 5), ('6 articles et plus', lambda p: p['qte'] &gt;= 6)]:
+    n, r = taux(cond); ret_par_taille.append({'nom': lab, 'n': n, 'retour': r, 'pct': round(100 * r / n, 1) if n else 0})
+tab = [[r['retour'], r['n'] - r['retour']] for r in ret_par_taille if r['n']]
+chi_t = chi2_contingency(tab); 
+ret_promo = {}
+for lab, cond in [('avec code promo', lambda p: p['code']), ('sans code promo', lambda p: not p['code'])]:
+    n, r = taux(cond); ret_promo[lab] = {'n': n, 'retour': r, 'pct': round(100 * r / n, 1)}
+n_multi, r_multi = taux(lambda p: len(p['familles']) &gt;= 2); n_mono, r_mono = taux(lambda p: len(p['familles']) == 1)
+p_multi = float(fisher_exact([[r_multi, n_multi - r_multi], [r_mono, n_mono - r_mono]])[1])
+
+# 6) prix de la 1re commande : tranches
+tr = []
+for lab, lo, hi in [('moins de 30 €', 0, 30), ('30 à 50 €', 30, 50), ('50 à 79 €', 50, 79), ('79 € et plus', 79, 1e9)]:
+    n, r = taux(lambda p, lo=lo, hi=hi: lo &lt;= p['total'] &lt; hi); tr.append({'nom': lab, 'n': n, 'retour': r, 'pct': round(100 * r / n, 1) if n else 0})
+
+# 7) arbre de composition typique : nb de produits distincts -&gt; famille dominante -&gt; complément le plus fréquent
+arbre = []
+for nb in (1, 2, 3):
+    ks = [p for p in prem.values() if (len(p['produits']) == nb if nb &lt; 3 else len(p['produits']) &gt;= 3)]
+    fd = Counter(p['fam_dom'] for p in ks).most_common(3)
+    noeud = {'nb': nb, 'n': len(ks), 'pct': round(100 * len(ks) / N, 1), 'fam': []}
+    for f, c in fd:
+        sous = [p for p in ks if p['fam_dom'] == f]
+        comp = Counter(g for p in sous for g in set(p['familles']) if g != f).most_common(2)
+        noeud['fam'].append({'nom': f, 'n': c, 'pct': round(100 * c / len(ks), 1), 'comp': [[g, m, round(100 * m / len(sous), 1)] for g, m in comp]})
+    arbre.append(noeud)
+
+out = {'N': N, 'seuls': seuls, 'nb_art': dict(nb_art), 'nb_fam': dict(nb_fam), 'nb_prod': dict(nb_prod), 'fam_cnt': fam_cnt.most_common(), 'fam_dom': fam_dom.most_common(),
+       'prod_cnt': prod_cnt.most_common(12), 'pair_fam': pair_fam[:10], 'pair_prod': pair_prod[:10], 'ret_fam': ret_fam, 'ret_prod': ret_prod,
+       'comp': {'tot': comp_tot, 'again': comp_again, 'pct': round(100 * comp_again / comp_tot, 1) if comp_tot else None, 'clients': multi_rep},
+       'ret_par_fam': ret_par_fam, 'ret_par_taille': ret_par_taille, 'chi_taille': {'chi2': float(chi_t[0]), 'p': float(chi_t[1]), 'dl': int(chi_t[2])},
+       'ret_promo': ret_promo, 'multi': {'n': n_multi, 'pct': round(100 * r_multi / n_multi, 1), 'mono_n': n_mono, 'mono_pct': round(100 * r_mono / n_mono, 1), 'p': p_multi},
+       'ret_tranche': tr, 'n_base': len(base), 'taux_base': round(100 * sum(rep[k] for k in base) / len(base), 1), 'arbre': arbre}
+json.dump(out, open('g3_premiere_commande.json', 'w'), ensure_ascii=False)
+print('clients', N, '| mono-produit', seuls, '| base recul', len(base), 'taux', out['taux_base'])
+print('fam 1re cmde', fam_cnt.most_common(6)); print('produits', prod_cnt.most_common(6))
+print('paires fam', [(d['a'], d['b'], d['n'], d['lift']) for d in pair_fam[:6]])
+print('paires prod', [(d['a'], d['b'], d['n'], d['lift']) for d in pair_prod[:5]])
+print('complément racheté', out['comp'])
+print('retour fam', [(d['nom'], d['n_back'], d['pct']) for d in ret_fam[:6]])
+print('retour prod', [(d['nom'], d['n_back'], d['pct']) for d in ret_prod[:6]])
+print('réachat par fam', [(d['nom'], d['n'], d['pct'], d['pct_sans'], round(d['p'], 3)) for d in ret_par_fam])
+print('taille', ret_par_taille, out['chi_taille']); print('promo', ret_promo); print('multi', out['multi']); print('tranche', tr)
+</code></pre></div></details><details class="pli" name="code-build_parcours.py"><summary><code>build_parcours.py</code> · Construit les tableaux, profils et arbres de la page « Parcours clients ».</summary><div class="corps"><p class="meta">180 lignes · <a href="build_parcours.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Construit le fragment HTML de l'onglet « Parcours clients » à partir de g1, g2, g3 puis l'insère dans dashboard.html."""
+import json, re, shutil, os
+from svgutil import n, eur, pct, esc, table, panel
+
+NRET = json.load(open('l1_relance.json'))['n_ret']   # clients qui ont commandé au moins 2 fois
+g1 = json.load(open('g1_premiere_vs_suivantes.json')); g2 = json.load(open('g2_profils.json')); g3 = json.load(open('g3_premiere_commande.json'))
+def pv(p): return '&amp;lt; 0,001' if p &lt; 0.001 else n(p, 3)
+def cell(v, mx, txt=None):
+    a = 0 if mx == 0 else min(v / mx, 1)
+    return f'&lt;td class="r" style="background:color-mix(in srgb,var(--accent) {int(a*50)}%,transparent)"&gt;{txt if txt is not None else v}&lt;/td&gt;'
+def lecture(t): return f'&lt;p class="hint" style="margin-top:10px"&gt;{t}&lt;/p&gt;'
+def cols(a, b): return f'&lt;div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:10px"&gt;{a}{b}&lt;/div&gt;'
+def box(titre, items):
+    return f'&lt;div class="howto"&gt;&lt;b&gt;{titre}&lt;/b&gt;&lt;ul style="margin:6px 0 0 18px;padding:0"&gt;' + ''.join(f'&lt;li&gt;{i}&lt;/li&gt;' for i in items) + '&lt;/ul&gt;&lt;/div&gt;'
+BADGE = '&lt;span style="font-size:12px;background:var(--accent);color:#fff;border-radius:99px;padding:2px 9px;margin-left:8px;vertical-align:2px"&gt;nouveau&lt;/span&gt;'
+def h3(t): return f'&lt;h3 style="margin:26px 0 4px 2px"&gt;{t}{BADGE}&lt;/h3&gt;'
+
+# ------------------------------------------------------------------ A. première commande vs suivantes
+tr = g1['tab_rang']
+rows = []
+for k, v in tr.items():
+    rows.append([f'&lt;b&gt;{k}&lt;/b&gt;' if k != 'Client à 1 seule commande' else f'&lt;i&gt;{k}&lt;/i&gt;', n(v['n']), eur(v['total_moy'], 2), eur(v['total_med'], 2), n(v['qte_moy'], 1), eur(v['prix_unit_moy'], 2), pct(v['pct_code'], 0), pct(v['pct_local'], 0), pct(v['pct_multi_fam'], 0)])
+A1 = panel('c12', 'Commande par commande : montant et contenu selon le rang', 'Sur les ' + str(NRET) + ' clients qui ont commandé au moins 2 fois (les commandes annulées et le « pourboire » sont exclus). La dernière ligne est à part : ce sont les clients qui n\'ont commandé qu\'une fois.',
+    table(['Rang de la commande', 'Commandes', 'Montant moyen', 'Montant médian', 'Articles', 'Prix moyen / article', 'Avec code promo', 'Retrait local', 'Plusieurs familles'], rows, right=range(1, 9)))
+pr = g1['paired']
+prow = []
+for lab, k, f in [('Montant de la commande', 'total', lambda v: eur(v, 2)), ('Nombre d\'articles', 'qte', lambda v: n(v, 2)), ('Prix moyen par article', 'prix_unit', lambda v: eur(v, 2))]:
+    d = pr[k]; prow.append([lab, f(d['moy1']), f(d['moy2']), ('+' if d['delta_moy'] &gt;= 0 else '') + n(d['delta_moy'], 2).replace('-', '−'), f'{d["plus"]} / {d["moins"]}', pv(d['wilcoxon_p']), '&lt;b style="color:var(--good)"&gt;significatif&lt;/b&gt;' if d['wilcoxon_p'] &lt; 0.05 else 'non significatif'])
+A2 = panel('c12', '1re contre 2e commande, pour chaque client (test apparié)', 'Chaque client est comparé à lui-même. Test de Wilcoxon (adapté aux montants très inégaux).',
+    table(['Ce qu\'on compare', '1re commande', '2e commande', 'Écart moyen', 'Hausse / baisse (nb clients)', 'p-value', 'Verdict'], prow, right=range(1, 6))
+    + lecture(f'&lt;b&gt;Fait&lt;/b&gt; : le panier grimpe de {n(pr["total"]["delta_moy"], 2)} € en moyenne, mais le nombre d\'articles ne bouge pas : la hausse vient du prix des articles choisis ({"+" if pr["prix_unit"]["delta_moy"] &gt;= 0 else "−"}{n(abs(pr["prix_unit"]["delta_moy"]), 2)} € par article en moyenne), pas d\'un panier plus rempli. &lt;b&gt;Interprétation possible&lt;/b&gt; : le client qui revient choisit des produits un peu plus chers, ou n\'a plus besoin du code promo (très fréquent à la 1re commande, rare à la 2e : voir le tableau ci-dessus). &lt;b&gt;Limite&lt;/b&gt; : on ne sait pas si c\'est la fin de la remise ou un goût qui évolue ; {g1["trajectoire"]["plus"]} clients dépensent plus, {g1["trajectoire"]["moins"]} moins : l\'écart moyen cache des trajectoires très variées.'))
+r = g1['recompra']; tj = g1['trajectoire']
+A3 = panel('c12', 'Ce qui change et ce qui ne change pas d\'une commande à l\'autre', '',
+    cols(box('Ce qui ne change pas', [f'Le nombre d\'articles (≈ 3,5 par commande).', f'La famille de produits : {r["meme_famille"]} clients sur {r["n"]} ({pct(100*r["meme_famille"]/r["n"],0)}) rachètent au moins une famille déjà achetée à la 1re commande.', 'Le poids des bougies gourmandes (71 % des 1res commandes, 65 % des 2es).', 'Le retrait local (≈ 18 à 19 % des commandes).']),
+         box('Ce qui change', [f'Le produit exact : seulement {r["meme_produit"]} clients sur {r["n"]} ({pct(100*r["meme_produit"]/r["n"],0)}) rachètent le même produit ; {pct(r["part_produits_deja_achetes"],0)} des produits de la 2e commande ont déjà été achetés.', f'La famille dominante : identique pour {r["meme_famille_dominante"]} clients sur {r["n"]} ({pct(100*r["meme_famille_dominante"]/r["n"],0)}).', f'{r["avec_nouvelle_famille"]} clients sur {r["n"]} ({pct(100*r["avec_nouvelle_famille"]/r["n"],0)}) découvrent une nouvelle famille à la 2e commande.', 'Le code promo : 53,6 % → 13,3 %.', f'Le montant de la 2e commande : plus élevé pour {tj["plus"]} clients, moins pour {tj["moins"]}, à ±5 € pour {tj["stable"]}.']))
+    + lecture('&lt;b&gt;Interprétation possible&lt;/b&gt; : le client fidèle reste sur l\'univers « bougie » mais change de parfum, ce qui est cohérent avec un catalogue de parfums de saison. &lt;b&gt;Limite&lt;/b&gt; : le catalogue change avec les lancements, donc « ne rachète pas le même produit » peut simplement vouloir dire que le produit n\'existe plus.'))
+fams = list(g1['matrice'].keys()); mat = g1['matrice']; mx = max(v for a in mat.values() for v in a.values())
+used = [f for f in fams if g1['tot_ligne'][f] &gt; 0]
+head = '&lt;th&gt;1re commande ↓ · 2e →&lt;/th&gt;' + ''.join(f'&lt;th class="r" style="font-size:11px"&gt;{esc(f)}&lt;/th&gt;' for f in used)
+body = ''.join(f'&lt;tr&gt;&lt;td&gt;&lt;b&gt;{esc(a)}&lt;/b&gt; &lt;span class="hint"&gt;({g1["tot_ligne"][a]})&lt;/span&gt;&lt;/td&gt;' + ''.join(cell(mat[a][b], mx, mat[a][b] or '·') for b in used) + '&lt;/tr&gt;' for a in used)
+A4 = panel('c12', 'Trajectoire : famille dominante de la 1re commande → famille dominante de la 2e', 'Chaque case compte des clients. Plus la case est foncée, plus le passage est fréquent. La famille dominante = celle qui pèse le plus en euros dans la commande.',
+    f'&lt;div class="tablewrap"&gt;&lt;table&gt;&lt;tr&gt;{head}&lt;/tr&gt;{body}&lt;/table&gt;&lt;/div&gt;' + lecture(f'&lt;b&gt;Fait&lt;/b&gt; : la diagonale (même famille dominante) est très nette pour les bougies gourmandes ({g1["matrice"]["Bougies gourmandes"]["Bougies gourmandes"]} clients sur {sum(g1["matrice"]["Bougies gourmandes"].values())}). Pour les familles d\'au moins 10 clients (bougies boisson, autres bougies, fondants), la destination la plus fréquente est la bougie gourmande. &lt;b&gt;Limite&lt;/b&gt; : beaucoup de familles ont moins de 10 clients, donc lire les grandes cases seulement.'))
+fp = g1['fam_part']; ordre = list(fp['1re'].keys())
+A5 = panel('c12', 'Part des commandes contenant chaque famille (1re, 2e, 3e commande)', 'En % des commandes de ce rang.',
+    table(['Famille', '1re', '2e', '3e'], [[esc(f)] + [pct(fp[k][f], 0) for k in ('1re', '2e', '3e')] for f in ordre], right=(1, 2, 3)))
+
+# ------------------------------------------------------------------ B. profils
+NOMS = {'fidele': ('Le fidèle', 'Commande plus de 4 fois, panier le plus haut, peu dépendant du code promo.'),
+        'promo': ('Le chasseur de promo', 'Presque toutes ses commandes ont un code promo, une seule commande en général.'),
+        'curieux': ('Le curieux', 'Une commande, un code promo une fois sur deux.'),
+        'plein': ('L\'acheteur plein tarif', 'Une commande, quasiment jamais de code promo, panier le plus bas hors locaux.'),
+        'local': ('Le local', 'Récupère presque toujours sa commande sur place, petit panier.')}
+# le numéro d'un groupe k-means n'est pas stable : on nomme chaque groupe d'après ses caractéristiques
+_p = list(g2['profils']); noms = {}
+_loc = max(_p, key=lambda p: p['pct_local']); noms[_loc['cluster']] = NOMS['local']; _p.remove(_loc)
+_fid = max(_p, key=lambda p: p['commandes_moy']); noms[_fid['cluster']] = NOMS['fidele']; _p.remove(_fid)
+_pro = max(_p, key=lambda p: p['pct_code']); noms[_pro['cluster']] = NOMS['promo']; _p.remove(_pro)
+_ple = min(_p, key=lambda p: p['pct_code']); noms[_ple['cluster']] = NOMS['plein']; _p.remove(_ple)
+noms[_p[0]['cluster']] = NOMS['curieux']
+cards = ''
+for p in sorted(g2['profils'], key=lambda p: -p['pct_ca']):
+    nm, desc = noms[p['cluster']]
+    fam = ', '.join(f'{esc(a)}' for a, b in p['fam_dom'])
+    cards += (f'&lt;div class="howto" style="min-width:250px"&gt;&lt;b style="font-size:16px"&gt;{nm}&lt;/b&gt;&lt;br&gt;&lt;span class="hint"&gt;{desc}&lt;/span&gt;'
+              f'&lt;div style="margin-top:8px;font-size:22px;font-weight:700"&gt;{pct(p["pct_ca"],0)} &lt;span style="font-size:13px;font-weight:400"&gt;du CA · {n(p["n"])} clients ({pct(p["pct_clients"],0)})&lt;/span&gt;&lt;/div&gt;'
+              f'&lt;ul style="margin:6px 0 0 18px;padding:0;font-size:14px"&gt;&lt;li&gt;{n(p["commandes_moy"],1)} commande(s) en moyenne&lt;/li&gt;&lt;li&gt;panier moyen {eur(p["panier_moy"])}&lt;/li&gt;&lt;li&gt;code promo dans {pct(p["pct_code"],0)} des commandes&lt;/li&gt;&lt;li&gt;retrait local : {pct(p["pct_local"],0)}&lt;/li&gt;&lt;li&gt;dernière commande il y a {n(p["recence_med"])} jours (médiane)&lt;/li&gt;&lt;li&gt;niveau de vie de la commune : {eur(p["revenu_med"])} / an / UC&lt;/li&gt;&lt;li&gt;ville : {esc(p["taille_dom"])} ({n(p["taille_dom_pct"])} %)&lt;/li&gt;&lt;li&gt;1re commande surtout : {fam}&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;')
+B1 = panel('c12', 'Les 5 profils de clients', f'Regroupement automatique (k-means) de {n(g2["n_fiches"])} clients identifiés, à partir de 10 variables : nombre de commandes, dépense, panier, ancienneté de la dernière commande, retrait local, codes promo, variétés de familles, week-end, niveau de vie et taille de la commune. Triés par poids dans le chiffre d\'affaires.',
+    f'&lt;div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px"&gt;{cards}&lt;/div&gt;')
+sil = g2['silhouette']
+B2 = panel('c12', 'Ville et niveau de vie : ne distinguent presque pas les profils', '',
+    lecture(f'&lt;b&gt;Fait&lt;/b&gt; : le niveau de vie médian de la commune est quasi identique d\'un profil à l\'autre (de {eur(min(p["revenu_med"] for p in g2["profils"]))} à {eur(max(p["revenu_med"] for p in g2["profils"]))} par an et par unité de consommation, Insee 2020), et la taille de la commune aussi. Ce sont les &lt;b&gt;comportements&lt;/b&gt; (fidélité, code promo, retrait local) qui séparent les profils. Source du niveau de vie : médiane de la commune de livraison ({n(g2["n_revenu_commune"])} clients), à défaut celle du département ; {n(g2["n_fiches"]-g2["n_geo"])} clients hors France reçoivent la valeur médiane.')
+    + lecture(f'&lt;b&gt;Interprétation possible&lt;/b&gt; : la clientèle est géographiquement et socialement homogène (petites villes) ; la segmentation utile est comportementale. &lt;b&gt;Limite importante&lt;/b&gt; : la séparation entre groupes est faible (indice de silhouette {n(sil["5"],2).replace(".",",")} pour 5 groupes, {n(sil["3"],2)} pour 3 ; en dessous de 0,25 les groupes se chevauchent). Le choix de 5 profils est un choix de lecture, pas une frontière naturelle. Le profil « fidèle » est en partie défini par le nombre de commandes : c\'est attendu, pas une découverte. Le niveau de vie est celui de la commune, pas du client.'))
+
+def arbre_html(nd, label=''):
+    tete = f'&lt;span class="tnode"&gt;&lt;b&gt;{nd["taux"]:.0f} %&lt;/b&gt; reviennent &lt;span class="hint"&gt;({nd["n"]} clients)&lt;/span&gt;&lt;/span&gt;'
+    if 'var' not in nd:
+        return f'&lt;li&gt;{label}{tete}&lt;/li&gt;'
+    if nd['bin']: q_non, q_oui = 'non', 'oui'
+    else:
+        sv = nd['seuil']; sv = f'{int(sv)}' if abs(sv - int(sv) - 0.5) &lt; 1e-6 else n(sv, 1)
+        q_non, q_oui = f'≤ {sv}', f'&amp;gt; {sv}'
+    q = f'&lt;span class="tq"&gt;{esc(nd["var"])}{" ?" if nd["bin"] else ""}&lt;/span&gt;'
+    return f'&lt;li&gt;{label}{tete}&lt;div class="tq2"&gt;{q}&lt;/div&gt;&lt;ul&gt;{arbre_html(nd["non"], f"&lt;i class=tl&gt;{q_non}&lt;/i&gt; ")}{arbre_html(nd["oui"], f"&lt;i class=tl&gt;{q_oui}&lt;/i&gt; ")}&lt;/ul&gt;&lt;/li&gt;'
+B3 = panel('c12', 'Arbre de décision : quels facteurs de la 1re commande annoncent un retour ?', f'Sur {n(g2["n_base_arbre"])} clients ayant au moins 90 jours de recul, {pct(g2["taux_base"],0)} ont recommandé. L\'arbre coupe à chaque étape selon le critère qui sépare le mieux les clients qui reviennent de ceux qui ne reviennent pas (profondeur 3, 30 clients minimum par feuille).',
+    f'&lt;ul class="tree"&gt;&lt;li&gt;{arbre_html(g2["arbre"])[4:-5]}&lt;/li&gt;&lt;/ul&gt;'
+    + lecture(f'&lt;b&gt;Ce qu\'il faut retenir avant de lire l\'arbre&lt;/b&gt; : l\'arbre est testé sur des clients qu\'il n\'a pas vus (validation croisée en 5 parties). Résultat : AUC = {n(g2["auc_cv"],2)} ± {n(g2["auc_sd"],2)}, alors que 0,50 = hasard pur. &lt;b&gt;Conclusion honnête&lt;/b&gt; : ni le contenu de la 1re commande, ni le lieu, ni le niveau de vie ne permettent de prévoir correctement qui reviendra (l\'AUC reste proche de 0,50). Les branches ci-dessus décrivent l\'échantillon mais ne se généralisent pas ; elles sont montrées pour la démonstration de la méthode et ne doivent pas servir à cibler des clients.'))
+
+# ------------------------------------------------------------------ C. première commande
+N = g3['N']
+fc = g3['fam_cnt']
+C1 = panel('c6', 'Ce qui se trouve dans une 1re commande', f'Sur {n(N)} clients identifiés. Une même commande peut contenir plusieurs familles.',
+    table(['Famille', 'Clients', 'Part'], [[esc(a), n(b), pct(100*b/N, 0)] for a, b in fc], right=(1, 2)))
+C2 = panel('c6', 'Produits les plus présents en 1re commande', 'Produits regroupés (parfum ou taille confondus lorsque le nom commence pareil).',
+    table(['Produit', 'Clients', 'Part'], [[esc(a.title() if a.isupper() else a), n(b), pct(100*b/N, 1)] for a, b in g3['prod_cnt']], right=(1, 2)))
+tot_art = sum(g3['nb_art'].values())
+na = g3['nb_art']
+C3 = panel('c12', 'Taille de la 1re commande', '',
+    lecture(f'&lt;b&gt;Fait&lt;/b&gt; : {pct(100*g3["seuls"]/N,0)} des clients ({n(g3["seuls"])}) n\'ont pris qu\'un seul produit distinct ; {pct(100*(N-g3["seuls"])/N,0)} ont pris au moins deux produits différents dès la 1re commande. Nombre d\'articles : 1 article {pct(100*na["1"]/N,0)}, 2 à 3 articles {pct(100*(na.get("2",0)+na.get("3",0))/N,0)}, 4 à 5 articles {pct(100*(na.get("4",0)+na.get("5",0))/N,0)}, 6 et plus {pct(100*na.get("6",0)/N,0)}.'))
+# arbre de composition
+def comp_tree():
+    out = '&lt;ul class="tree"&gt;&lt;li&gt;&lt;span class="tnode"&gt;&lt;b&gt;1re commande&lt;/b&gt; &lt;span class="hint"&gt;(' + n(N) + ' clients)&lt;/span&gt;&lt;/span&gt;&lt;ul&gt;'
+    lab = {1: 'Un seul produit', 2: 'Deux produits', 3: 'Trois produits ou plus'}
+    for nd in g3['arbre']:
+        out += f'&lt;li&gt;&lt;span class="tnode"&gt;&lt;b&gt;{lab[nd["nb"]]}&lt;/b&gt; &lt;span class="hint"&gt;{n(nd["n"])} clients · {pct(nd["pct"],0)}&lt;/span&gt;&lt;/span&gt;&lt;ul&gt;'
+        for f in nd['fam']:
+            cp = ' ; '.join(f'{esc(g)} {pct(pc,0)}' for g, m, pc in f['comp']) or 'aucun complément'
+            out += f'&lt;li&gt;&lt;span class="tnode"&gt;famille dominante : &lt;b&gt;{esc(f["nom"])}&lt;/b&gt; &lt;span class="hint"&gt;{n(f["n"])} ({pct(f["pct"],0)})&lt;/span&gt;&lt;/span&gt;&lt;div class="tq2"&gt;compléments les plus fréquents : {cp}&lt;/div&gt;&lt;/li&gt;'
+        out += '&lt;/ul&gt;&lt;/li&gt;'
+    return out + '&lt;/ul&gt;&lt;/li&gt;&lt;/ul&gt;'
+C4 = panel('c12', 'Schéma : de quoi est faite une 1re commande typique ?', 'Lecture de gauche à droite : nombre de produits distincts → famille qui pèse le plus → compléments les plus fréquents à côté de cette famille (part des commandes de ce groupe).', comp_tree())
+pf = g3['pair_fam']
+C5 = panel('c6', 'Compléments fréquents (familles) à la 1re commande', 'Lift = combien de fois plus souvent que par hasard. 1 = indépendant ; au-dessus de 1,5, le lien est net.',
+    table(['Association', 'Clients', 'Lift'], [[f'{esc(d["a"])} + {esc(d["b"])}', n(d['n']), n(d['lift'], 2)] for d in pf[:8]], right=(1, 2)))
+pp = g3['pair_prod']
+C6 = panel('c6', 'Compléments fréquents (produits) à la 1re commande', 'Uniquement les paires présentes chez au moins 6 clients.',
+    table(['Association', 'Clients', 'Lift'], [[f'{esc(d["a"].title())} + {esc(d["b"].title())}', n(d['n']), n(d['lift'], 1)] for d in pp[:8]], right=(1, 2)))
+C7 = panel('c12', 'Constat : les compléments sont-ils toujours les mêmes ?', '',
+    lecture(f'&lt;b&gt;Fait&lt;/b&gt; : parmi les familles, seul le lien « Accessoires et cadeaux + Fondants » dépasse nettement le hasard (lift {n(next(d["lift"] for d in pf if {d["a"], d["b"]} == {"Accessoires et cadeaux", "Fondants"}),2)}). Le duo bougie gourmande + autre bougie est le plus fréquent en nombre ({pf[0]["n"]} clients) mais n\'est pas plus fréquent que le hasard (lift {n(pf[0]["lift"],2)}) : il reflète simplement le poids des bougies. Au niveau des produits, les liens forts sont des &lt;b&gt;paires de produits jumeaux&lt;/b&gt; (deux tablettes de fondant, Nuit de Noël + Pain d\'épices, poudre + suspension voiture) achetés par peu de clients chacun. &lt;b&gt;Interprétation possible&lt;/b&gt; : il n\'existe pas un complément universel ; les compléments dépendent du produit de départ (produits de la même gamme ou de la même saison). &lt;b&gt;Limite&lt;/b&gt; : peu de clients par paire (6 à 19) ; à traiter comme des pistes de bundle à tester, pas comme des règles.'))
+rf = [d for d in g3['ret_fam'] if d['n_back'] &gt;= 20]
+C8 = panel('c6', 'Les familles de la 1re commande reviennent-elles ensuite ?', f'Parmi les {NRET} clients qui ont recommandé. Part de ceux qui rachètent la même famille dans une commande suivante.',
+    table(['Famille prise à la 1re commande', 'Clients revenus', 'Rachètent la famille'], [[esc(d['nom']), n(d['n_back']), pct(d['pct'], 0)] for d in rf], right=(1, 2)))
+rp = g3['ret_prod']
+C9 = panel('c6', 'Et les produits ?', 'Produits pris à la 1re commande par au moins 8 clients revenus : part qui rachète ce même produit.',
+    table(['Produit de la 1re commande', 'Clients revenus', 'Le rachètent'], [[esc(d['nom'].title()), n(d['n_back']), pct(d['pct'], 0)] for d in rp[:8]], right=(1, 2)))
+cp = g3['comp']
+C10 = panel('c12', 'Les compléments sont-ils rachetés ?', '',
+    lecture(f'&lt;b&gt;Fait&lt;/b&gt; : sur {n(cp["clients"])} clients revenus dont la 1re commande contenait au moins 2 produits, {n(cp["tot"])} produits ont été achetés en 1re commande, et seulement {n(cp["again"])} ({pct(cp["pct"],0)}) réapparaissent dans une commande suivante du même client. La &lt;b&gt;famille&lt;/b&gt; revient beaucoup plus souvent (bougies gourmandes : {pct(next(d["pct"] for d in g3["ret_fam"] if d["nom"]=="Bougies gourmandes"),0)}) que le &lt;b&gt;produit&lt;/b&gt;. &lt;b&gt;Interprétation possible&lt;/b&gt; : les clients fidèles restent fidèles à un univers, mais pas à un parfum ; les accessoires et cadeaux (achats ponctuels) reviennent peu. Les produits saisonniers (ex. Mystic Pumpkin : 0 rachat sur 19 clients) ne peuvent pas être rachetés hors saison.'))
+rpf = g3['ret_par_fam']
+tv = g3['ret_par_taille']; tt = g3['ret_tranche']
+SIG_T = 'écart significatif' if g3['chi_taille']['p'] &lt; 0.05 else 'écart non significatif'
+C11 = panel('c6', 'La 1re commande annonce-t-elle un retour ? Par taille et par montant', f'Sur {n(g3["n_base"])} clients ayant au moins 90 jours de recul ; taux de retour global {pct(g3["taux_base"],1)}.',
+    table(['Taille de la 1re commande', 'Clients', 'Recommandent'], [[d['nom'], n(d['n']), pct(d['pct'], 0)] for d in tv], right=(1, 2))
+    + table(['Montant de la 1re commande', 'Clients', 'Recommandent'], [[d['nom'], n(d['n']), pct(d['pct'], 0)] for d in tt], right=(1, 2))
+    + lecture(f'Test du χ² sur la taille : p = {pv(g3["chi_taille"]["p"])} ({SIG_T}). &lt;b&gt;Fait&lt;/b&gt; : les commandes d\'un seul article reviennent le moins ({pct(tv[0]["pct"], 0)}) ; à partir de 50 € le taux monte ({pct(tt[2]["pct"], 0)} puis {pct(tt[3]["pct"], 0)}). &lt;b&gt;Limite&lt;/b&gt; : corrélation, pas causalité, et le taux ne monte pas de façon continue ({pct(tv[3]["pct"], 0)} à 6 articles et plus).'))
+C12 = panel('c6', 'La famille achetée en 1re commande annonce-t-elle un retour ?', 'Taux de retour des clients ayant cette famille dans leur 1re commande, contre ceux qui ne l\'ont pas (test exact de Fisher).',
+    table(['Famille dans la 1re commande', 'Clients', 'Reviennent', 'Sans cette famille', 'p-value'], [[esc(d['nom']), n(d['n']), pct(d['pct'], 0), pct(d['pct_sans'], 0), pv(d['p'])] for d in rpf], right=(1, 2, 3, 4))
+    + lecture(f'&lt;b&gt;Fait&lt;/b&gt; : {n(len([d for d in rpf if d["p"] &lt; 0.05]))} familles ont un taux de retour différent de celui des autres clients à 5 % : ' + ' ; '.join(esc(d["nom"]) + ' (' + pct(d["pct"], 0) + ' contre ' + pct(d["pct_sans"], 0) + ')' for d in rpf if d["p"] &lt; 0.05) + f'. &lt;b&gt;Prudence&lt;/b&gt; : {n(len(rpf))} familles testées en même temps ; avec {n(len(rpf))} tests, un résultat « significatif » à 5 % apparaît par hasard une fois sur trois environ. Après correction de Bonferroni (seuil 0,05 / {n(len(rpf))} = {n(0.05 / len(rpf), 4)}), restent significatives : ' + (', '.join(esc(d["nom"]) for d in rpf if d["p"] &lt; 0.05 / len(rpf)) or 'aucune') + '. Un petit effectif (' + ' ; '.join(esc(d["nom"]) + ' : ' + n(d["n"]) + ' clients' for d in rpf if d["p"] &lt; 0.05 / len(rpf)) + ') : à confirmer plus tard.'))
+# note sur bougie taille S etc.
+
+CSS = '''
+ul.tree,ul.tree ul{list-style:none;margin:0;padding-left:26px;position:relative}
+ul.tree{padding-left:0}
+ul.tree ul::before{content:"";position:absolute;left:8px;top:0;bottom:14px;border-left:2px solid var(--grid,#ccc)}
+ul.tree li{position:relative;margin:8px 0;padding-left:14px}
+ul.tree li::before{content:"";position:absolute;left:-18px;top:14px;width:16px;border-top:2px solid var(--grid,#ccc)}
+ul.tree&gt;li::before{display:none}
+.tnode{display:inline-block;padding:6px 12px;border:1px solid var(--grid,#ccc);border-radius:10px;background:var(--panel,#fff)}
+.tq{font-weight:700;color:var(--accent)}
+.tq2{margin:4px 0 0 4px;font-size:14px}
+i.tl{font-style:normal;font-size:12.5px;background:var(--accent-soft);border-radius:99px;padding:1px 9px;margin-right:6px}
+'''
+def sec(titre, contenu): return h3(titre) + f'&lt;div class="grid"&gt;{contenu}&lt;/div&gt;'
+intro = ('&lt;div class="howto"&gt;&lt;b&gt;Comment lire cet onglet.&lt;/b&gt; Trois questions sur le parcours des clients : (1) qu\'est-ce qui change entre la 1re commande et les suivantes ? (2) quels profils de clients trouve-t-on ? (3) que contient une 1re commande, et le retrouve-t-on ensuite ? '
+         'Base : clients identifiés, commandes annulées exclues, ligne « pourboire » exclue. Les 25 commandes sans identifiant client ne peuvent pas être suivies. '
+         'Chaque bloc distingue le &lt;b&gt;fait&lt;/b&gt;, l\'&lt;b&gt;interprétation possible&lt;/b&gt; et la &lt;b&gt;limite&lt;/b&gt;. Aucun nom, e-mail ou adresse n\'est utilisé : uniquement des agrégats.&lt;/div&gt;')
+tab = (f'&lt;section id="parcours"&gt;&lt;h2&gt;Parcours clients&lt;/h2&gt;&lt;p class="src"&gt;Source : orders.csv (clients identifiés : {n(N)}, dont {NRET} ont commandé au moins 2 fois) · niveau de vie : Insee Filosofi 2020 · Python (pandas, scikit-learn, scipy)&lt;/p&gt;{intro}'
+       + sec('1. Première commande contre commandes suivantes', A1 + A2 + A3 + A4 + A5)
+       + sec('2. Profils de clients', B1 + B2 + B3)
+       + sec('3. Que contient la première commande ?', C1 + C2 + C3 + C4 + C5 + C6 + C7 + C8 + C9 + C10 + C11 + C12) + '&lt;/section&gt;')
+open('frag_parcours.html', 'w', encoding='utf-8').write(tab)
+
+# ------------------------------------------------------------------ insertion dans le dashboard
+D = os.path.expanduser('~/Desktop/test/dashboard.html')
+html = open(D, encoding='utf-8').read()
+if 'id="parcours"' in html:
+    html = re.sub(r'&lt;section id="parcours"&gt;.*?&lt;/section&gt;\n?(?=&lt;section id="analyse")', '', html, flags=re.S)
+    html = html.replace(CSS, '')
+else:
+    shutil.copy(D, os.path.expanduser('~/Desktop/test/scripts/dashboard.before-parcours.html.bak'))
+    html = html.replace('&lt;input type="radio" name="tab" id="r-analyse" class="tabradio"&gt;', '&lt;input type="radio" name="tab" id="r-parcours" class="tabradio"&gt;&lt;input type="radio" name="tab" id="r-analyse" class="tabradio"&gt;', 1)
+    html = html.replace('&lt;label for="r-analyse"&gt;', '&lt;label for="r-parcours"&gt;Parcours clients&lt;/label&gt;&lt;label for="r-analyse"&gt;', 1)
+    css_tab = ('#r-parcours:checked ~ section#parcours{display:flex}\n#r-parcours:checked ~ nav label[for="r-parcours"]{background:var(--accent);border-color:var(--accent);color:#fff}\n'
+               '#r-parcours:focus-visible ~ nav label[for="r-parcours"]{outline:2px solid var(--accent);outline-offset:2px}\n')
+    html = html.replace('#r-analyse:checked ~ section#analyse{display:flex}', css_tab + '#r-analyse:checked ~ section#analyse{display:flex}', 1)
+html = html.replace('@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav.top label{}}', CSS + '@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav.top label{}}', 1)
+html = html.replace('&lt;section id="analyse"&gt;', tab + '\n&lt;section id="analyse"&gt;', 1)
+open(D, 'w', encoding='utf-8').write(html)
+print('ok', len(html), 'octets ; balises "&lt;" suspectes :', len(re.findall(r'&lt;[0-9 ]', tab)))
+</code></pre></div></details></div></div></details>
+</main>
+<footer><div class="wrap"><p>Données pseudonymisées de la boutique Lumineva, remises par convention dans le cadre du module Smart Data Marketing (IAE Clermont Auvergne). Seuls des agrégats sont affichés. Ne pas diffuser.</p><p>Version de travail du 12 novembre 2026. Rendu : 18 novembre 2026.</p></div></footer>
+</body>
+</html>

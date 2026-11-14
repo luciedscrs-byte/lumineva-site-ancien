@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clients · Lumineva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="style.css?v=17">
+
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+<nav class="topnav" aria-label="Navigation principale"><div class="wrap"><a class="brand" href="index.html">Lumineva · données</a><div class="links"><a href="index.html">Accueil</a><a href="contexte.html">Contexte</a><a href="analyses.html" aria-current="page">Premières analyses</a><a href="choix.html">Notre choix</a><a href="automatisations.html">Automatisations</a><a href="q-formation.html">Formation</a><a href="recommandations.html">Recommandations</a><a href="faq.html">FAQ</a><a href="methode.html">Méthode</a></div></div></nav>
+<nav class="subnav meta" aria-label="Premières analyses"><div class="wrap"><span class="lab">Premières analyses</span><a href="analyses.html">Présentation</a><a href="perimetre.html">Périmètre</a><a href="observations.html" aria-current="page">Observations</a><a href="explications.html">Explications</a><a href="externe.html">Externe</a><a href="decision-emailing.html">Décision e-mailing</a></div></nav><nav class="subnav" aria-label="Observations"><div class="wrap"><span class="lab">Observations</span><a href="observations.html">Synthèse</a><a href="ventes.html">Ventes et paiements</a><a href="clients.html" aria-current="page">Clients</a><a href="profil-type.html">Profil type</a><a href="parcours.html">Parcours clients</a><a href="profil-avis.html">Qui laisse un avis ?</a><a href="catalogue.html">Catalogue et stock</a></div></nav>
+<header class="hero"><div class="wrap"><p class="kicker">Observations</p><h1>Clients</h1><p class="lead">Qui sont les acheteurs, combien dépensent-ils, reviennent-ils, et ce que coûte le code de bienvenue.</p></div></header>
+<main class="wrap" id="contenu">
+<div class="gabarit"><div class="row"><b>Ce que ça mesure</b><div>La dépense et le nombre de commandes par client, le pays et le département, la fidélité (segments RFM, cohortes, délai avant la 2e commande) et la valeur d’un client avec ou sans le code BIENVENUE10.</div></div><div class="row"><b>Sur quel périmètre</b><div>1 923 fiches clients (840 avec une dépense). Pour suivre les commandes d’un client, uniquement les 829 clients identifiés : 25 commandes n’ont pas d’identifiant. Les comparaisons de retour exigent au moins 90 jours de recul.</div></div><div class="row"><b>Ce que ça permet de conclure</b><div>Voir que quelques clients portent l’activité (les 10 % meilleurs pèsent 41 % du chiffre d’affaires), mesurer le délai avant la 2e commande, et constater que le code BIENVENUE10 n’a pas de lien visible avec la fidélité.</div></div><div class="row"><b>Ce que ça ne permet pas de conclure</b><div>Connaître le profil individuel (données pseudonymisées), ni dire si les clients auraient acheté sans le code. La carte des acheteurs et le niveau de vie sont dans la page « Externe et géo ».</div></div></div>
+<div class="dash">
+<div class="kpis">
+<div class="kpi "><span class="l">Fiches clients</span><span class="v">1 923</span><span class="n">840 avec au moins un achat</span></div>
+<div class="kpi "><span class="l">Dépense moyenne</span><span class="v">106,81 €</span><span class="n">par client acheteur</span></div>
+<div class="kpi "><span class="l">Poids des 10 % meilleurs</span><span class="v">41 %</span><span class="n">des clients acheteurs dans le CA</span></div>
+<div class="kpi "><span class="l">Consentement email</span><span class="v">84 %</span><span class="n">1 618 fiches</span></div>
+<div class="kpi "><span class="l">Téléphone renseigné</span><span class="v">917</span><span class="n">48 % des fiches</span></div>
+<div class="kpi "><span class="l">Avis Judge.me</span><span class="v">162</span><span class="n">clients ayant rédigé un avis</span></div>
+</div>
+<div class="grid">
+<section class="panel c6"><h3>Clients selon leur dépense totale</h3><p class="hint">Nombre de fiches par tranche de « total dépensé ».</p><ul class="bars "><li><span class="name">Aucun achat</span><span class="val">1 083</span><span class="track"><span class="fill" style="width:100.0%"></span></span></li><li><span class="name">Moins de 30 €</span><span class="val">130</span><span class="track"><span class="fill" style="width:12.0%"></span></span></li><li><span class="name">30 à 60 €</span><span class="val">285</span><span class="track"><span class="fill" style="width:26.3%"></span></span></li><li><span class="name">60 à 100 €</span><span class="val">192</span><span class="track"><span class="fill" style="width:17.7%"></span></span></li><li><span class="name">100 à 200 €</span><span class="val">137</span><span class="track"><span class="fill" style="width:12.7%"></span></span></li><li><span class="name">200 € et plus</span><span class="val">96</span><span class="track"><span class="fill" style="width:8.9%"></span></span></li></ul></section>
+<section class="panel c6"><h3>Clients selon le nombre de commandes</h3><p class="hint">29 clients ont commandé plus de 5 fois.</p><div class="split"><span style="width:56.27%;background:var(--grid)" title="0 commande : 1 082"></span><span style="width:30.89%;background:var(--accent-soft)" title="1 commande : 594"></span><span style="width:6.92%;background:var(--flame-soft)" title="2 commandes : 133"></span><span style="width:4.42%;background:var(--flame)" title="3 à 5 : 85"></span><span style="width:1.51%;background:var(--accent)" title="Plus de 5 : 29"></span></div><div class="legend"><span><i style="background:var(--grid);border:1px solid var(--line)"></i>0 commande <b>1 082</b></span><span><i style="background:var(--accent-soft);border:1px solid var(--line)"></i>1 commande <b>594</b></span><span><i style="background:var(--flame-soft);border:1px solid var(--line)"></i>2 commandes <b>133</b></span><span><i style="background:var(--flame);border:1px solid var(--line)"></i>3 à 5 <b>85</b></span><span><i style="background:var(--accent);border:1px solid var(--line)"></i>Plus de 5 <b>29</b></span></div></section>
+<section class="panel c6"><h3>Pays des clients</h3><p class="hint">Pays de l'adresse par défaut ; beaucoup de fiches n'en ont pas.</p><ul class="bars "><li><span class="name">France</span><span class="val">1 197 · 62 %</span><span class="track"><span class="fill" style="width:100.0%"></span></span></li><li><span class="name">Non renseigné</span><span class="val">633 · 33 %</span><span class="track"><span class="fill" style="width:52.9%"></span></span></li><li><span class="name">Belgique</span><span class="val">75 · 4 %</span><span class="track"><span class="fill" style="width:6.3%"></span></span></li><li><span class="name">Suisse</span><span class="val">15 · 1 %</span><span class="track"><span class="fill" style="width:1.3%"></span></span></li><li><span class="name">La Réunion</span><span class="val">3 · 0 %</span><span class="track"><span class="fill" style="width:0.3%"></span></span></li></ul></section>
+<section class="panel c6"><h3>Départements les plus représentés</h3><p class="hint">Parmi 942 fiches françaises avec code postal.</p><ul class="bars flame"><li><span class="name">64 Pyrénées-Atlantiques</span><span class="val">135 · 14 %</span><span class="track"><span class="fill" style="width:100.0%"></span></span></li><li><span class="name">65 Hautes-Pyrénées</span><span class="val">46 · 5 %</span><span class="track"><span class="fill" style="width:34.1%"></span></span></li><li><span class="name">31 Haute-Garonne</span><span class="val">38 · 4 %</span><span class="track"><span class="fill" style="width:28.1%"></span></span></li><li><span class="name">33 Gironde</span><span class="val">29 · 3 %</span><span class="track"><span class="fill" style="width:21.5%"></span></span></li><li><span class="name">59 Nord</span><span class="val">23 · 2 %</span><span class="track"><span class="fill" style="width:17.0%"></span></span></li><li><span class="name">44 Loire-Atlantique</span><span class="val">20 · 2 %</span><span class="track"><span class="fill" style="width:14.8%"></span></span></li><li><span class="name">57 Moselle</span><span class="val">19 · 2 %</span><span class="track"><span class="fill" style="width:14.1%"></span></span></li><li><span class="name">38 Isère</span><span class="val">18 · 2 %</span><span class="track"><span class="fill" style="width:13.3%"></span></span></li><li><span class="name">13 Bouches-du-Rhône</span><span class="val">18 · 2 %</span><span class="track"><span class="fill" style="width:13.3%"></span></span></li><li><span class="name">68 Haut-Rhin</span><span class="val">17 · 2 %</span><span class="track"><span class="fill" style="width:12.6%"></span></span></li></ul></section>
+<section class="panel c12"><h3>Origine et engagement</h3><p class="hint">Étiquettes présentes sur les fiches clients.</p><div class="tablewrap"><table><tr><th class="">Étiquette</th><th class="r">Fiches</th><th class="r">Part</th></tr><tr><td class="">Formation (étiquette de la fiche client)</td><td class="r">306</td><td class="r">15,9 %</td></tr><tr><td class="">Connexion avec Shop</td><td class="r">261</td><td class="r">13,6 %</td></tr><tr><td class="">Formulaire Shopify rempli</td><td class="r">324</td><td class="r">16,8 %</td></tr><tr><td class="">Avis Judge.me rédigé</td><td class="r">162</td><td class="r">8,4 %</td></tr><tr><td class="">Demande de contact</td><td class="r">17</td><td class="r">0,9 %</td></tr></table></div></section>
+</div><div class="grid"><section class="panel c12"><h3>Segments de clientèle (méthode RFM simplifiée)</h3><p class="hint">Segmentation selon la récence et la fréquence des commandes (référence : 21 sept. 2026, lendemain de la dernière commande). 829 clients identifiés.</p>
+<div class="tablewrap"><table><tr><th class="">Segment</th><th class="r">Clients</th><th class="r">Part</th><th class="r">CA cumulé</th><th class="r">Part du CA</th><th class="r">Panier moyen cumulé</th></tr><tr><td class=""><b>Perdue après 1 achat</b><br><span style="color:var(--muted);font-size:12px">1 seule commande, il y a plus de 180 jours</span></td><td class="r">402</td><td class="r">48,5 %</td><td class="r">22 688 €</td><td class="r">25,3 %</td><td class="r">56,4 €</td></tr><tr><td class=""><b>Nouvelle (1 achat récent)</b><br><span style="color:var(--muted);font-size:12px">1 seule commande, réalisée dans les 180 derniers jours</span></td><td class="r">179</td><td class="r">21,6 %</td><td class="r">9 933 €</td><td class="r">11,1 %</td><td class="r">55,5 €</td></tr><tr><td class=""><b>Fidèle en sommeil</b><br><span style="color:var(--muted);font-size:12px">2 commandes ou plus, mais la dernière remonte à plus de 90 jours</span></td><td class="r">142</td><td class="r">17,1 %</td><td class="r">24 038 €</td><td class="r">26,8 %</td><td class="r">169,3 €</td></tr><tr><td class=""><b>Fidèle active</b><br><span style="color:var(--muted);font-size:12px">2 commandes ou plus, dont une dans les 90 derniers jours</span></td><td class="r">106</td><td class="r">12,8 %</td><td class="r">33 113 €</td><td class="r">36,9 %</td><td class="r">312,4 €</td></tr></table></div>
+<p class="hint" style="margin-top:14px">Répartition du chiffre d'affaires par segment :</p>
+<div class="split"><span style="width:25.27%;background:var(--grid)" title="Perdue après 1 achat : 25,3 % du CA"></span><span style="width:11.06%;background:var(--accent)" title="Nouvelle (1 achat récent) : 11,1 % du CA"></span><span style="width:26.78%;background:var(--warn)" title="Fidèle en sommeil : 26,8 % du CA"></span><span style="width:36.89%;background:var(--good)" title="Fidèle active : 36,9 % du CA"></span></div><div class="legend"><span><i style="background:var(--grid);border:1px solid var(--line)"></i>Perdue après 1 achat <b>25,3 %</b></span><span><i style="background:var(--accent);border:1px solid var(--line)"></i>Nouvelle (1 achat récent) <b>11,1 %</b></span><span><i style="background:var(--warn);border:1px solid var(--line)"></i>Fidèle en sommeil <b>26,8 %</b></span><span><i style="background:var(--good);border:1px solid var(--line)"></i>Fidèle active <b>36,9 %</b></span></div>
+<p class="hint" style="margin-top:10px">Les 10&nbsp;% de clients qui dépensent le plus (« VIP », à cheval sur les deux segments fidèles) réalisent à eux seuls 40,6 % du chiffre d'affaires.</p>
+</section><section class="panel c12"><h3>Taux de réachat par cohorte d'acquisition</h3><p class="hint">Part des clients d'un même mois de première commande ayant recommandé au moins une fois, au 21 sept. 2026. La barre représente ce taux (0 à 100 %) ; le recul en mois est indiqué à côté de chaque cohorte.</p>
+<ul class="bars"><li><span class="name">juin 25 <span style="color:var(--muted);font-size:11.5px">(15 mois de recul)</span></span><span class="val">69,2 % · n=13</span><span class="track"><span class="fill" style="width:69.2%"></span></span></li><li><span class="name">juil. 25 <span style="color:var(--muted);font-size:11.5px">(14 mois de recul)</span></span><span class="val">57,1 % · n=63</span><span class="track"><span class="fill" style="width:57.1%"></span></span></li><li><span class="name">août 25 <span style="color:var(--muted);font-size:11.5px">(13 mois de recul)</span></span><span class="val">45,2 % · n=31</span><span class="track"><span class="fill" style="width:45.2%"></span></span></li><li><span class="name">sept. 25 <span style="color:var(--muted);font-size:11.5px">(12 mois de recul)</span></span><span class="val">35,0 % · n=120</span><span class="track"><span class="fill" style="width:35.0%"></span></span></li><li><span class="name">oct. 25 <span style="color:var(--muted);font-size:11.5px">(11 mois de recul)</span></span><span class="val">25,0 % · n=48</span><span class="track"><span class="fill" style="width:25.0%"></span></span></li><li><span class="name">nov. 25 <span style="color:var(--muted);font-size:11.5px">(10 mois de recul)</span></span><span class="val">35,3 % · n=133</span><span class="track"><span class="fill" style="width:35.3%"></span></span></li><li><span class="name">déc. 25 <span style="color:var(--muted);font-size:11.5px">(9 mois de recul)</span></span><span class="val">20,5 % · n=83</span><span class="track"><span class="fill" style="width:20.5%"></span></span></li><li><span class="name">janv. 26 <span style="color:var(--muted);font-size:11.5px">(8 mois de recul)</span></span><span class="val">25,0 % · n=52</span><span class="track"><span class="fill" style="width:25.0%"></span></span></li><li><span class="name">févr. 26 <span style="color:var(--muted);font-size:11.5px">(7 mois de recul)</span></span><span class="val">37,8 % · n=45</span><span class="track"><span class="fill" style="width:37.8%"></span></span></li><li><span class="name">mars 26 <span style="color:var(--muted);font-size:11.5px">(6 mois de recul)</span></span><span class="val">23,5 % · n=34</span><span class="track"><span class="fill" style="width:23.5%"></span></span></li><li><span class="name">avr. 26 <span style="color:var(--muted);font-size:11.5px">(5 mois de recul)</span></span><span class="val">30,6 % · n=36</span><span class="track"><span class="fill" style="width:30.6%"></span></span></li><li><span class="name">mai 26 <span style="color:var(--muted);font-size:11.5px">(4 mois de recul)</span></span><span class="val">19,6 % · n=51</span><span class="track"><span class="fill" style="width:19.6%"></span></span></li><li><span class="name">juin 26 <span style="color:var(--muted);font-size:11.5px">(3 mois de recul)</span></span><span class="val">35,3 % · n=17</span><span class="track"><span class="fill" style="width:35.3%"></span></span></li><li><span class="name">juil. 26 <span style="color:var(--muted);font-size:11.5px">(2 mois de recul)</span></span><span class="val">12,5 % · n=16</span><span class="track"><span class="fill" style="width:12.5%"></span></span></li><li><span class="name">août 26 <span style="color:var(--muted);font-size:11.5px">(1 mois de recul)</span></span><span class="val">9,1 % · n=11</span><span class="track"><span class="fill" style="width:9.1%"></span></span></li><li><span class="name">sept. 26 <span style="color:var(--muted);font-size:11.5px">(0 mois de recul)</span></span><span class="val">3,9 % · n=76</span><span class="track"><span class="fill" style="width:3.9%"></span></span></li></ul>
+<p class="hint" style="margin-top:12px"><b>Lecture prudente :</b> une cohorte récente (ex. sept. 2026, 3.9&nbsp;%) n'a pas eu le temps de revenir : ce n'est pas un signe de moins bonne fidélité que la cohorte de juin 2025 (69.2&nbsp;%, avec 15 mois de recul). Comparer des cohortes à des reculs différents peut conduire à une fausse conclusion.</p>
+</section></div><div class="grid"><section class="panel c12"><h3>Valeur client (CLV) et coût du code BIENVENUE10</h3><p class="hint">CLV approximative = somme des commandes déjà passées par le client (ce n'est pas un profit : aucune marge n'est disponible dans les fichiers).</p><div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+ <div class="kpi "><span class="l">CLV moyenne — 1re commande avec le code</span><span class="v">110,74 €</span><span class="n">n=404 clients · médiane 67,55 €</span></div>
+ <div class="kpi "><span class="l">CLV moyenne — 1re commande sans code</span><span class="v">97,43 €</span><span class="n">n=397 clients · médiane 55,70 €</span></div>
+ <div class="kpi "><span class="l">Coût du code par client acquis</span><span class="v">6,15 €</span><span class="n">2 483 € au total sur ces 404 clients</span></div>
+ </div>
+ <p class="hint" style="margin-top:12px">Test t de Welch (comparaison des deux moyennes) : t=1.34, p=0,181 — l'écart de CLV entre les deux groupes est non significatif au seuil usuel de 5 %.</p>
+ <p class="hint">Une fois le coût du code déduit, la CLV nette du groupe « avec code » reste de 104,59 €, contre 97,43 € pour le groupe sans code : le code ne nuit pas à la rentabilité par client, même si la différence n'est pas prouvée statistiquement sur cet échantillon.</p></section><section class="panel c12"><h3>Courbe de survie : délai avant la 2e commande</h3><p class="hint">Estimateur de Kaplan-Meier : part des clients ayant recommandé, selon le nombre de jours écoulés depuis leur 1re commande (n=829, au 21 sept. 2026). Les clients qui n'ont pas encore recommandé sont « censurés », pas comptés comme perdus.</p><div class="chart"><svg viewBox="0 0 700 280" width="100%" role="img" style="display:block"><line x1="40" x2="690" y1="252.0" y2="252.0" style="stroke:var(--grid)"/><text x="34" y="256.0" text-anchor="end" font-size="10.5" style="fill:var(--muted)">0%</text><line x1="40" x2="690" y1="191.5" y2="191.5" style="stroke:var(--grid)"/><text x="34" y="195.5" text-anchor="end" font-size="10.5" style="fill:var(--muted)">25%</text><line x1="40" x2="690" y1="131.0" y2="131.0" style="stroke:var(--grid)"/><text x="34" y="135.0" text-anchor="end" font-size="10.5" style="fill:var(--muted)">50%</text><line x1="40" x2="690" y1="70.5" y2="70.5" style="stroke:var(--grid)"/><text x="34" y="74.5" text-anchor="end" font-size="10.5" style="fill:var(--muted)">75%</text><line x1="40" x2="690" y1="10.0" y2="10.0" style="stroke:var(--grid)"/><text x="34" y="14.0" text-anchor="end" font-size="10.5" style="fill:var(--muted)">100%</text><text x="40.0" y="272" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">0 j</text><text x="365.0" y="272" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">135 j</text><text x="690.0" y="272" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">270 j</text><path d="M40.0,252.0 L40.0,250.8 L42.4,250.2 L44.8,249.6 L49.6,248.1 L54.4,247.8 L56.9,247.5 L59.3,246.6 L64.1,246.3 L66.5,245.4 L73.7,243.8 L76.1,243.5 L78.5,242.9 L80.9,241.9 L83.3,241.6 L85.7,240.9 L88.1,239.3 L93.0,238.4 L95.4,237.7 L97.8,236.4 L100.2,236.1 L102.6,235.5 L105.0,234.2 L107.4,233.2 L109.8,232.9 L112.2,232.3 L117.0,231.9 L119.4,230.7 L124.3,230.3 L126.7,229.7 L129.1,229.4 L131.5,228.7 L138.7,228.1 L141.1,227.4 L143.5,226.8 L148.3,225.5 L150.7,224.5 L153.1,223.9 L155.6,223.5 L158.0,222.9 L165.2,222.3 L167.6,221.9 L170.0,221.0 L172.4,218.7 L174.8,218.0 L177.2,216.7 L179.6,215.4 L184.4,214.7 L186.9,214.4 L189.3,214.1 L191.7,213.4 L194.1,212.4 L196.5,212.1 L198.9,211.4 L201.3,211.1 L203.7,210.1 L206.1,209.1 L208.5,208.8 L215.7,208.1 L218.1,207.8 L220.6,207.4 L223.0,207.1 L225.4,206.8 L232.6,205.8 L237.4,205.5 L239.8,205.1 L242.2,204.4 L244.6,203.8 L251.9,203.4 L254.3,203.1 L256.7,202.8 L261.5,202.1 L263.9,201.8 L266.3,201.4 L268.7,200.7 L278.3,199.4 L283.1,199.1 L285.6,198.4 L288.0,197.7 L292.8,197.4 L295.2,197.0 L307.2,196.7 L314.4,196.0 L316.9,195.3 L319.3,195.0 L321.7,194.7 L326.5,193.6 L331.3,193.3 L333.7,192.9 L338.5,192.6 L348.1,191.5 L350.6,191.2 L353.0,190.8 L355.4,190.1 L360.2,189.8 L369.8,189.0 L377.0,187.9 L379.4,187.6 L384.3,187.2 L386.7,186.5 L389.1,186.1 L393.9,185.7 L410.7,185.4 L427.6,185.0 L439.6,184.6 L446.9,183.8 L449.3,183.4 L454.1,183.1 L461.3,182.7 L463.7,182.3 L468.5,181.5 L475.7,181.1 L478.1,180.7 L490.2,180.3 L499.8,179.9 L502.2,179.1 L507.0,178.7 L509.4,178.3 L516.7,177.9 L519.1,177.5 L531.1,177.1 L533.5,176.3 L538.3,175.9 L564.8,175.4 L576.9,175.0 L581.7,174.6 L649.1,173.6 L651.5,173.1 L665.9,172.6 L668.3,172.1 L680.4,171.6 L690.0,171.6 " fill="none" style="stroke:var(--muted);stroke-width:2"><title>Tous les clients</title></path><path d="M40.0,252.0 L40.0,250.8 L42.4,249.6 L44.8,249.0 L49.6,247.1 L54.4,246.5 L59.3,245.9 L66.5,245.2 L73.7,244.0 L76.1,243.3 L78.5,242.7 L80.9,241.4 L83.3,240.7 L85.7,240.1 L88.1,238.1 L93.0,237.4 L95.4,236.1 L97.8,235.5 L102.6,234.2 L105.0,232.9 L107.4,232.2 L109.8,231.6 L119.4,230.9 L124.3,230.2 L126.7,229.6 L138.7,228.3 L141.1,227.6 L148.3,226.3 L150.7,224.9 L153.1,224.3 L155.6,223.6 L165.2,223.0 L170.0,222.3 L172.4,221.0 L174.8,220.3 L177.2,218.3 L179.6,216.9 L191.7,215.6 L194.1,214.9 L196.5,214.2 L198.9,213.5 L203.7,212.9 L225.4,212.2 L232.6,210.8 L237.4,210.2 L242.2,208.8 L244.6,208.1 L254.3,207.4 L261.5,206.7 L278.3,206.0 L283.1,205.4 L285.6,204.0 L288.0,203.3 L295.2,202.6 L314.4,201.9 L316.9,201.2 L319.3,200.5 L321.7,199.8 L326.5,197.7 L331.3,197.0 L338.5,196.3 L348.1,195.6 L355.4,194.9 L369.8,194.1 L377.0,193.4 L379.4,192.7 L384.3,191.9 L386.7,190.4 L410.7,189.7 L446.9,188.9 L454.1,188.1 L463.7,187.3 L468.5,186.5 L475.7,185.7 L478.1,184.9 L490.2,184.1 L499.8,183.3 L502.2,182.5 L509.4,181.7 L533.5,180.1 L538.3,179.2 L576.9,178.4 L581.7,177.5 L649.1,176.5 L668.3,175.5 L690.0,175.5 " fill="none" style="stroke:var(--accent);stroke-width:2"><title>1re commande avec BIENVENUE10</title></path><path d="M40.0,252.0 L40.0,250.8 L44.8,250.2 L49.6,249.5 L56.9,248.9 L59.3,248.2 L64.1,247.6 L66.5,246.9 L73.7,245.0 L78.5,244.3 L80.9,243.6 L85.7,242.9 L88.1,241.6 L93.0,240.2 L97.8,238.2 L100.2,237.5 L105.0,236.1 L107.4,234.8 L112.2,233.4 L117.0,232.8 L119.4,231.4 L126.7,230.7 L129.1,230.1 L131.5,228.7 L141.1,228.0 L143.5,226.6 L148.3,225.3 L150.7,224.6 L153.1,223.9 L158.0,222.5 L165.2,221.8 L167.6,221.2 L170.0,219.8 L172.4,216.4 L174.8,215.7 L177.2,215.0 L179.6,213.6 L184.4,212.2 L186.9,211.5 L189.3,210.8 L194.1,209.5 L198.9,208.8 L201.3,208.1 L203.7,206.7 L206.1,205.3 L208.5,204.6 L215.7,203.9 L223.0,203.2 L232.6,202.5 L239.8,201.8 L244.6,201.1 L251.9,200.4 L256.7,199.7 L261.5,199.0 L263.9,198.3 L266.3,197.6 L268.7,196.2 L278.3,194.1 L288.0,193.4 L292.8,192.7 L307.2,192.0 L314.4,191.3 L316.9,190.6 L333.7,189.9 L348.1,189.1 L350.6,188.4 L353.0,187.6 L360.2,186.9 L369.8,186.1 L377.0,184.5 L389.1,183.8 L393.9,183.0 L427.6,182.2 L439.6,181.3 L449.3,180.5 L461.3,179.7 L468.5,178.9 L502.2,178.0 L507.0,177.2 L519.1,176.3 L564.8,175.4 L651.5,174.3 L665.9,173.3 L680.4,172.2 L690.0,172.2 " fill="none" style="stroke:var(--flame);stroke-width:2"><title>1re commande sans code</title></path></svg></div>
+ <div class="legend" style="margin-top:8px"><span><i style="background:var(--muted)"></i>Tous les clients</span><span><i style="background:var(--accent)"></i>1re commande avec BIENVENUE10</span><span><i style="background:var(--flame)"></i>1re commande sans code</span></div>
+ <div class="tablewrap"><table><tr><th class="">Délai</th><th class="">Tous clients</th><th class="">1re cmd BIENVENUE10</th><th class="">1re cmd sans code</th></tr><tr><td class="">30 j</td><td class="">8,2 %</td><td class="">8,4 %</td><td class="">7,7 %</td></tr><tr><td class="">60 j</td><td class="">15,4 %</td><td class="">14,5 %</td><td class="">16,4 %</td></tr><tr><td class="">90 j</td><td class="">20,3 %</td><td class="">18,4 %</td><td class="">21,6 %</td></tr><tr><td class="">180 j</td><td class="">29,1 %</td><td class="">27,1 %</td><td class="">30,2 %</td></tr><tr><td class="">270 j</td><td class="">33,2 %</td><td class="">31,6 %</td><td class="">33,0 %</td></tr></table></div>
+ <p class="hint" style="margin-top:10px">Test du log-rank (comparaison des deux courbes) : χ²=0.016, p=0,899 — les deux courbes ne sont pas distinguables statistiquement : le code ne change ni la vitesse ni la probabilité de réachat.</p></section></div></div>
+<details class="pli" name="obs-c"><summary>Le code</summary><div class="corps"><div class="codes"><details class="pli" name="code-behavior.py"><summary><code>behavior.py</code> · Segments de clientèle (récence, fréquence, montant), cohortes de réachat, produits achetés ensemble.</summary><div class="corps"><p class="meta">111 lignes · <a href="behavior.txt" download>télécharger le fichier</a></p><pre class="code"><code>import csv, json
+from datetime import datetime, date
+from collections import defaultdict
+
+def parse_dt(s):
+    # "2026-09-20 20:42:31 +0200"
+    return datetime.strptime(s[:19], "%Y-%m-%d %H:%M:%S")
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['dt'] = parse_dt(o['r']['Created at'])
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+
+REF = datetime(2026,9,21)  # lendemain de la dernière commande (20/09/2026)
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']:
+        cust[o['key']].append(o)
+for v in cust.values():
+    v.sort(key=lambda o:o['dt'])
+
+# ---- RFM pragmatique (4 segments + VIP transversal)
+rows = []
+for k, os_ in cust.items():
+    freq = len(os_)
+    monetary = sum(o['tot'] for o in os_)
+    recency = (REF - os_[-1]['dt']).days
+    first = os_[0]['dt']
+    rows.append({'key':k,'freq':freq,'monetary':monetary,'recency':recency,'first':first})
+
+def seg(r):
+    if r['freq'] == 1 and r['recency'] &gt; 180: return "Perdue après 1 achat"
+    if r['freq'] == 1: return "Nouvelle (1 achat récent)"
+    if r['freq'] &gt;= 2 and r['recency'] &lt;= 90: return "Fidèle active"
+    return "Fidèle en sommeil"
+for r in rows: r['seg'] = seg(r)
+
+seg_agg = defaultdict(lambda: {'n':0,'ca':0.0})
+for r in rows:
+    seg_agg[r['seg']]['n'] += 1
+    seg_agg[r['seg']]['ca'] += r['monetary']
+total_ca = sum(r['monetary'] for r in rows)
+total_n = len(rows)
+
+monetary_sorted = sorted(rows, key=lambda r:-r['monetary'])
+top10n = max(1, round(total_n*0.10))
+vip_ca_share = sum(r['monetary'] for r in monetary_sorted[:top10n]) / total_ca
+
+print("=== Segments RFM ===")
+for s,v in sorted(seg_agg.items(), key=lambda kv:-kv[1]['n']):
+    print(f"  {s}: n={v['n']} ({v['n']*100/total_n:.1f}%) CA={v['ca']:.0f} ({v['ca']*100/total_ca:.1f}%) panier_moy_total={v['ca']/v['n']:.1f}")
+print(f"VIP (10% meilleurs) part du CA: {vip_ca_share*100:.1f}%")
+
+# ---- Cohortes d'acquisition : % avec &gt;=2 commandes selon l'ancienneté disponible
+cohort = defaultdict(list)
+for r in rows:
+    m = r['first'].strftime('%Y-%m')
+    cohort[m].append(r)
+print("\n=== Cohortes (mois de 1re commande) ===")
+cohort_rows = []
+for m, rs in sorted(cohort.items()):
+    n = len(rs)
+    rep = sum(1 for r in rs if r['freq']&gt;=2)
+    months_elapsed = (REF.year-int(m[:4]))*12 + (REF.month-int(m[5:7]))
+    cohort_rows.append({'mois':m,'n':n,'reachat_pct':round(rep*100.0/n,1),'mois_recul':months_elapsed})
+    print(f"  {m}: n={n} reachat={rep*100.0/n:.1f}% (recul {months_elapsed} mois)")
+
+# ---- Marché de paniers : produits achetés ensemble (hors Tip)
+pair_count = defaultdict(int)
+item_count = defaultdict(int)
+n_orders_with_2plus = 0
+for o in orders:
+    names = sorted(set(i['Lineitem name'] for i in o['items'] if i['Lineitem name'] and i['Lineitem name']!='Tip'))
+    for n in names: item_count[n]+=1
+    if len(names) &gt;= 2:
+        n_orders_with_2plus += 1
+        for i in range(len(names)):
+            for j in range(i+1, len(names)):
+                pair_count[(names[i],names[j])] += 1
+N = len(orders)
+pairs_lift = []
+for (a,b), c in pair_count.items():
+    if c &lt; 4: continue
+    pa, pb = item_count[a]/N, item_count[b]/N
+    lift = (c/N) / (pa*pb)
+    pairs_lift.append({'a':a,'b':b,'n':c,'lift':round(lift,2)})
+pairs_lift.sort(key=lambda p:-p['lift'])
+print(f"\n=== Produits achetés ensemble (n commandes avec 2+ produits: {n_orders_with_2plus}) ===")
+for p in pairs_lift[:12]:
+    print(f"  {p['a'][:35]:35s} + {p['b'][:35]:35s} n={p['n']} lift={p['lift']}")
+
+json.dump({
+ 'ref_date': REF.strftime('%Y-%m-%d'),
+ 'rfm_seg': [{'seg':s,'n':v['n'],'ca':round(v['ca'],2)} for s,v in sorted(seg_agg.items(), key=lambda kv:-kv[1]['n'])],
+ 'rfm_total_n': total_n, 'rfm_total_ca': round(total_ca,2), 'vip_ca_share': round(vip_ca_share*100,1),
+ 'cohort': cohort_rows,
+ 'pairs': pairs_lift[:15],
+ 'n_orders_multi': n_orders_with_2plus, 'n_orders_total': N,
+}, open('behavior.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-a1_clv.py"><summary><code>a1_clv.py</code> · Valeur d’un client avec ou sans le code BIENVENUE10.</summary><div class="corps"><p class="meta">61 lignes · <a href="a1_clv.txt" download>télécharger le fichier</a></p><pre class="code"><code>import csv, json
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+from svgutil import *
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['dt'] = datetime.strptime(o['r']['Created at'][:19], "%Y-%m-%d %H:%M:%S")
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+    o['disc_amt'] = float(o['r']['Discount Amount'] or 0)
+    o['code'] = o['r']['Discount Code']
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o:o['dt'])
+
+groupA, groupB = [], []  # A = 1re commande avec BIENVENUE10, B = 1re commande sans code
+disc_cost_A = 0.0
+for k, os_ in cust.items():
+    first = os_[0]
+    lifetime = sum(o['tot'] for o in os_)
+    if first['code'] == 'BIENVENUE10':
+        groupA.append(lifetime)
+        disc_cost_A += first['disc_amt']
+    elif not first['code']:
+        groupB.append(lifetime)
+
+t_stat, p_val = stats.ttest_ind(groupA, groupB, equal_var=False)  # Welch
+mean_a, mean_b = sum(groupA)/len(groupA), sum(groupB)/len(groupB)
+med = lambda a: sorted(a)[len(a)//2] if len(a)%2 else (sorted(a)[len(a)//2-1]+sorted(a)[len(a)//2])/2
+avg_disc_per_customer = disc_cost_A/len(groupA)
+clv_net_A = mean_a - avg_disc_per_customer
+
+print(f"Groupe A (1re cmd BIENVENUE10): n={len(groupA)} CLV moyenne={mean_a:.2f} médiane={med(groupA):.2f}")
+print(f"Groupe B (1re cmd sans code):   n={len(groupB)} CLV moyenne={mean_b:.2f} médiane={med(groupB):.2f}")
+print(f"Welch t-test: t={t_stat:.3f} p={p_val:.4f}")
+print(f"Coût total des remises BIENVENUE10 attribuables à ces {len(groupA)} clients: {disc_cost_A:.2f} €")
+print(f"Coût moyen par client acquis via le code: {avg_disc_per_customer:.2f} €")
+print(f"CLV nette (CLV - coût d'acquisition) groupe A: {clv_net_A:.2f} € vs groupe B (coût 0): {mean_b:.2f} €")
+
+json.dump({
+ 'n_a': len(groupA), 'n_b': len(groupB),
+ 'mean_a': round(mean_a,2), 'mean_b': round(mean_b,2),
+ 'med_a': round(med(groupA),2), 'med_b': round(med(groupB),2),
+ 't_stat': round(t_stat,3), 'p_value': round(p_val,4),
+ 'disc_cost_total': round(disc_cost_A,2), 'disc_cost_per_customer': round(avg_disc_per_customer,2),
+ 'clv_net_a': round(clv_net_A,2),
+}, open('a1_clv.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-a3_survival.py"><summary><code>a3_survival.py</code> · Courbe de survie : délai avant la 2e commande (Kaplan-Meier, test du log-rank).</summary><div class="corps"><p class="meta">106 lignes · <a href="a3_survival.txt" download>télécharger le fichier</a></p><pre class="code"><code>import csv, json
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['dt'] = datetime.strptime(o['r']['Created at'][:19], "%Y-%m-%d %H:%M:%S")
+    o['key'] = o['r']['customer_key'].strip()
+    o['code'] = o['r']['Discount Code']
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o:o['dt'])
+
+REF = datetime(2026,9,21)
+
+def build_events(customers):
+    """Retourne [(duree_jours, evenement)] : evenement=1 si 2e commande observée, 0 si censuré."""
+    ev = []
+    for os_ in customers:
+        first = os_[0]['dt']
+        if len(os_) &gt;= 2:
+            ev.append(((os_[1]['dt']-first).days, 1))
+        else:
+            ev.append(((REF-first).days, 0))
+    return ev
+
+def kaplan_meier(events, tmax=270):
+    """Estimateur de Kaplan-Meier : renvoie liste de (t, %ayant_recommandé) en escalier."""
+    times = sorted(set(t for t,e in events if e==1 and t&lt;=tmax))
+    n_at_risk = len(events)
+    s = 1.0
+    curve = [(0,0.0)]
+    remaining = sorted(events, key=lambda x:x[0])
+    idx = 0
+    at_risk = len(events)
+    for t in times:
+        d = sum(1 for tt,e in events if tt==t and e==1)
+        # nombre encore à risque juste avant t : tous ceux dont la durée &gt;= t
+        at_risk_t = sum(1 for tt,e in events if tt &gt;= t)
+        if at_risk_t &gt; 0:
+            s *= (1 - d/at_risk_t)
+        curve.append((t, round((1-s)*100,2)))
+    curve.append((tmax, curve[-1][1]))
+    return curve
+
+def logrank(evA, evB):
+    """Test du log-rank (comparaison de 2 courbes de survie), khi² à 1 ddl."""
+    all_times = sorted(set(t for t,e in evA+evB if e==1))
+    O_A=E_A=V=0.0
+    for t in all_times:
+        nA = sum(1 for tt,e in evA if tt&gt;=t); nB = sum(1 for tt,e in evB if tt&gt;=t)
+        dA = sum(1 for tt,e in evA if tt==t and e==1); dB = sum(1 for tt,e in evB if tt==t and e==1)
+        n, d = nA+nB, dA+dB
+        if n &lt;= 1 or d == 0: continue
+        O_A += dA
+        E_A += d*nA/n
+        V += d*(nA/n)*(nB/n)*((n-d)/(n-1))
+    chi2 = (O_A-E_A)**2/V if V&gt;0 else 0
+    p = stats.chi2.sf(chi2, df=1)
+    return chi2, p
+
+evA = build_events([os_ for os_ in cust.values() if os_[0]['code']=='BIENVENUE10'])
+evB = build_events([os_ for os_ in cust.values() if not os_[0]['code']])
+evAll = build_events(list(cust.values()))
+
+curveA = kaplan_meier(evA)
+curveB = kaplan_meier(evB)
+curveAll = kaplan_meier(evAll)
+chi2, p = logrank(evA, evB)
+
+def median_time(curve):
+    for t,y in curve:
+        if y &gt;= 50: return t
+    return None
+
+print(f"Tous clients (n={len(evAll)}): réachat à 30j={dict(curveAll)[min([t for t,_ in curveAll if t&gt;=30], default=curveAll[-1][0])]}%")
+print(f"Groupe BIENVENUE10 (n={len(evA)}): médiane (50%) atteinte à t={median_time(curveA)} j" if median_time(curveA) else f"BIENVENUE10: jamais 50%, plateau à {curveA[-1][1]}%")
+print(f"Groupe sans code (n={len(evB)}): médiane (50%) atteinte à t={median_time(curveB)} j" if median_time(curveB) else f"sans code: jamais 50%, plateau à {curveB[-1][1]}%")
+print(f"Log-rank test A vs B: chi2={chi2:.3f} p={p:.4f}")
+
+def pct_at(curve, days):
+    val = 0
+    for t,y in curve:
+        if t&lt;=days: val=y
+    return val
+for d in (30,60,90,180,270):
+    print(f"  à {d}j: tous={pct_at(curveAll,d)}%  BIENVENUE10={pct_at(curveA,d)}%  sans_code={pct_at(curveB,d)}%")
+
+json.dump({'curveA': curveA, 'curveB': curveB, 'curveAll': curveAll,
+           'n_a': len(evA), 'n_b': len(evB), 'n_all': len(evAll),
+           'chi2': round(chi2,3), 'p_logrank': round(p,4),
+           'pct_at': {str(d): {'all':pct_at(curveAll,d),'a':pct_at(curveA,d),'b':pct_at(curveB,d)} for d in (30,60,90,180,270)}},
+          open('a3_survival.json','w'), ensure_ascii=False)
+</code></pre></div></details></div></div></details>
+</main>
+<footer><div class="wrap"><p>Données pseudonymisées de la boutique Lumineva, remises par convention dans le cadre du module Smart Data Marketing (IAE Clermont Auvergne). Seuls des agrégats sont affichés. Ne pas diffuser.</p><p>Version de travail du 12 novembre 2026. Rendu : 18 novembre 2026.</p></div></footer>
+</body>
+</html>

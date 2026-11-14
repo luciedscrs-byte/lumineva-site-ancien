@@ -1,0 +1,50 @@
+import csv, json, time
+from datetime import datetime
+from collections import defaultdict
+from pytrends.request import TrendReq
+from scipy import stats
+
+# ---- commandes Lumineva par mois
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        if row['Total'] and not row.get('Cancelled at'):
+            orders.append(row)
+mo = defaultdict(int)
+for o in orders:
+    mo[o['Created at'][:7]] += 1
+months = sorted(mo.keys())
+print("mois lumineva:", months)
+
+# ---- Google Trends mensuel, France, sur toute la période
+pt = TrendReq(hl='fr-FR', tz=60)
+kw = ['bougie parfumée', 'fondant parfumé']
+pt.build_payload(kw, timeframe='2025-06-01 2026-09-21', geo='FR')
+df = pt.interest_over_time()
+print(df.head(3)); print(df.tail(3))
+
+trend_m = defaultdict(lambda: defaultdict(list))
+for idx, row in df.iterrows():
+    m = idx.strftime('%Y-%m')
+    for k in kw:
+        trend_m[k][m].append(row[k])
+trend_month = {k: {m: sum(v)/len(v) for m,v in d.items()} for k,d in trend_m.items()}
+
+common = [m for m in months if m in trend_month['bougie parfumée']]
+print("mois communs:", len(common))
+ord_vals = [mo[m] for m in common]
+res = {}
+for k in kw:
+    tv = [trend_month[k][m] for m in common]
+    r, p = stats.pearsonr(ord_vals, tv)
+    res[k] = {'r': round(r,3), 'p': round(p,4)}
+    print(f"corrélation commandes <-> recherches '{k}': r={r:.3f} p={p:.4f}")
+    # avec décalage +1 mois (recherche precede la commande ?)
+    if len(common) > 2:
+        r1,p1 = stats.pearsonr(ord_vals[1:], tv[:-1])
+        res[k]['r_lag1'] = round(r1,3); res[k]['p_lag1'] = round(p1,4)
+        print(f"   décalage recherche(m-1) -> commandes(m): r={r1:.3f} p={p1:.4f}")
+
+json.dump({'months': common, 'orders': ord_vals,
+           'trend': {k: [round(trend_month[k][m],1) for m in common] for k in kw},
+           'corr': res}, open('a4_trends.json','w'), ensure_ascii=False)

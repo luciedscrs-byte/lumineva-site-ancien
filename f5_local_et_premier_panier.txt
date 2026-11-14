@@ -1,0 +1,102 @@
+# encoding: utf-8
+"""Deux tests supplémentaires : (A) le retrait local favorise-t-il la fidélité ?
+(B) la taille de la 1re commande prédit-elle le réachat ?"""
+import csv, json, re
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+import numpy as np
+
+orders = []
+cur = None
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total']:
+        cur = {'r': row, 'items': []}; orders.append(cur)
+    if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['d'] = o['r']['Created at'][:10]
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+    sm = o['r']['Shipping Method'] or ''
+    o['is_local'] = 1 if re.match(r'^\d|otissement', sm) else 0
+    o['qty'] = sum(int(i['Lineitem quantity']) for i in o['items'] if i['Lineitem name'] and i['Lineitem name'] != 'Tip')
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o: o['d'])
+
+REF = datetime(2026, 9, 21)
+
+# ================= A) retrait local x fidélité (au 1er achat local vs pas local, avec recul >= 90j pour comparer équitablement)
+rows = []
+for k, os_ in cust.items():
+    first = os_[0]
+    recul = (REF - datetime.strptime(first['d'], '%Y-%m-%d')).days
+    if recul < 90: continue
+    rows.append((first['is_local'], 1 if len(os_) >= 2 else 0))
+tbl = [[sum(1 for l, r in rows if l == L and r == R) for R in (1, 0)] for L in (1, 0)]
+chi2, p, dof, _ = stats.chi2_contingency(tbl)
+n = sum(sum(r) for r in tbl)
+rl = tbl[0][0] / (tbl[0][0] + tbl[0][1]); ro = tbl[1][0] / (tbl[1][0] + tbl[1][1])
+print(f"=== Retrait local (1re commande) x fidélité (recul >= 90j, n={n}) ===")
+print(f"  table: {tbl}")
+print(f"  réachat local: {rl*100:.1f}% (n={tbl[0][0]+tbl[0][1]}) | réachat non-local: {ro*100:.1f}% (n={tbl[1][0]+tbl[1][1]})")
+print(f"  chi2={chi2:.3f} p={p:.4f}")
+
+# nb de commandes moyen (fréquence) chez les clients locaux vs non-locaux, parmi les récurrents
+freq_local = [len(os_) for os_ in cust.values() if os_[0]['is_local'] and len(os_) >= 2]
+freq_nonlocal = [len(os_) for os_ in cust.values() if not os_[0]['is_local'] and len(os_) >= 2]
+if len(freq_local) >= 5:
+    u, pu = stats.mannwhitneyu(freq_local, freq_nonlocal, alternative='two-sided')
+    print(f"  parmi les récurrents : fréquence locale médiane={np.median(freq_local):.0f} (n={len(freq_local)}) vs non-locale médiane={np.median(freq_nonlocal):.0f} (n={len(freq_nonlocal)}) -> Mann-Whitney p={pu:.4f}")
+else:
+    u=pu=None
+
+# ================= B) taille de la 1re commande (qty et montant) x devient récurrent
+rows2 = []
+for k, os_ in cust.items():
+    first = os_[0]
+    recul = (REF - datetime.strptime(first['d'], '%Y-%m-%d')).days
+    if recul < 90: continue
+    rows2.append({'qty': first['qty'], 'tot': first['tot'], 'repeat': 1 if len(os_) >= 2 else 0})
+
+q_rep = [r['qty'] for r in rows2 if r['repeat']]
+q_norep = [r['qty'] for r in rows2 if not r['repeat']]
+u2, pu2 = stats.mannwhitneyu(q_rep, q_norep, alternative='two-sided')
+print(f"\n=== Taille (qté) de la 1re commande x devient récurrent (recul >= 90j, n={len(rows2)}) ===")
+print(f"  qté médiane -- devient récurrent: {np.median(q_rep):.0f} (moy {np.mean(q_rep):.2f}, n={len(q_rep)}) | reste à 1 commande: {np.median(q_norep):.0f} (moy {np.mean(q_norep):.2f}, n={len(q_norep)})")
+print(f"  Mann-Whitney U={u2:.1f} p={pu2:.4f}")
+
+t_rep = [r['tot'] for r in rows2 if r['repeat']]
+t_norep = [r['tot'] for r in rows2 if not r['repeat']]
+t3, p3 = stats.ttest_ind(t_rep, t_norep, equal_var=False)
+print(f"  montant moyen -- devient récurrent: {np.mean(t_rep):.2f}€ | reste à 1 commande: {np.mean(t_norep):.2f}€ -> Welch t={t3:.3f} p={p3:.4f}")
+
+# régression logistique simple : qty et tot de la 1re commande prédisent-ils le réachat (contrôlés l'un pour l'autre) ?
+import statsmodels.api as sm
+X = sm.add_constant(np.array([[r['qty'], r['tot']] for r in rows2], dtype=float))
+y = np.array([r['repeat'] for r in rows2], dtype=float)
+logit = sm.Logit(y, X).fit(disp=0)
+print(f"\nRégression logistique (réachat ~ qté 1re cmd + montant 1re cmd) :")
+print(logit.summary())
+
+json.dump({
+ 'local': {'table': tbl, 'chi2': round(chi2,3), 'p': round(p,4), 'n': n,
+           'rate_local': round(rl*100,1), 'rate_nonlocal': round(ro*100,1),
+           'n_local': tbl[0][0]+tbl[0][1], 'n_nonlocal': tbl[1][0]+tbl[1][1],
+           'freq_med_local': (float(np.median(freq_local)) if freq_local else None),
+           'freq_med_nonlocal': (float(np.median(freq_nonlocal)) if freq_nonlocal else None),
+           'freq_p': (round(float(pu),4) if pu is not None else None)},
+ 'first_order_size': {'n': len(rows2),
+   'q_med_rep': float(np.median(q_rep)), 'q_med_norep': float(np.median(q_norep)),
+   'q_mean_rep': round(float(np.mean(q_rep)),2), 'q_mean_norep': round(float(np.mean(q_norep)),2),
+   'mw_p': round(float(pu2),4),
+   't_mean_rep': round(float(np.mean(t_rep)),2), 't_mean_norep': round(float(np.mean(t_norep)),2),
+   'welch_p': round(float(p3),4),
+   'logit_coef_qty': round(float(logit.params[1]),4), 'logit_p_qty': round(float(logit.pvalues[1]),4),
+   'logit_coef_tot': round(float(logit.params[2]),4), 'logit_p_tot': round(float(logit.pvalues[2]),4),
+   'logit_pseudo_r2': round(float(logit.prsquared),4),
+ }
+}, open('f5_local_et_premier_panier.json','w'), ensure_ascii=False)

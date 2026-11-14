@@ -1,0 +1,71 @@
+import json, csv
+from datetime import datetime
+from collections import defaultdict
+import numpy as np
+import statsmodels.api as sm
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+
+EVENT = datetime(2025,11,1).date()
+WINDOW_DAYS = 45  # fenêtre symétrique autour de l'événement
+
+def fam(name):
+    if name.startswith('BOUGIE GOURMANDE'): return 'treated'   # +1€ vers le 1er nov. 2025
+    if name.startswith('FONDANT') or name.startswith('BOX DE FONDANTS') or name.startswith('BOUQUET DE FONDANTS') or name.startswith('TABLETTE'):
+        return 'control'  # prix stable sur la période
+    return None
+
+rows = []
+for o in orders:
+    dt = datetime.strptime(o['r']['Created at'][:10], "%Y-%m-%d").date()
+    if abs((dt-EVENT).days) > WINDOW_DAYS: continue
+    post = 1 if dt >= EVENT else 0
+    for i in o['items']:
+        n = i['Lineitem name']
+        if not n or n=='Tip': continue
+        f = fam(n)
+        if f is None: continue
+        rows.append({'date':dt, 'post':post, 'treated':1 if f=='treated' else 0,
+                     'qty': int(i['Lineitem quantity'])})
+
+print(f"lignes dans la fenêtre de {WINDOW_DAYS}j autour du 1er nov. 2025: {len(rows)}")
+# agrégation par semaine x groupe pour le graphique
+week_agg = defaultdict(lambda: {'treated':0,'control':0})
+for r in rows:
+    wk = r['date'].isocalendar()[:2]
+    key = 'treated' if r['treated'] else 'control'
+    week_agg[wk][key] += r['qty']
+weeks = sorted(week_agg.keys())
+print("par semaine (traité / témoin):")
+for w in weeks:
+    print(f"  {w}: {week_agg[w]['treated']:4d} / {week_agg[w]['control']:4d}")
+
+# régression DiD au niveau ligne (comptage -> on utilise OLS sur qty, HC3 ; Poisson en robustesse)
+X = np.array([[1, r['treated'], r['post'], r['treated']*r['post']] for r in rows], dtype=float)
+y = np.array([r['qty'] for r in rows], dtype=float)
+m = sm.OLS(y, X).fit(cov_type='HC3')
+print(m.summary().tables[1])
+did = m.params[3]; p_did = m.pvalues[3]
+print(f"Estimateur DiD (effet propre de la hausse de prix) : {did:+.4f} article/ligne (p={p_did:.4f})")
+
+# vérification tendances parallèles : pente avant l'événement, par groupe (test simple)
+before = [r for r in rows if r['post']==0]
+tr_before = sum(1 for r in before if r['treated'])
+ct_before = sum(1 for r in before if not r['treated'])
+print(f"lignes avant l'événement : traité={tr_before} témoin={ct_before}")
+
+json.dump({'weeks': [f"{w[0]}-W{w[1]:02d}" for w in weeks],
+           'treated': [week_agg[w]['treated'] for w in weeks],
+           'control': [week_agg[w]['control'] for w in weeks],
+           'did': round(did,4), 'p_did': round(p_did,4), 'n': len(rows),
+           'coef_treated': round(m.params[1],4), 'coef_post': round(m.params[2],4)},
+          open('d2_diffindiff.json','w'), ensure_ascii=False)

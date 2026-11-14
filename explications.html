@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Explications · Lumineva</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="style.css?v=17">
+
+</head>
+<body>
+<a class="skip" href="#contenu">Aller au contenu</a>
+<nav class="topnav" aria-label="Navigation principale"><div class="wrap"><a class="brand" href="index.html">Lumineva · données</a><div class="links"><a href="index.html">Accueil</a><a href="contexte.html">Contexte</a><a href="analyses.html" aria-current="page">Premières analyses</a><a href="choix.html">Notre choix</a><a href="automatisations.html">Automatisations</a><a href="q-formation.html">Formation</a><a href="recommandations.html">Recommandations</a><a href="faq.html">FAQ</a><a href="methode.html">Méthode</a></div></div></nav>
+<nav class="subnav meta" aria-label="Premières analyses"><div class="wrap"><span class="lab">Premières analyses</span><a href="analyses.html">Présentation</a><a href="perimetre.html">Périmètre</a><a href="observations.html">Observations</a><a href="explications.html" aria-current="page">Explications</a><a href="externe.html">Externe</a><a href="decision-emailing.html">Décision e-mailing</a></div></nav>
+<header class="hero"><div class="wrap"><p class="kicker">Expliquer</p><h1>Explications</h1><p class="lead">Les tests statistiques utilisés dans le projet, expliqués en mots simples : la question, le test, le résultat, comment le lire et ses limites.</p></div></header>
+<main class="wrap" id="contenu">
+<div class="note"><b>Comment lire cette page.</b> Pour chaque test utilisé dans les deux sujets retenus (automatisations et formation), les sept mêmes rubriques : la question, le test choisi, ce qu’il fait en mots simples, le résultat, comment lire la p-value, ce que ça change, les limites. Les chiffres viennent des pages concernées (données au 22 octobre 2026). Seuil retenu : 5 %. Une p-value dit si un écart est réel, jamais s’il est important : sa taille est donnée à chaque fois.</div>
+<details class="pli" name="exp-km"><summary>1 · La courbe de retour des clients (Kaplan-Meier)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Quelle part des clients commande une 2e fois, et au bout de combien de jours ?</td></tr><tr><th>Le test choisi</th><td>Kaplan-Meier, une méthode d’analyse de la durée. Elle convient quand une partie des clients n’a pas encore eu le temps de revenir.</td></tr><tr><th>En mots simples</th><td>On suit chaque client depuis sa 1re commande. Un client qui n’a pas recommandé est gardé « en attente » jusqu’à la date de fin des données, au lieu d’être compté comme perdu.</td></tr><tr><th>Le résultat</th><td>913 clients suivis : 11 % ont recommandé à 45 jours, 21 % à 90 jours, 29 % à 180 jours. Parmi ceux qui reviennent, le délai médian est de 66 jours.</td></tr><tr><th>Comment lire la p-value</th><td>Pas de p-value ici : c’est une estimation, pas un test. On lit la courbe.</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>Environ 7 clients sur 10 n’ont pas recommandé à ce jour : une relance à 45 jours, avant le délai médian, a du sens.</td></tr><tr><th>Limites</th><td>La courbe dit quand les clients reviennent, pas pourquoi. Les clients récents pèsent peu dans le calcul.</td></tr></table></div></div></details>
+<details class="pli" name="exp-wilcoxon"><summary>2 · Comparer la 1re et la 2e commande d’un même client (Wilcoxon apparié)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Le client dépense-t-il plus à sa 2e commande ?</td></tr><tr><th>Le test choisi</th><td>Test de Wilcoxon apparié. Les montants sont très inégaux (quelques gros paniers) : on compare des rangs plutôt que des moyennes.</td></tr><tr><th>En mots simples</th><td>Chaque client est comparé à lui-même : sa 2e commande moins sa 1re. On regarde si les hausses l’emportent sur les baisses.</td></tr><tr><th>Le résultat</th><td>Montant : +3,76 € en moyenne (p = 0,028) ; nombre d’articles : -0,1 (p = 0,67) ; prix par article : +0,16 € (p &lt; 0,001).</td></tr><tr><th>Comment lire la p-value</th><td>La p-value répond à : « s’il n’y avait en réalité aucun écart, quelle chance aurait-on de voir un écart au moins aussi grand par hasard ? ». Sous 0,05 (5 %), on admet que l’écart est réel. Elle ne dit rien de l’importance de l’écart. Ici, le montant monte de façon démontrée, mais de peu (3,76 €).</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>La relance ne doit pas compter sur un panier plus gros : la hausse vient du prix des articles, pas de leur nombre.</td></tr><tr><th>Limites</th><td>La hausse peut venir de la fin du code promo (très fréquent à la 1re commande, rare à la 2e), pas d’un goût qui change.</td></tr></table></div></div></details>
+<details class="pli" name="exp-auc"><summary>3 · Peut-on prédire qui reviendra ? (arbre de décision, AUC)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Un critère de la 1re commande (montant, code promo, lieu…) annonce-t-il le retour du client ?</td></tr><tr><th>Le test choisi</th><td>Un arbre de décision, noté par l’AUC (de 0,5 = hasard à 1 = parfait), avec une validation croisée.</td></tr><tr><th>En mots simples</th><td>L’arbre cherche les questions qui séparent le mieux les clients qui reviennent des autres. On le teste sur des clients qu’il n’a pas vus, pour ne pas se tromper soi-même.</td></tr><tr><th>Le résultat</th><td>AUC de 0,55 (± 0,03), soit à peine mieux que le hasard.</td></tr><tr><th>Comment lire la p-value</th><td>Pas de p-value : on lit l’AUC. Plus elle est proche de 0,5, moins le critère sert.</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>On relance tous les clients à une commande, sans chercher un sous-groupe à cibler.</td></tr><tr><th>Limites</th><td>Seules les données de la 1re commande et du lieu sont utilisées : d’autres informations (motivation, cadeau ou achat pour soi) manquent.</td></tr></table></div></div></details>
+<details class="pli" name="exp-poisson"><summary>4 · Combien rapporte un e-mail ? (intervalle de Poisson)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Un e-mail de relance rapporte-t-il plus qu’une newsletter ?</td></tr><tr><th>Le test choisi</th><td>Intervalle de confiance de Poisson exact, adapté aux comptages rares (quelques commandes).</td></tr><tr><th>En mots simples</th><td>Avec 7 commandes, le hasard peut faire varier le résultat. L’intervalle donne la plage dans laquelle le vrai taux a de bonnes chances de se trouver.</td></tr><tr><th>Le résultat</th><td>Relances : 0,97 commande pour 100 e-mails (de 0,39 à 2,00) ; newsletters : 0,11 (de 0,06 à 0,17). Les deux plages ne se recoupent pas.</td></tr><tr><th>Comment lire la p-value</th><td>Pas de p-value : si les plages ne se recoupent pas, l’écart est démontré.</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>Une relance rapporte près de neuf fois plus par e-mail : on les garde et on répare celle qui est en erreur.</td></tr><tr><th>Limites</th><td>Très peu de commandes (7) : l’intervalle reste large. Shopify attribue à l’e-mail des commandes qui seraient venues seules.</td></tr></table></div></div></details>
+<details class="pli" name="exp-fisher"><summary>5 · Comparer deux parts sur de petits effectifs (test exact de Fisher)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Deux groupes diffèrent-ils : relances contre newsletters, 1er article contre les suivants (avis), jours de pointe contre autres jours (expéditions tardives) ?</td></tr><tr><th>Le test choisi</th><td>Test exact de Fisher, fait pour comparer deux pourcentages quand les effectifs sont petits.</td></tr><tr><th>En mots simples</th><td>On range les cas dans un tableau 2 × 2 et on calcule, sans approximation, la chance d’obtenir une telle répartition si les deux groupes étaient identiques.</td></tr><tr><th>Le résultat</th><td>Relances contre newsletters : × 8,9 de commandes par e-mail (p &lt; 0,001). Avis : 11,8 % pour le 1er article contre 7,5 % pour les suivants (p &lt; 0,001). Expéditions de plus de 7 jours : 24 % les jours de pointe contre 13 % (p = 0,001).</td></tr><tr><th>Comment lire la p-value</th><td>La p-value répond à : « s’il n’y avait en réalité aucun écart, quelle chance aurait-on de voir un écart au moins aussi grand par hasard ? ». Sous 0,05 (5 %), on admet que l’écart est réel. Elle ne dit rien de l’importance de l’écart.</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>Trois constats démontrés : les relances rapportent plus, le 1er article donne plus d’avis, les jours de pointe expédient plus tard.</td></tr><tr><th>Limites</th><td>Démontrer un écart ne dit pas pourquoi il existe. Le test suppose des cas indépendants : ici un même client peut apparaître plusieurs fois (plusieurs demandes d’avis, plusieurs commandes un jour de pointe), donc les p-values sont plutôt optimistes. Les jours de pointe sont peu nombreux (4).</td></tr></table></div></div></details>
+<details class="pli" name="exp-binomial"><summary>6 · Les ventes de formation suivent-elles les e-mails ? (test binomial)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Les ventes de formation tombent-elles plus souvent juste après un e-mail que si elles arrivaient au hasard ?</td></tr><tr><th>Le test choisi</th><td>Test binomial : on compare le nombre de ventes observé à ce que le hasard donnerait.</td></tr><tr><th>En mots simples</th><td>Les 4 jours qui suivent un e-mail couvrent 15 % de la période. Si les ventes tombaient au hasard, 15 % d’entre elles seulement s’y trouveraient.</td></tr><tr><th>Le résultat</th><td>9 ventes payantes sur 16 tombent dans ces 4 jours (p &lt; 0,001).</td></tr><tr><th>Comment lire la p-value</th><td>La p-value répond à : « s’il n’y avait en réalité aucun écart, quelle chance aurait-on de voir un écart au moins aussi grand par hasard ? ». Sous 0,05 (5 %), on admet que l’écart est réel. Elle ne dit rien de l’importance de l’écart.</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>La formation se vend par vagues de lancement annoncées par e-mail.</td></tr><tr><th>Limites</th><td>Une coïncidence de dates n’est pas une preuve : d’autres actions ont pu avoir lieu en même temps. Seulement 16 ventes.</td></tr></table></div></div></details>
+<details class="pli" name="exp-mw"><summary>7 · Comparer deux groupes de montants (Mann-Whitney)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Les auteurs d’avis dépensent-ils plus que les autres ? Les inscrits à la formation qui sont clients dépensent-ils plus en bougies ?</td></tr><tr><th>Le test choisi</th><td>Test de Mann-Whitney, qui compare des rangs : il résiste aux quelques très gros montants.</td></tr><tr><th>En mots simples</th><td>On classe tous les clients du plus petit au plus grand dépensier et on regarde si un groupe se retrouve plutôt en haut.</td></tr><tr><th>Le résultat</th><td>Auteurs d’avis : 184 € en moyenne contre 89 € (p &lt; 0,001). Inscrits formation clients : 134 € contre 103 € (p = 0,84).</td></tr><tr><th>Comment lire la p-value</th><td>La p-value répond à : « s’il n’y avait en réalité aucun écart, quelle chance aurait-on de voir un écart au moins aussi grand par hasard ? ». Sous 0,05 (5 %), on admet que l’écart est réel. Elle ne dit rien de l’importance de l’écart. Une p-value élevée (0,84) veut dire « pas d’écart démontré », pas « pas d’écart ».</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>Les auteurs d’avis sont des clients fidèles ; les inscrits à la formation ne dépensent pas plus en bougies.</td></tr><tr><th>Limites</th><td>Les auteurs d’avis commandent plus souvent : le montant total suit simplement le nombre de commandes.</td></tr></table></div></div></details>
+<details class="pli" name="exp-logit"><summary>8 · Ce qui distingue les auteurs d’avis, à égalité (régression logistique)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>À nombre de commandes égal, qu’est-ce qui rend un client plus susceptible d’écrire un avis ?</td></tr><tr><th>Le test choisi</th><td>Régression logistique, qui donne un rapport de cotes (OR) par caractéristique, les autres étant tenues égales.</td></tr><tr><th>En mots simples</th><td>On compare les clients « toutes choses égales par ailleurs ». Un OR de 1 veut dire aucun effet ; 1,6 veut dire que les « cotes » (chances contre non-chances) sont multipliées par 1,6 : une chance relative plus élevée, pas 60 % de probabilité en plus.</td></tr><tr><th>Le résultat</th><td>Commune de moins de 5 000 habitants : OR 1,6 (de 1,1 à 2,3, p = 0,011). L’ancienneté ne se démontre plus (p = 0,11).</td></tr><tr><th>Comment lire la p-value</th><td>La p-value répond à : « s’il n’y avait en réalité aucun écart, quelle chance aurait-on de voir un écart au moins aussi grand par hasard ? ». Sous 0,05 (5 %), on admet que l’écart est réel. Elle ne dit rien de l’importance de l’écart. L’intervalle du rapport de cotes ne contient pas 1 quand l’effet est démontré.</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>Il n’y a pas de « type » d’auteur d’avis très marqué : ce sont surtout les clients qui commandent souvent.</td></tr><tr><th>Limites</th><td>On ne connaît ni la note ni le motif. Le lieu peut en cacher un autre facteur (habitudes de retrait, présence sur les réseaux).</td></tr></table></div></div></details>
+<details class="pli" name="exp-taille"><summary>9 · Pourquoi on ne peut pas tester (taille d’échantillon)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Peut-on mesurer l’effet d’une relance, d’un 2e rappel ou d’un rappel d’avis par un test A/B ?</td></tr><tr><th>Le test choisi</th><td>Calcul de la taille d’échantillon : combien de personnes par groupe pour voir un effet donné, avec 80 % de chances de le détecter et un seuil de 5 %.</td></tr><tr><th>En mots simples</th><td>Plus l’effet à repérer est petit, plus il faut de monde. Avec peu de clients, un test ne peut pas conclure.</td></tr><tr><th>Le résultat</th><td>Relance à 45 jours (+5 points) : environ 603 clients par groupe, soit plus de deux ans de flux. 2e rappel de panier (taux doublé) : environ 2 393 e-mails par groupe. Rappel d’avis (+3 points) : environ 1 690 demandes par groupe.</td></tr><tr><th>Comment lire la p-value</th><td>Pas de p-value : c’est un calcul fait avant l’expérience.</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>On décide sur la logique, puis on suit les chiffres avant et après, en le disant.</td></tr><tr><th>Limites</th><td>La comparaison avant/après est moins solide qu’un test : d’autres changements ont pu avoir lieu en même temps.</td></tr></table></div></div></details>
+<details class="pli" name="exp-permutation"><summary>10 · Les caractéristiques des newsletters (permutation et correction de Holm)</summary><div class="corps"><div class="tablewrap"><table><tr><th>La question</th><td>Les photos, le gras, une offre, l’urgence ou la longueur changent-ils le clic ?</td></tr><tr><th>Le test choisi</th><td>Tests de permutation, avec la correction de Holm pour le grand nombre de tests.</td></tr><tr><th>En mots simples</th><td>On mélange au hasard les étiquettes des envois pour voir quels écarts le hasard seul produit. Quand on fait beaucoup de tests, certains « réussissent » par chance : la correction de Holm l’empêche.</td></tr><tr><th>Le résultat</th><td>11 caractéristiques testées sur 12 envois. Le plus petit écart brut : « Plus de 150 mots » (p = 0,027), mais après correction il devient p = 0,29. Fatigue de la liste : -0,49 point de clic par envoi (p = 0,034).</td></tr><tr><th>Comment lire la p-value</th><td>La p-value répond à : « s’il n’y avait en réalité aucun écart, quelle chance aurait-on de voir un écart au moins aussi grand par hasard ? ». Sous 0,05 (5 %), on admet que l’écart est réel. Elle ne dit rien de l’importance de l’écart. Avec 11 tests, il faut en plus corriger : une petite p-value isolée ne suffit pas.</td></tr><tr><th>Ce que ça change pour Lumineva</th><td>Aucune règle de style ne se déduit des newsletters. En revanche, envoyer trop vite fatigue la liste : espacer les envois.</td></tr><tr><th>Limites</th><td>Seulement 12 envois et 17 commandes : seule une très grande différence pourrait être démontrée.</td></tr></table></div></div></details>
+<h2>Autres tests des premières analyses</h2><p>Les tests ci-dessous portent sur l’export du 20 septembre 2026 et sur des questions mises de côté (chiffre d’affaires de septembre, vente croisée, seuil de livraison).</p>
+<div class="dash"><div class="howto"><b>Comment lire cette page.</b> Chaque test suit la méthode du CM2 : hypothèse testable, résultat chiffré, incertitude (p-value), et ce que ça autorise ou non à décider. Seuil de signification retenu : 5&nbsp;%. Une p-value ne mesure pas l’importance de l’effet (sa taille), seulement la confiance qu’on peut avoir dans son existence — les deux sont données à chaque fois.</div><h3 style="margin:22px 0 4px 2px">Tests approfondis</h3><p class="hint" style="margin:0 0 10px 2px">Chiffre d’affaires de septembre 2026, fidélité des acheteurs de lancement, vente croisée, seuil de livraison, retrait local, taille de la première commande.</p><div class="grid"><section class="panel c12"><h3>Le CA de septembre 2026 : effet de rentrée ou effet produit ?</h3><p class="hint">Comparaison jour par jour avec septembre 2025, avec et sans les 2 journées de lancement, puis généralisation aux 4 lancements connus.</p><div class="tablewrap"><table><tr><th class=""></th><th class="r">Sept. 2025 (1-20)</th><th class="r">Sept. 2026 (1-20)</th><th class="r">Écart</th></tr><tr><td class="">Mois complet</td><td class="r">7 491 €</td><td class="r">10 820 €</td><td class="r">+3 329 €</td></tr><tr><td class="">Sans le 6 et le 20 sept. 2026</td><td class="r">6 407 €</td><td class="r">4 710 €</td><td class="r">-1 697 €</td></tr></table></div><p class="hint" style="margin-top:10px">151 % du surplus de septembre 2026 vient de 2 journées seulement. 6 sept. 2026 : 60 commandes contre 5,4/jour en moyenne le reste du mois → p(Poisson) &lt; 0,001.</p><p class="hint" style="margin-top:14px"><b> Est-ce systématique ?</b> Même mesure sur les 4 journées de lancement documentées (fenêtre glissante de 30 jours autour de chacune) :</p><div class="tablewrap"><table><tr><th class="">Journée de lancement</th><th class="r">CA du jour</th><th class="r">CA des 30 jours autour</th><th class="r">Part du jour</th></tr><tr><td class="">7 sept. 2025</td><td class="r">1 406 €</td><td class="r">8 680 €</td><td class="r">16,2 %</td></tr><tr><td class="">1 nov. 2025</td><td class="r">1 634 €</td><td class="r">8 087 €</td><td class="r">20,2 %</td></tr><tr><td class="">6 sept. 2026</td><td class="r">4 118 €</td><td class="r">11 163 €</td><td class="r">36,9 %</td></tr><tr><td class="">20 sept. 2026</td><td class="r">1 992 €</td><td class="r">10 159 €</td><td class="r">19,6 %</td></tr></table></div><p class="hint" style="margin-top:10px">En moyenne, une journée de lancement pèse à elle seule <b>23,2 %</b> du chiffre d’affaires du mois qui l’entoure. Ce n’est pas un accident de septembre 2026 : <b>c’est structurel chez Lumineva</b>, à chaque sortie de collection. Conséquence pour la gérante : le stock, la logistique et l’attention de l’équipe doivent être dimensionnés pour ces pics, pas pour un rythme moyen.</p></section><section class="panel c12"><h3>Fidélité des acheteurs d'un jour de lancement</h3><p class="hint">Lancements matures uniquement, puis comportement de ceux qui reviennent.</p><p class="hint"> Le test d’hier soir mélangeait des lancements très récents (sept. 2026, presque aucun recul) avec des lancements matures (sept. et nov. 2025). En ne gardant <b>que les lancements avec au moins 10 mois de recul</b> (comparables à des clients organiques avec le même recul) :</p><div class="tablewrap"><table><tr><th class=""></th><th class="">1re commande un jour de lancement mature</th><th class="">1re commande organique (même recul)</th></tr><tr><td class="">Taux de réachat</td><td class="">25,9 % (n=27)</td><td class="">40,8 % (n=363)</td></tr></table></div><p class="hint" style="margin-top:10px">χ²=1.734, p=0,188 → <b style="color:var(--muted)">non significatif</b>. L’écart (25,9&nbsp;% contre 40,8&nbsp;%) va dans le même sens qu’hier, mais reste non prouvé statistiquement avec seulement 27 clients de lancement matures.</p><p class="hint" style="margin-top:14px"><b> Et parmi ceux qui reviennent, achètent-ils différemment ?</b></p><div class="tablewrap"><table><tr><th class=""></th><th class="">Revenus d’un jour de lancement</th><th class="">Revenus organiques</th></tr><tr><td class="">Nombre de commandes (médiane)</td><td class="">4</td><td class="">3</td></tr><tr><td class="">Valeur totale moyenne</td><td class="">244,85 €</td><td class="">275,82 €</td></tr></table></div><p class="hint" style="margin-top:10px">Fréquence : Mann-Whitney p=0,421 (<b style="color:var(--muted)">non significatif</b>). Valeur totale : Welch p=0,610 (<b style="color:var(--muted)">non significatif</b>). <b>Une fois qu’un acheteur de lancement revient, il se comporte comme n’importe quel autre client fidèle</b> : ni plus, ni moins engagé. Le seul écart possible se joue sur le fait de revenir ou non, pas sur la qualité du client une fois revenu.</p></section><section class="panel c12"><h3>Vente croisée : mélanger les familles de produits fait grossir le panier</h3><p class="hint">Nombre de familles de produits distinctes dans la commande, contre le montant.</p><p class="hint"> Plutôt que la famille la plus chère de la commande (résultat d’hier, en partie mécanique), on teste si <b>mélanger plusieurs familles dans la même commande</b> fait grossir le panier — un vrai signal de vente croisée.</p><div class="chart short"><svg viewBox="0 0 680 220" width="100%" role="img" style="display:block"><line x1="64" x2="672" y1="194.0" y2="194.0" style="stroke:var(--grid)"/><text x="58" y="198.0" text-anchor="end" font-size="11" style="fill:var(--muted)">0 €</text><line x1="64" x2="672" y1="157.2" y2="157.2" style="stroke:var(--grid)"/><text x="58" y="161.2" text-anchor="end" font-size="11" style="fill:var(--muted)">30 €</text><line x1="64" x2="672" y1="120.4" y2="120.4" style="stroke:var(--grid)"/><text x="58" y="124.4" text-anchor="end" font-size="11" style="fill:var(--muted)">60 €</text><line x1="64" x2="672" y1="83.6" y2="83.6" style="stroke:var(--grid)"/><text x="58" y="87.6" text-anchor="end" font-size="11" style="fill:var(--muted)">90 €</text><line x1="64" x2="672" y1="46.8" y2="46.8" style="stroke:var(--grid)"/><text x="58" y="50.8" text-anchor="end" font-size="11" style="fill:var(--muted)">120 €</text><line x1="64" x2="672" y1="10.0" y2="10.0" style="stroke:var(--grid)"/><text x="58" y="14.0" text-anchor="end" font-size="11" style="fill:var(--muted)">150 €</text><rect x="91.4" y="133.9" width="97.3" height="60.1" rx="2" style="fill:var(--accent)"><title>1 famille : 49 €</title></rect><text x="140.0" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">1 famille</text><rect x="243.4" y="112.6" width="97.3" height="81.4" rx="2" style="fill:var(--accent)"><title>2 familles : 66 €</title></rect><text x="292.0" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">2 familles</text><rect x="395.4" y="93.8" width="97.3" height="100.2" rx="2" style="fill:var(--accent)"><title>3 familles : 82 €</title></rect><text x="444.0" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">3 familles</text><rect x="547.4" y="35.2" width="97.3" height="158.8" rx="2" style="fill:var(--flame)"><title>4 familles et + : 129 €</title></rect><text x="596.0" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">4 familles et +</text></svg></div><div class="tablewrap"><table><tr><th class="">Familles distinctes dans la commande</th><th class="r">Commandes</th><th class="r">Panier moyen</th></tr><tr><td class="">1 famille</td><td class="r">649</td><td class="r">48,99 €</td></tr><tr><td class="">2 familles</td><td class="r">489</td><td class="r">66,38 €</td></tr><tr><td class="">3 familles</td><td class="r">202</td><td class="r">81,66 €</td></tr><tr><td class="">4 et plus familles</td><td class="r">69</td><td class="r">129,42 €</td></tr></table></div><p class="hint" style="margin-top:10px">Corrélation nombre de familles ↔ montant : r=0.44, p=&lt; 0,001. Commande mono-famille (48,99 €) vs 2 familles ou plus (76,16 €) : Welch p=&lt; 0,001 → <b style="color:var(--good)">significatif</b>, écart de +27,17 €.</p><p class="hint"><b>Lecture</b> : la relation est claire et progressive (48,99&nbsp;€ → 66,38&nbsp;€ → 81,66&nbsp;€ → 129,42&nbsp;€). C’est un vrai levier actionnable : suggérer un produit d’une autre famille (ex. un fondant à côté d’une bougie) peut faire grossir le panier, indépendamment du prix des produits eux-mêmes.</p></section><section class="panel c12"><h3>Le seuil de livraison gratuite à 79 € modifie le comportement d'achat</h3><p class="hint">Test de discontinuité (bunching) autour du seuil, avec deux seuils fictifs comme témoins.</p><div class="chart"><svg viewBox="0 0 700 240" width="100%" role="img" style="display:block"><line x1="64" x2="692" y1="214.0" y2="214.0" style="stroke:var(--grid)"/><text x="58" y="218.0" text-anchor="end" font-size="11" style="fill:var(--muted)">0</text><line x1="64" x2="692" y1="188.5" y2="188.5" style="stroke:var(--grid)"/><text x="58" y="192.5" text-anchor="end" font-size="11" style="fill:var(--muted)">5</text><line x1="64" x2="692" y1="163.0" y2="163.0" style="stroke:var(--grid)"/><text x="58" y="167.0" text-anchor="end" font-size="11" style="fill:var(--muted)">10</text><line x1="64" x2="692" y1="137.5" y2="137.5" style="stroke:var(--grid)"/><text x="58" y="141.5" text-anchor="end" font-size="11" style="fill:var(--muted)">15</text><line x1="64" x2="692" y1="112.0" y2="112.0" style="stroke:var(--grid)"/><text x="58" y="116.0" text-anchor="end" font-size="11" style="fill:var(--muted)">20</text><line x1="64" x2="692" y1="86.5" y2="86.5" style="stroke:var(--grid)"/><text x="58" y="90.5" text-anchor="end" font-size="11" style="fill:var(--muted)">25</text><line x1="64" x2="692" y1="61.0" y2="61.0" style="stroke:var(--grid)"/><text x="58" y="65.0" text-anchor="end" font-size="11" style="fill:var(--muted)">30</text><line x1="64" x2="692" y1="35.5" y2="35.5" style="stroke:var(--grid)"/><text x="58" y="39.5" text-anchor="end" font-size="11" style="fill:var(--muted)">35</text><line x1="64" x2="692" y1="10.0" y2="10.0" style="stroke:var(--grid)"/><text x="58" y="14.0" text-anchor="end" font-size="11" style="fill:var(--muted)">40</text><rect x="71.1" y="91.6" width="25.1" height="122.4" rx="2" style="fill:var(--accent)"><title>55 : 24</title></rect><text x="83.6" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">55</text><rect x="110.3" y="40.6" width="25.1" height="173.4" rx="2" style="fill:var(--accent)"><title>58 : 34</title></rect><text x="122.9" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">58</text><rect x="149.6" y="61.0" width="25.1" height="153.0" rx="2" style="fill:var(--accent)"><title>61 : 30</title></rect><text x="162.1" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">61</text><rect x="188.8" y="50.8" width="25.1" height="163.2" rx="2" style="fill:var(--accent)"><title>64 : 32</title></rect><text x="201.4" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">64</text><rect x="228.1" y="112.0" width="25.1" height="102.0" rx="2" style="fill:var(--accent)"><title>67 : 20</title></rect><text x="240.6" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">67</text><rect x="267.3" y="132.4" width="25.1" height="81.6" rx="2" style="fill:var(--accent)"><title>70 : 16</title></rect><text x="279.9" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">70</text><rect x="306.6" y="163.0" width="25.1" height="51.0" rx="2" style="fill:var(--accent)"><title>73 : 10</title></rect><text x="319.1" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">73</text><rect x="345.8" y="132.4" width="25.1" height="81.6" rx="2" style="fill:var(--accent)"><title>76 : 16</title></rect><text x="358.4" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">76</text><rect x="385.1" y="15.1" width="25.1" height="198.9" rx="2" style="fill:var(--accent)"><title>79 : 39</title></rect><text x="397.6" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">79</text><rect x="424.3" y="50.8" width="25.1" height="163.2" rx="2" style="fill:var(--accent)"><title>82 : 32</title></rect><text x="436.9" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">82</text><rect x="463.6" y="71.2" width="25.1" height="142.8" rx="2" style="fill:var(--accent)"><title>85 : 28</title></rect><text x="476.1" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">85</text><rect x="502.8" y="86.5" width="25.1" height="127.5" rx="2" style="fill:var(--accent)"><title>88 : 25</title></rect><text x="515.4" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">88</text><rect x="542.1" y="122.2" width="25.1" height="91.8" rx="2" style="fill:var(--accent)"><title>91 : 18</title></rect><text x="554.6" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">91</text><rect x="581.3" y="152.8" width="25.1" height="61.2" rx="2" style="fill:var(--accent)"><title>94 : 12</title></rect><text x="593.9" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">94</text><rect x="620.6" y="132.4" width="25.1" height="81.6" rx="2" style="fill:var(--accent)"><title>97 : 16</title></rect><text x="633.1" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">97</text><rect x="659.8" y="193.6" width="25.1" height="20.4" rx="2" style="fill:var(--accent)"><title>100 : 4</title></rect><text x="672.4" y="232" text-anchor="middle" font-size="11" style="fill:var(--muted)">100</text></svg></div>
+<p class="hint" style="margin-top:8px">Nombre de commandes par tranche de 3&nbsp;€ de sous-total (axe : borne basse de la tranche), commandes livrées en relais (n=1 029).</p>
+<p class="hint" style="margin-top:10px">Juste sous 79&nbsp;€ (71 à 79&nbsp;€) : 39 commandes. Juste au-dessus (79 à 87&nbsp;€) : 87 commandes. Test binomial : p=&lt; 0,001 → <b style="color:var(--good)">significatif</b>.</p>
+<p class="hint"><b>Vérification (règle du cours)</b> : à elle seule, cette asymétrie ne prouve rien — la distribution des paniers penche naturellement vers les petits montants, donc n’importe quel seuil arbitraire montre un déséquilibre. En testant deux seuils fictifs sans raison d’exister (69&nbsp;€ et 89&nbsp;€), on trouve bien PLUS de commandes en dessous qu’au-dessus (comme attendu par la forme générale de la distribution). <b>Seul le seuil réel de 79&nbsp;€ inverse cette tendance</b> : c’est ce renversement, pas la simple asymétrie, qui constitue la preuve d’un effet de seuil actif.</p>
+<p class="hint"><b>Lecture</b> : des clients complètent bien leur panier pour atteindre la livraison gratuite. C’est le test le plus solide en faveur de l’hypothèse déjà évoquée sur le seuil de 79&nbsp;€, et un bon candidat de question de décision pour le CM5 (tester un seuil plus bas).</p></section><section class="panel c6"><h3>Le retrait local est le canal le plus fidélisant</h3><p class="hint">Comparaison à recul égal (≥90 jours) avec les commandes livrées.</p><div class="tablewrap"><table><tr><th class=""></th><th class="">1re commande en retrait local</th><th class="">1re commande livrée</th></tr><tr><td class="">Taux de réachat</td><td class="">48,0 % (n=102)</td><td class="">31,0 % (n=616)</td></tr></table></div><p class="hint" style="margin-top:10px">Clients avec au moins 90 jours de recul (n=718). χ²=10.656, p=0,0011 → <b style="color:var(--good)">significatif</b>.</p><p class="hint">Parmi ceux qui reviennent, la fréquence est la même des deux côtés (médiane 2 commandes, p=0,318, non significatif) : l’écart porte sur le fait de revenir au moins une fois, pas sur l’intensité ensuite.</p><p class="hint"><b>Lecture</b> : le retrait local n’a pas qu’un panier plus faible (déjà connu) — c’est aussi, et de très loin, le canal le plus fidélisant. Piste pour la gérante : comprendre ce qui rend ce canal si fidélisant (relation de proximité, confiance, bouche-à-oreille local) et si une partie peut se reproduire ailleurs.</p></section><section class="panel c6"><h3>La taille de la 1re commande prédit (faiblement) le réachat</h3><p class="hint">Quantité et montant du premier achat, chez les clients avec assez de recul.</p><div class="tablewrap"><table><tr><th class=""></th><th class="">Devient client récurrent</th><th class="">Reste à 1 commande</th></tr><tr><td class="">Quantité (1re commande), médiane</td><td class="">3</td><td class="">2</td></tr><tr><td class="">Montant moyen (1re commande)</td><td class="">63,70 €</td><td class="">55,66 €</td></tr></table></div><p class="hint" style="margin-top:10px">n=718 (recul ≥ 90 jours). Quantité : Mann-Whitney p=0,0080 → <b style="color:var(--good)">significatif</b>. Montant : Welch p=0,010 → <b style="color:var(--good)">significatif</b>.</p><p class="hint"><b>Mais attention</b> : en régression logistique (réachat ~ quantité + montant, contrôlés ensemble), ni la quantité (p=0,908) ni le montant (p=0,116) ne restent individuellement significatifs, et le pouvoir prédictif reste faible (pseudo-R²=0.0084).</p><p class="hint"><b>Lecture honnête</b> : il existe un signal réel mais ténu — les futurs clients récurrents achètent un peu plus dès le départ — mais ce n’est pas assez fort pour prédire individuellement qui reviendra. Ne pas en faire un critère de ciblage à lui seul.</p></section></div><h3 style="margin:18px 0 4px 2px">Deux variables qualitatives (khi²)</h3><div class="grid"><section class="panel c6"><h3>Khi² — moyen de paiement × usage d'un code promo</h3><p class="hint">H0 : les deux variables sont indépendantes. n=1 402.</p><div class="tablewrap"><table><tr><th class=""></th><th class="r">Avec code promo</th><th class="r">Sans code</th></tr><tr><td class="">Carte</td><td class="r">383</td><td class="r">668</td></tr><tr><td class="">PayPal</td><td class="r">126</td><td class="r">225</td></tr></table></div><p class="hint" style="margin-top:10px">χ²=0.014, ddl=1, p=0,905, V de Cramér=0.003 → <b style="color:var(--muted)">non significatif</b>. Le moyen de paiement choisi n’est pas lié à l’usage d’un code promo.</p></section><section class="panel c6"><h3>Khi² — consentement e-mail × client récurrent</h3><p class="hint">H0 : les deux variables sont indépendantes. n=828.</p><div class="tablewrap"><table><tr><th class=""></th><th class="r">Client recurrent (2+ cmd)</th><th class="r">1 commande</th></tr><tr><td class="">Accepte l'e-mail</td><td class="r">235</td><td class="r">444</td></tr><tr><td class="">N'accepte pas</td><td class="r">13</td><td class="r">136</td></tr></table></div><p class="hint" style="margin-top:10px">χ²=37.797, ddl=1, p=&lt; 0,001, V de Cramér=0.214 (effet modéré) → <b style="color:var(--good)">significatif</b>. Les clients qui acceptent l’e-mail sont proportionnellement plus souvent des clients récurrents. Un lien statistique n’est pas une preuve que l’e-mail cause la fidélité : les deux peuvent venir d’un même engagement envers la marque.</p></section></div><h3 style="margin:18px 0 4px 2px">Une qualitative à 2 groupes + une quantitative (test t)</h3><div class="grid"><section class="panel c6"><h3>Test t — panier carte vs PayPal</h3><div class="tablewrap"><table><tr><th class=""></th><th class="">Carte</th><th class="">PayPal</th></tr><tr><td class="">n</td><td class="">1 051</td><td class="">351</td></tr><tr><td class="">Moyenne</td><td class="">63,14 €</td><td class="">64,46 €</td></tr><tr><td class="">Médiane</td><td class="">51,70 €</td><td class="">59,50 €</td></tr></table></div><p class="hint" style="margin-top:10px">Welch t=-0.601, p=0,548 → <b style="color:var(--muted)">non significatif</b>. Aucune différence réelle de panier selon le moyen de paiement choisi.</p></section><section class="panel c6"><h3>Test t — panier 1re commande vs commandes suivantes</h3><div class="tablewrap"><table><tr><th class=""></th><th class="">1re commande</th><th class="">Commandes suivantes</th></tr><tr><td class="">n</td><td class="">829</td><td class="">584</td></tr><tr><td class="">Moyenne</td><td class="">58,59 €</td><td class="">70,55 €</td></tr></table></div><p class="hint" style="margin-top:10px">Welch t=-5.102, p=&lt; 0,001 → <b style="color:var(--good)">significatif</b>. Les clients qui reviennent dépensent 20 % de plus en moyenne que lors de leur premier achat : un argument concret pour investir dans la fidélisation plutôt que la seule acquisition.</p></section></div><h3 style="margin:18px 0 4px 2px">Une qualitative à 3+ groupes + une quantitative (ANOVA)</h3><div class="grid"><section class="panel c6"><h3>ANOVA — panier selon le jour de semaine</h3><p class="hint">7 groupes (lundi à dimanche).</p><div class="chart short"><svg viewBox="0 0 680 220" width="100%" role="img" style="display:block"><line x1="64" x2="672" y1="194.0" y2="194.0" style="stroke:var(--grid)"/><text x="58" y="198.0" text-anchor="end" font-size="11" style="fill:var(--muted)">0 €</text><line x1="64" x2="672" y1="148.0" y2="148.0" style="stroke:var(--grid)"/><text x="58" y="152.0" text-anchor="end" font-size="11" style="fill:var(--muted)">20 €</text><line x1="64" x2="672" y1="102.0" y2="102.0" style="stroke:var(--grid)"/><text x="58" y="106.0" text-anchor="end" font-size="11" style="fill:var(--muted)">40 €</text><line x1="64" x2="672" y1="56.0" y2="56.0" style="stroke:var(--grid)"/><text x="58" y="60.0" text-anchor="end" font-size="11" style="fill:var(--muted)">60 €</text><line x1="64" x2="672" y1="10.0" y2="10.0" style="stroke:var(--grid)"/><text x="58" y="14.0" text-anchor="end" font-size="11" style="fill:var(--muted)">80 €</text><rect x="79.6" y="56.2" width="55.6" height="137.8" rx="2" style="fill:var(--accent)"><title>Lundi : 60 €</title></rect><text x="107.4" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Lundi</text><rect x="166.5" y="50.8" width="55.6" height="143.2" rx="2" style="fill:var(--accent)"><title>Mardi : 62 €</title></rect><text x="194.3" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Mardi</text><rect x="253.3" y="58.0" width="55.6" height="136.0" rx="2" style="fill:var(--accent)"><title>Mercredi : 59 €</title></rect><text x="281.1" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Mercredi</text><rect x="340.2" y="46.0" width="55.6" height="148.0" rx="2" style="fill:var(--accent)"><title>Jeudi : 64 €</title></rect><text x="368.0" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Jeudi</text><rect x="427.1" y="56.1" width="55.6" height="137.9" rx="2" style="fill:var(--accent)"><title>Vendredi : 60 €</title></rect><text x="454.9" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Vendredi</text><rect x="513.9" y="39.9" width="55.6" height="154.1" rx="2" style="fill:var(--accent)"><title>Samedi : 67 €</title></rect><text x="541.7" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Samedi</text><rect x="600.8" y="40.8" width="55.6" height="153.2" rx="2" style="fill:var(--accent)"><title>Dimanche : 67 €</title></rect><text x="628.6" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Dimanche</text></svg></div><p class="hint" style="margin-top:10px">F=1.367, p=0,224, η²=0.0057 → <b style="color:var(--muted)">non significatif</b>. Le panier moyen ne varie pas selon le jour ; les jours plus chargés en nombre de commandes (voir la page Ventes et paiements) ne sont pas ceux où l’on dépense le plus par commande.</p></section><section class="panel c6"><h3>ANOVA — panier selon le moyen de paiement</h3><p class="hint">5 groupes (n≥5 chacun).</p><div class="chart short"><svg viewBox="0 0 680 220" width="100%" role="img" style="display:block"><line x1="64" x2="672" y1="194.0" y2="194.0" style="stroke:var(--grid)"/><text x="58" y="198.0" text-anchor="end" font-size="11" style="fill:var(--muted)">0 €</text><line x1="64" x2="672" y1="163.3" y2="163.3" style="stroke:var(--grid)"/><text x="58" y="167.3" text-anchor="end" font-size="11" style="fill:var(--muted)">20 €</text><line x1="64" x2="672" y1="132.7" y2="132.7" style="stroke:var(--grid)"/><text x="58" y="136.7" text-anchor="end" font-size="11" style="fill:var(--muted)">40 €</text><line x1="64" x2="672" y1="102.0" y2="102.0" style="stroke:var(--grid)"/><text x="58" y="106.0" text-anchor="end" font-size="11" style="fill:var(--muted)">60 €</text><line x1="64" x2="672" y1="71.3" y2="71.3" style="stroke:var(--grid)"/><text x="58" y="75.3" text-anchor="end" font-size="11" style="fill:var(--muted)">80 €</text><line x1="64" x2="672" y1="40.7" y2="40.7" style="stroke:var(--grid)"/><text x="58" y="44.7" text-anchor="end" font-size="11" style="fill:var(--muted)">100 €</text><line x1="64" x2="672" y1="10.0" y2="10.0" style="stroke:var(--grid)"/><text x="58" y="14.0" text-anchor="end" font-size="11" style="fill:var(--muted)">120 €</text><rect x="85.9" y="97.2" width="77.8" height="96.8" rx="2" style="fill:var(--accent)"><title>Carte : 63 €</title></rect><text x="124.8" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Carte</text><rect x="207.5" y="95.2" width="77.8" height="98.8" rx="2" style="fill:var(--accent)"><title>PayPal : 64 €</title></rect><text x="246.4" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">PayPal</text><rect x="329.1" y="113.9" width="77.8" height="80.1" rx="2" style="fill:var(--accent)"><title>Bancontact : 52 €</title></rect><text x="368.0" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Bancontact</text><rect x="450.7" y="38.8" width="77.8" height="155.2" rx="2" style="fill:var(--flame)"><title>Klarna : 101 €</title></rect><text x="489.6" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Klarna</text><rect x="572.3" y="153.3" width="77.8" height="40.7" rx="2" style="fill:var(--accent)"><title>Carte (caisse) : 27 €</title></rect><text x="611.2" y="212" text-anchor="middle" font-size="11" style="fill:var(--muted)">Carte (caisse)</text></svg></div><p class="hint" style="margin-top:10px">F=4.602, p=0,0011 → <b style="color:var(--good)">significatif</b>. L’écart vient surtout de Klarna (paiement différé, souvent choisi pour de plus gros achats) et des ventes en caisse (achats rapides, panier réduit).</p></section></div><h3 style="margin:18px 0 4px 2px">Deux variables quantitatives (corrélation)</h3><div class="grid"><section class="panel c12"><h3>Corrélations</h3><p class="hint">Trois relations entre variables quantitatives, en plus du revenu par département et de Google Trends (voir les pages Clients et Externe et géo).</p><div class="tablewrap"><table><tr><th class="">Variables</th><th class="r">r</th><th class="r">p</th><th class="">Lecture</th></tr><tr><td class="">Quantité d'articles ↔ montant de la commande</td><td class="r">0.812</td><td class="r">&lt; 0,001</td><td class="">Attendu : plus d'articles, plus cher. Sert de vérification (le modèle « voit » bien la réalité).</td></tr><tr><td class="">Remise (€) ↔ montant de la commande</td><td class="r">0.268</td><td class="r">&lt; 0,001</td><td class="">Les plus grosses commandes reçoivent une remise plus élevée en valeur absolue (remises en %).</td></tr><tr><td class="">Fréquence d'achat du client ↔ panier moyen du client (n=829)</td><td class="r">0.117</td><td class="r">&lt; 0,001</td><td class="">Faible mais réel : les clients qui reviennent souvent ne dépensent pas moins par commande.</td></tr></table></div></section></div><h3 style="margin:18px 0 4px 2px">Régression multiple</h3><div class="grid"><section class="panel c12"><h3>Régression multiple — expliquer le montant d'une commande</h3><p class="hint">Modèle : montant de la commande (€) en fonction de 11 variables. n=1 433, R²=0.6757 (R² ajusté 0.6732), p du modèle &lt; 0,001. Erreurs-types robustes (HC3). VIF (colinéarité) tous inférieurs à 1,3 : aucun problème de variables redondantes.</p><div class="tablewrap"><table><tr><th class="">Variable</th><th class="r">Effet estimé</th><th class="r">p</th><th class=""></th><th class="r">VIF</th></tr><tr><td class="">Quantité d'articles</td><td class="r">+13.32 €</td><td class="r">&lt; 0,001</td><td class=""><b style="color:var(--good)">significatif</b></td><td class="r">1.06</td></tr><tr><td class="">Code promo utilisé</td><td class="r">-2.25 €</td><td class="r">0,187</td><td class=""><b style="color:var(--muted)">non significatif</b></td><td class="r">1.2</td></tr><tr><td class="">Retrait local</td><td class="r">-11.93 €</td><td class="r">&lt; 0,001</td><td class=""><b style="color:var(--good)">significatif</b></td><td class="r">1.09</td></tr><tr><td class="">Paiement PayPal</td><td class="r">-0.38 €</td><td class="r">0,776</td><td class=""><b style="color:var(--muted)">non significatif</b></td><td class="r">1.02</td></tr><tr><td class="">Paiement Klarna</td><td class="r">+11.97 €</td><td class="r">0,241</td><td class=""><b style="color:var(--muted)">non significatif</b></td><td class="r">1.02</td></tr><tr><td class="">Paiement Bancontact</td><td class="r">+1.18 €</td><td class="r">0,780</td><td class=""><b style="color:var(--muted)">non significatif</b></td><td class="r">1.17</td></tr><tr><td class="">Client récurrent</td><td class="r">+5.55 €</td><td class="r">&lt; 0,001</td><td class=""><b style="color:var(--good)">significatif</b></td><td class="r">1.25</td></tr><tr><td class="">Week-end</td><td class="r">+1.34 €</td><td class="r">0,256</td><td class=""><b style="color:var(--muted)">non significatif</b></td><td class="r">1.04</td></tr><tr><td class="">Belgique</td><td class="r">-0.34 €</td><td class="r">0,882</td><td class=""><b style="color:var(--muted)">non significatif</b></td><td class="r">1.19</td></tr><tr><td class="">Saisonnalité (sin)</td><td class="r">+0.13 €</td><td class="r">0,893</td><td class=""><b style="color:var(--muted)">non significatif</b></td><td class="r">1.08</td></tr><tr><td class="">Saisonnalité (cos)</td><td class="r">-1.35 €</td><td class="r">0,182</td><td class=""><b style="color:var(--muted)">non significatif</b></td><td class="r">1.05</td></tr></table></div><p class="hint" style="margin-top:12px"><b>Lecture :</b> à quantité d’articles, code promo, mode de livraison et fidélité comparables, seuls <b>la quantité d’articles</b> (+13,32 € par article), <b>le retrait local</b> (-11,93 €) et <b>le fait d’être client récurrent</b> (+5,55 €) ont un effet mesurable sur le montant. Le code promo, le mode de paiement, le week-end, le pays et le mois n’ont pas d’effet propre une fois les autres facteurs pris en compte.</p><p class="hint"><b>Vérification du modèle</b> (règle du cours : toujours vérifier avant de conclure) : les résidus sont fortement asymétriques (quelques grosses commandes), ce qui fragilise les p-values exactes de l’OLS. En refaisant le même modèle sur le logarithme du montant (plus robuste à cette asymétrie), les 4 variables clés restent dans le même sens et avec la même significativité (R²=0.594) : quantité +18.8&nbsp;% par article, retrait local -28.6&nbsp;%, client récurrent +7.9&nbsp;%, code promo -2.6&nbsp;% (non significatif dans les deux modèles). La conclusion tient.</p></section></div><h3 style="margin:18px 0 4px 2px">Données temporelles</h3><div class="grid"><section class="panel c12"><h3>Chiffre d'affaires par semaine (20 dernières semaines)</h3><p class="hint">Série hebdomadaire complète : 61 semaines, du 23 juin 2025 au 20 sept. 2026.</p><div class="chart"><svg viewBox="0 0 700 240" width="100%" role="img" style="display:block"><line x1="64" x2="692" y1="198.0" y2="198.0" style="stroke:var(--grid)"/><text x="58" y="202.0" text-anchor="end" font-size="11" style="fill:var(--muted)">0 €</text><line x1="64" x2="692" y1="179.2" y2="179.2" style="stroke:var(--grid)"/><text x="58" y="183.2" text-anchor="end" font-size="11" style="fill:var(--muted)">500 €</text><line x1="64" x2="692" y1="160.4" y2="160.4" style="stroke:var(--grid)"/><text x="58" y="164.4" text-anchor="end" font-size="11" style="fill:var(--muted)">1 000 €</text><line x1="64" x2="692" y1="141.6" y2="141.6" style="stroke:var(--grid)"/><text x="58" y="145.6" text-anchor="end" font-size="11" style="fill:var(--muted)">1 500 €</text><line x1="64" x2="692" y1="122.8" y2="122.8" style="stroke:var(--grid)"/><text x="58" y="126.8" text-anchor="end" font-size="11" style="fill:var(--muted)">2 000 €</text><line x1="64" x2="692" y1="104.0" y2="104.0" style="stroke:var(--grid)"/><text x="58" y="108.0" text-anchor="end" font-size="11" style="fill:var(--muted)">2 500 €</text><line x1="64" x2="692" y1="85.2" y2="85.2" style="stroke:var(--grid)"/><text x="58" y="89.2" text-anchor="end" font-size="11" style="fill:var(--muted)">3 000 €</text><line x1="64" x2="692" y1="66.4" y2="66.4" style="stroke:var(--grid)"/><text x="58" y="70.4" text-anchor="end" font-size="11" style="fill:var(--muted)">3 500 €</text><line x1="64" x2="692" y1="47.6" y2="47.6" style="stroke:var(--grid)"/><text x="58" y="51.6" text-anchor="end" font-size="11" style="fill:var(--muted)">4 000 €</text><line x1="64" x2="692" y1="28.8" y2="28.8" style="stroke:var(--grid)"/><text x="58" y="32.8" text-anchor="end" font-size="11" style="fill:var(--muted)">4 500 €</text><line x1="64" x2="692" y1="10.0" y2="10.0" style="stroke:var(--grid)"/><text x="58" y="14.0" text-anchor="end" font-size="11" style="fill:var(--muted)">5 000 €</text><rect x="69.7" y="122.0" width="20.1" height="76.0" rx="2" style="fill:var(--accent)"><title>2026-W18 : 2 020 €</title></rect><text transform="translate(79.7,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W18</text><rect x="101.1" y="136.2" width="20.1" height="61.8" rx="2" style="fill:var(--accent)"><title>2026-W19 : 1 643 €</title></rect><text transform="translate(111.1,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W19</text><rect x="132.5" y="160.6" width="20.1" height="37.4" rx="2" style="fill:var(--accent)"><title>2026-W20 : 996 €</title></rect><text transform="translate(142.5,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W20</text><rect x="163.9" y="143.0" width="20.1" height="55.0" rx="2" style="fill:var(--accent)"><title>2026-W21 : 1 462 €</title></rect><text transform="translate(173.9,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W21</text><rect x="195.3" y="135.1" width="20.1" height="62.9" rx="2" style="fill:var(--accent)"><title>2026-W22 : 1 672 €</title></rect><text transform="translate(205.3,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W22</text><rect x="226.7" y="102.7" width="20.1" height="95.3" rx="2" style="fill:var(--accent)"><title>2026-W23 : 2 535 €</title></rect><text transform="translate(236.7,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W23</text><rect x="258.1" y="180.2" width="20.1" height="17.8" rx="2" style="fill:var(--accent)"><title>2026-W24 : 474 €</title></rect><text transform="translate(268.1,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W24</text><rect x="289.5" y="147.5" width="20.1" height="50.5" rx="2" style="fill:var(--accent)"><title>2026-W26 : 1 342 €</title></rect><text transform="translate(299.5,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W26</text><rect x="320.9" y="139.3" width="20.1" height="58.7" rx="2" style="fill:var(--accent)"><title>2026-W27 : 1 562 €</title></rect><text transform="translate(330.9,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W27</text><rect x="352.3" y="151.7" width="20.1" height="46.3" rx="2" style="fill:var(--accent)"><title>2026-W28 : 1 231 €</title></rect><text transform="translate(362.3,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W28</text><rect x="383.7" y="174.5" width="20.1" height="23.5" rx="2" style="fill:var(--accent)"><title>2026-W29 : 625 €</title></rect><text transform="translate(393.7,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W29</text><rect x="415.1" y="180.4" width="20.1" height="17.6" rx="2" style="fill:var(--accent)"><title>2026-W30 : 469 €</title></rect><text transform="translate(425.1,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W30</text><rect x="446.5" y="154.3" width="20.1" height="43.7" rx="2" style="fill:var(--accent)"><title>2026-W31 : 1 162 €</title></rect><text transform="translate(456.5,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W31</text><rect x="477.9" y="189.6" width="20.1" height="8.4" rx="2" style="fill:var(--accent)"><title>2026-W32 : 224 €</title></rect><text transform="translate(487.9,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W32</text><rect x="509.3" y="177.3" width="20.1" height="20.7" rx="2" style="fill:var(--accent)"><title>2026-W33 : 551 €</title></rect><text transform="translate(519.3,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W33</text><rect x="540.7" y="195.9" width="20.1" height="2.1" rx="2" style="fill:var(--accent)"><title>2026-W34 : 55 €</title></rect><text transform="translate(550.7,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W34</text><rect x="572.1" y="185.1" width="20.1" height="12.9" rx="2" style="fill:var(--accent)"><title>2026-W35 : 344 €</title></rect><text transform="translate(582.1,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W35</text><rect x="603.5" y="18.4" width="20.1" height="179.6" rx="2" style="fill:var(--accent)"><title>2026-W36 : 4 778 €</title></rect><text transform="translate(613.5,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W36</text><rect x="634.9" y="123.9" width="20.1" height="74.1" rx="2" style="fill:var(--accent)"><title>2026-W37 : 1 972 €</title></rect><text transform="translate(644.9,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W37</text><rect x="666.3" y="45.0" width="20.1" height="153.0" rx="2" style="fill:var(--accent)"><title>2026-W38 : 4 070 €</title></rect><text transform="translate(676.3,210) rotate(-45)" text-anchor="end" font-size="11" style="fill:var(--muted)">2026-W38</text></svg></div></section><section class="panel c6"><h3>Corrélation croisée : couverture Instagram et commandes, avec décalage</h3><p class="hint">Teste si la couverture d'un mois M±k explique les commandes du mois M (k de -2 à +2 mois).</p><div class="tablewrap"><table><tr><th class="">Décalage (couverture Instagram par rapport aux commandes)</th><th class="r">r</th><th class="r">p</th><th class="r">n mois</th></tr><tr><td class="">-2 mois</td><td class="r">-0.109</td><td class="r">0,711</td><td class="r">14</td></tr><tr><td class="">-1 mois</td><td class="r">-0.41</td><td class="r">0,129</td><td class="r">15</td></tr><tr><td class="">+0 mois</td><td class="r">-0.111</td><td class="r">0,684</td><td class="r">16</td></tr><tr><td class="">+1 mois</td><td class="r">-0.308</td><td class="r">0,264</td><td class="r">15</td></tr><tr><td class="">+2 mois</td><td class="r">0.468</td><td class="r">0,091</td><td class="r">14</td></tr></table></div><p class="hint" style="margin-top:10px">Aucun décalage ne donne une corrélation significative à 5&nbsp;% (le plus proche : +2 mois, p=0,091). Sur cette période, la couverture Instagram n’explique pas le rythme des commandes, à aucun décalage testé.</p></section><section class="panel c6"><h3>Test de rupture — 1er novembre 2025</h3><p class="hint">Régression du CA hebdomadaire sur une tendance + un saut de niveau à la date.</p><p class="hint">Saut de niveau détecté : 1 936 €/semaine, p=0,013 → <b style="color:var(--good)">significatif</b>.</p><p class="hint"><b>Attention à l’interprétation</b> : le 1er novembre 2025 est à la fois la date de la hausse de prix des bougies gourmandes (+1&nbsp;€) <i>et</i> le lancement de la collection de Noël (30 nouvelles références ce jour-là, voir la page Observations). Le diff-in-diff ci-dessous permet de démêler les deux.</p></section><section class="panel c12"><h3>Diff-in-diff — l'effet propre de la hausse de prix des bougies gourmandes</h3><p class="hint">Groupe traité : bougies gourmandes (prix +1 € vers le 1er nov. 2025). Groupe témoin : fondants et bouquets de fondants (prix stable). Fenêtre : 45 jours avant/après, n=853 lignes.</p><div class="chart"><svg viewBox="0 0 700 240" width="100%" role="img" style="display:block"><line x1="64" x2="692" y1="206.0" y2="206.0" style="stroke:var(--grid)"/><text x="58" y="210.0" text-anchor="end" font-size="11" style="fill:var(--muted)">0</text><line x1="64" x2="692" y1="166.8" y2="166.8" style="stroke:var(--grid)"/><text x="58" y="170.8" text-anchor="end" font-size="11" style="fill:var(--muted)">20</text><line x1="64" x2="692" y1="127.6" y2="127.6" style="stroke:var(--grid)"/><text x="58" y="131.6" text-anchor="end" font-size="11" style="fill:var(--muted)">40</text><line x1="64" x2="692" y1="88.4" y2="88.4" style="stroke:var(--grid)"/><text x="58" y="92.4" text-anchor="end" font-size="11" style="fill:var(--muted)">60</text><line x1="64" x2="692" y1="49.2" y2="49.2" style="stroke:var(--grid)"/><text x="58" y="53.2" text-anchor="end" font-size="11" style="fill:var(--muted)">80</text><line x1="64" x2="692" y1="10.0" y2="10.0" style="stroke:var(--grid)"/><text x="58" y="14.0" text-anchor="end" font-size="11" style="fill:var(--muted)">100</text><polyline points="64.0,102.1 116.3,127.6 168.7,157.0 221.0,166.8 273.3,176.6 325.7,204.0 378.0,102.1 430.3,51.2 482.7,86.4 535.0,10.0 587.3,82.5 639.7,12.0 692.0,61.0" fill="none" style="stroke:var(--flame);stroke-width:2"/><circle cx="64.0" cy="102.1" r="2.4" style="fill:var(--flame)"><title>S38 : 53</title></circle><circle cx="116.3" cy="127.6" r="2.4" style="fill:var(--flame)"><title>S39 : 40</title></circle><circle cx="168.7" cy="157.0" r="2.4" style="fill:var(--flame)"><title>S40 : 25</title></circle><circle cx="221.0" cy="166.8" r="2.4" style="fill:var(--flame)"><title>S41 : 20</title></circle><circle cx="273.3" cy="176.6" r="2.4" style="fill:var(--flame)"><title>S42 : 15</title></circle><circle cx="325.7" cy="204.0" r="2.4" style="fill:var(--flame)"><title>S43 : 1</title></circle><circle cx="378.0" cy="102.1" r="2.4" style="fill:var(--flame)"><title>S44 : 53</title></circle><circle cx="430.3" cy="51.2" r="2.4" style="fill:var(--flame)"><title>S45 : 79</title></circle><circle cx="482.7" cy="86.4" r="2.4" style="fill:var(--flame)"><title>S46 : 61</title></circle><circle cx="535.0" cy="10.0" r="2.4" style="fill:var(--flame)"><title>S47 : 100</title></circle><circle cx="587.3" cy="82.5" r="2.4" style="fill:var(--flame)"><title>S48 : 63</title></circle><circle cx="639.7" cy="12.0" r="2.4" style="fill:var(--flame)"><title>S49 : 99</title></circle><circle cx="692.0" cy="61.0" r="2.4" style="fill:var(--flame)"><title>S50 : 74</title></circle><polyline points="64.0,168.8 116.3,164.8 168.7,174.6 221.0,168.8 273.3,200.1 325.7,206.0 378.0,145.2 430.3,172.7 482.7,168.8 535.0,137.4 587.3,176.6 639.7,133.5 692.0,147.2" fill="none" style="stroke:var(--accent);stroke-width:2"/><circle cx="64.0" cy="168.8" r="2.4" style="fill:var(--accent)"><title>S38 : 19</title></circle><circle cx="116.3" cy="164.8" r="2.4" style="fill:var(--accent)"><title>S39 : 21</title></circle><circle cx="168.7" cy="174.6" r="2.4" style="fill:var(--accent)"><title>S40 : 16</title></circle><circle cx="221.0" cy="168.8" r="2.4" style="fill:var(--accent)"><title>S41 : 19</title></circle><circle cx="273.3" cy="200.1" r="2.4" style="fill:var(--accent)"><title>S42 : 3</title></circle><circle cx="325.7" cy="206.0" r="2.4" style="fill:var(--accent)"><title>S43 : 0</title></circle><circle cx="378.0" cy="145.2" r="2.4" style="fill:var(--accent)"><title>S44 : 31</title></circle><circle cx="430.3" cy="172.7" r="2.4" style="fill:var(--accent)"><title>S45 : 17</title></circle><circle cx="482.7" cy="168.8" r="2.4" style="fill:var(--accent)"><title>S46 : 19</title></circle><circle cx="535.0" cy="137.4" r="2.4" style="fill:var(--accent)"><title>S47 : 35</title></circle><circle cx="587.3" cy="176.6" r="2.4" style="fill:var(--accent)"><title>S48 : 15</title></circle><circle cx="639.7" cy="133.5" r="2.4" style="fill:var(--accent)"><title>S49 : 37</title></circle><circle cx="692.0" cy="147.2" r="2.4" style="fill:var(--accent)"><title>S50 : 30</title></circle><text x="64.0" y="232" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">S38</text><text x="168.7" y="232" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">S40</text><text x="273.3" y="232" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">S42</text><text x="378.0" y="232" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">S44</text><text x="482.7" y="232" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">S46</text><text x="587.3" y="232" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">S48</text><text x="692.0" y="232" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">S50</text></svg></div><div class="legend" style="margin-top:8px"><span><i style="background:var(--flame)"></i>Bougies gourmandes (traité)</span><span><i style="background:var(--accent)"></i>Fondants (témoin)</span></div><p class="hint" style="margin-top:10px">Estimateur diff-in-diff (effet propre de la hausse de prix, au-delà de la tendance commune) : -0.065 article par ligne de commande, p=0,332 → <b style="color:var(--muted)">non significatif</b>.</p><p class="hint"><b>Conclusion croisée avec le test de rupture ci-dessus :</b> les deux familles progressent ensemble après le 1er novembre, et la hausse de prix n’a pas d’effet propre détectable sur les quantités vendues. Le saut de chiffre d’affaires du 1er novembre s’explique donc par le lancement de la collection de Noël, pas par la hausse de prix.</p><p class="hint"><b>Limite :</b> l’hypothèse de « tendances parallèles avant l’événement » (nécessaire pour un diff-in-diff valide) n’est pas testée formellement, faute d’assez de semaines avant le 1er novembre avec un volume stable ; le graphique permet de la juger à l’œil.</p></section></div></div>
+<details class="pli" name="exp-c"><summary>Le code</summary><div class="corps"><div class="codes"><details class="pli" name="code-b1_bivarie.py"><summary><code>b1_bivarie.py</code> · Tests du khi², tests t, analyses de variance et corrélations.</summary><div class="corps"><p class="meta">113 lignes · <a href="b1_bivarie.txt" download>télécharger le fichier</a></p><pre class="code"><code>import json
+from scipy import stats
+import numpy as np
+
+O = json.load(open('orders_prepared.json'))
+for o in O:
+    o['has_code'] = 1 if o['code'] else 0
+
+def med(a):
+    a=sorted(a); n=len(a)
+    return a[n//2] if n%2 else (a[n//2-1]+a[n//2])/2
+
+results = {}
+
+# ===== KHI2 #1 : moyen de paiement (carte/paypal) x utilisation d'un code promo
+print("=== Khi² 1 : moyen de paiement (carte/paypal) x code promo utilisé ===")
+sub = [o for o in O if o['pay'] in ('card','paypal')]
+table = [[sum(1 for o in sub if o['pay']==p and o['has_code']==c) for c in (1,0)] for p in ('card','paypal')]
+print("  table (lignes=carte/paypal, colonnes=avec code/sans code):", table)
+chi2, p, dof, exp = stats.chi2_contingency(table)
+print(f"  chi2={chi2:.3f} dof={dof} p={p:.4f}")
+n_tot = sum(sum(r) for r in table)
+cramers_v = (chi2/(n_tot*min(len(table)-1, len(table[0])-1)))**0.5
+print(f"  n={n_tot} V de Cramér={cramers_v:.3f}")
+results['khi2_paiement_code'] = {'table':table,'chi2':round(chi2,3),'dof':dof,'p':round(p,4),'n':n_tot,'v':round(cramers_v,3)}
+
+# ===== KHI2 #2 : consentement email x client récurrent
+print("\n=== Khi² 2 : consentement e-mail x client récurrent (2+ commandes) ===")
+cust_first = {}
+for o in O:
+    if o['key'] and (o['key'] not in cust_first):
+        cust_first[o['key']] = o
+rows = list(cust_first.values())
+for o in rows: o['is_recurrent'] = 1 if (o['cust_freq'] or 1) &gt;= 2 else 0
+tbl2 = [[sum(1 for o in rows if o['accepts_email']==e and o['is_recurrent']==r) for r in (1,0)] for e in ('yes','no')]
+print("  table (lignes=accepte email/n'accepte pas, colonnes=récurrent/non):", tbl2)
+chi2b, pb, dofb, _ = stats.chi2_contingency(tbl2)
+n2 = sum(sum(r) for r in tbl2)
+vb = (chi2b/(n2*min(len(tbl2)-1,len(tbl2[0])-1)))**0.5
+print(f"  chi2={chi2b:.3f} dof={dofb} p={pb:.4f} n={n2} V={vb:.3f}")
+results['khi2_email_recurrent'] = {'table':tbl2,'chi2':round(chi2b,3),'dof':dofb,'p':round(pb,4),'n':n2,'v':round(vb,3)}
+
+# ===== TEST T #1 : panier carte vs paypal
+print("\n=== Test t 1 : panier (carte vs paypal) ===")
+a = [o['tot'] for o in O if o['pay']=='card']
+b = [o['tot'] for o in O if o['pay']=='paypal']
+t,p = stats.ttest_ind(a,b,equal_var=False)
+print(f"  carte: n={len(a)} moy={np.mean(a):.2f} médiane={med(a):.2f} | paypal: n={len(b)} moy={np.mean(b):.2f} médiane={med(b):.2f}")
+print(f"  Welch t={t:.3f} p={p:.4f}")
+results['t_carte_paypal'] = {'n_a':len(a),'mean_a':round(np.mean(a),2),'med_a':round(med(a),2),
+                              'n_b':len(b),'mean_b':round(np.mean(b),2),'med_b':round(med(b),2),
+                              't':round(t,3),'p':round(p,4)}
+
+# ===== TEST T #2 : panier 1re commande vs commandes suivantes
+print("\n=== Test t 2 : panier (1re commande vs commandes suivantes) ===")
+a2 = [o['tot'] for o in O if o.get('rank')==1]
+b2 = [o['tot'] for o in O if o.get('rank') and o['rank']&gt;1]
+t2,p2 = stats.ttest_ind(a2,b2,equal_var=False)
+print(f"  1re cmd: n={len(a2)} moy={np.mean(a2):.2f} | suivantes: n={len(b2)} moy={np.mean(b2):.2f}")
+print(f"  Welch t={t2:.3f} p={p2:.6f}")
+results['t_premiere_suivante'] = {'n_a':len(a2),'mean_a':round(np.mean(a2),2),
+                                   'n_b':len(b2),'mean_b':round(np.mean(b2),2),
+                                   't':round(t2,3),'p':round(p2,6)}
+
+# ===== ANOVA #1 : panier selon jour de semaine
+print("\n=== ANOVA 1 : panier selon le jour de semaine ===")
+groups_wd = [[o['tot'] for o in O if o['weekday']==d] for d in range(7)]
+F, pF = stats.f_oneway(*groups_wd)
+ss_between = sum(len(g)*(np.mean(g)-np.mean([o['tot'] for o in O]))**2 for g in groups_wd)
+ss_total = sum((o['tot']-np.mean([o['tot'] for o in O]))**2 for o in O)
+eta2 = ss_between/ss_total
+print(f"  moyennes par jour:", [round(np.mean(g),1) for g in groups_wd])
+print(f"  F={F:.3f} p={pF:.4f} eta²={eta2:.4f}")
+results['anova_jour'] = {'means':[round(np.mean(g),2) for g in groups_wd],'ns':[len(g) for g in groups_wd],
+                          'F':round(F,3),'p':round(pF,4),'eta2':round(eta2,4)}
+
+# ===== ANOVA #2 : panier selon moyen de paiement
+print("\n=== ANOVA 2 : panier selon moyen de paiement ===")
+pays = ['card','paypal','bancontact','klarna','card_present']
+groups_pay = [[o['tot'] for o in O if o['pay']==p] for p in pays]
+groups_pay_f = [g for g in groups_pay if len(g)&gt;=5]
+F2, pF2 = stats.f_oneway(*groups_pay_f)
+print(f"  moyennes:", {p:round(np.mean(g),1) for p,g in zip(pays,groups_pay) if len(g)&gt;=5})
+print(f"  F={F2:.3f} p={pF2:.6f}")
+results['anova_paiement'] = {'labels':[p for p,g in zip(pays,groups_pay) if len(g)&gt;=5],
+                              'means':[round(np.mean(g),2) for g in groups_pay_f],'ns':[len(g) for g in groups_pay_f],
+                              'F':round(F2,3),'p':round(pF2,6)}
+
+# ===== CORRELATIONS
+print("\n=== Corrélations ===")
+qty = [o['qty'] for o in O]; tot = [o['tot'] for o in O]
+r1,p1 = stats.pearsonr(qty, tot)
+print(f"  quantité d'articles &lt;-&gt; montant: r={r1:.3f} p={p1:.2e}")
+disc = [o['disc'] for o in O]
+r2,p2b = stats.pearsonr(disc, tot)
+print(f"  remise &lt;-&gt; montant: r={r2:.3f} p={p2b:.4f}")
+# fréquence client vs panier moyen PAR client (pas par commande, pour éviter la circularité)
+by_cust = {}
+for o in O:
+    if not o['key']: continue
+    by_cust.setdefault(o['key'], []).append(o['tot'])
+freqs = [len(v) for v in by_cust.values()]
+avgbask = [np.mean(v) for v in by_cust.values()]
+r3,p3 = stats.pearsonr(freqs, avgbask)
+print(f"  fréquence d'achat &lt;-&gt; panier moyen du client: r={r3:.3f} p={p3:.4f} (n={len(freqs)})")
+results['corr'] = {
+ 'qty_tot': {'r':round(r1,3),'p':p1},
+ 'disc_tot': {'r':round(r2,3),'p':round(p2b,4)},
+ 'freq_basket': {'r':round(r3,3),'p':round(p3,4),'n':len(freqs)},
+}
+
+json.dump(results, open('b1_bivarie.json','w'), ensure_ascii=False, default=str)
+</code></pre></div></details><details class="pli" name="code-c1_regression.py"><summary><code>c1_regression.py</code> · Régression multiple : ce qui explique le montant d’une commande.</summary><div class="corps"><p class="meta">50 lignes · <a href="c1_regression.txt" download>télécharger le fichier</a></p><pre class="code"><code>import json
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+
+O = json.load(open('orders_prepared.json'))
+df = pd.DataFrame(O)
+df = df[df['pay'].notna()].copy()
+df['has_code'] = (df['code']!='').astype(int)
+df['is_local'] = (df['shipmode']=='retrait_local').astype(int)
+df['is_paypal'] = (df['pay']=='paypal').astype(int)
+df['is_klarna'] = (df['pay']=='klarna').astype(int)
+df['is_bancontact'] = (df['pay']=='bancontact').astype(int)
+df['is_repeat'] = df['is_repeat'].fillna(0).astype(int)
+df['month_num'] = pd.to_datetime(df['month']+'-01').dt.month
+df['sin_month'] = np.sin(2*np.pi*df['month_num']/12)
+df['cos_month'] = np.cos(2*np.pi*df['month_num']/12)
+df['is_weekend'] = df['is_weekend'].astype(int)
+df['is_be'] = (df['country']=='BE').astype(int)
+
+X_cols = ['qty','has_code','is_local','is_paypal','is_klarna','is_bancontact',
+          'is_repeat','is_weekend','is_be','sin_month','cos_month']
+X = df[X_cols].astype(float)
+X = sm.add_constant(X)
+y = df['tot'].astype(float)
+model = sm.OLS(y, X).fit(cov_type='HC3')
+print(model.summary())
+
+# VIF rapide (colinéarité)
+from numpy.linalg import inv
+Xc = X.drop(columns='const').values
+Xc = (Xc - Xc.mean(0))
+corr = np.corrcoef(Xc.T)
+vif = {}
+Xd = sm.add_constant(X.drop(columns='const'))
+for i,c in enumerate(X_cols):
+    others = [cc for cc in X_cols if cc!=c]
+    r2 = sm.OLS(X[c].astype(float), sm.add_constant(X[others].astype(float))).fit().rsquared
+    vif[c] = round(1/(1-r2),2) if r2&lt;0.999 else float('inf')
+print("VIF:", vif)
+
+coefs = []
+for name in X_cols:
+    coefs.append({'var':name,'coef':round(model.params[name],3),'p':round(model.pvalues[name],4),
+                   'ci_low':round(model.conf_int().loc[name,0],3),'ci_high':round(model.conf_int().loc[name,1],3),
+                   'vif': vif[name]})
+json.dump({'r2':round(model.rsquared,4),'r2_adj':round(model.rsquared_adj,4),'n':int(model.nobs),
+           'f_p': float(model.f_pvalue), 'coefs':coefs, 'const': round(model.params['const'],3),
+           'const_p': round(model.pvalues['const'],4)}, open('c1_regression.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-d1_timeseries.py"><summary><code>d1_timeseries.py</code> · Séries temporelles : corrélation croisée avec décalage et test de rupture.</summary><div class="corps"><p class="meta">80 lignes · <a href="d1_timeseries.txt" download>télécharger le fichier</a></p><pre class="code"><code>import json, csv
+from datetime import datetime, timedelta
+from collections import defaultdict
+import numpy as np
+from scipy import stats
+import statsmodels.api as sm
+
+O = json.load(open('orders_prepared.json'))
+for o in O: o['date_obj'] = datetime.fromisoformat(o['date'])
+
+start = min(o['date_obj'] for o in O).date()
+end = max(o['date_obj'] for o in O).date()
+# semaine ISO
+week_rev = defaultdict(float); week_n = defaultdict(int)
+for o in O:
+    yw = o['date_obj'].isocalendar()[:2]
+    week_rev[yw] += o['tot']; week_n[yw] += 1
+weeks = sorted(week_rev.keys())
+print(f"semaines: {len(weeks)} de {weeks[0]} à {weeks[-1]}")
+print("revenu hebdo (8 dernières):", [round(week_rev[w]) for w in weeks[-8:]])
+
+# ===== corrélation croisée Instagram (mensuel) vs commandes, avec décalage -2..+2 mois
+ig = []
+with open('../DONNEES/instagram_publications.csv', encoding='utf-8') as f:
+    for row in csv.DictReader(f):
+        d = row['Heure de publication']
+        m,dd,yy = d[0:2], d[3:5], d[6:10]
+        reach = int(row['Couverture'] or 0)
+        ig.append((f"{yy}-{m}", reach))
+ig_month = defaultdict(int)
+for m,r in ig: ig_month[m] += r
+mo_orders = defaultdict(int)
+for o in O: mo_orders[o['month']] += 1
+months = sorted(mo_orders.keys())
+print("\n=== Corrélation croisée Instagram (couverture) &lt;-&gt; commandes, décalage en mois ===")
+xcorr = {}
+for lag in (-2,-1,0,1,2):
+    pairs = []
+    for i,m in enumerate(months):
+        j = i - lag  # reach du mois (m - lag) prédit commandes du mois m si lag&gt;0 (reach en avance)
+        if 0 &lt;= j &lt; len(months):
+            src_m = months[j]
+            if src_m in ig_month:
+                pairs.append((ig_month[src_m], mo_orders[m]))
+    if len(pairs) &gt;= 5:
+        xs = [p[0] for p in pairs]; ys=[p[1] for p in pairs]
+        r,p = stats.pearsonr(xs, ys)
+        xcorr[lag] = {'r': round(r,3), 'p': round(p,4), 'n': len(pairs)}
+        print(f"  décalage {lag:+d} mois : r={r:.3f} p={p:.4f} (n={len(pairs)})")
+best_lag = max(xcorr, key=lambda k: abs(xcorr[k]['r']))
+print(f"  -&gt; meilleure corrélation (en valeur absolue) : décalage {best_lag:+d} mois, r={xcorr[best_lag]['r']}")
+
+# ===== test de rupture : hausse du prix des bougies gourmandes (~1er nov 2025)
+print("\n=== Test de rupture : chiffre d'affaires hebdomadaire autour du 1er nov. 2025 ===")
+EVENT = datetime(2025,11,1).date()
+def week_key(d): return d.isocalendar()[:2]
+def week_start(yw):
+    y,w = yw
+    return datetime.fromisocalendar(y,w,1).date()
+
+rows = []
+for w in weeks:
+    ws = week_start(w)
+    t = (ws - start).days
+    rows.append({'w':w,'ws':ws,'t':t,'rev':week_rev[w],'n':week_n[w],'post': 1 if ws&gt;=EVENT else 0})
+df_rows = rows
+X = np.array([[1, r['t'], r['post'], r['t']*r['post']] for r in df_rows])
+y = np.array([r['rev'] for r in df_rows])
+m = sm.OLS(y, X).fit(cov_type='HC3')
+print(m.summary().tables[1])
+level_shift = m.params[2]; p_shift = m.pvalues[2]
+print(f"Saut de niveau au 1er nov. 2025 : {level_shift:+.1f} €/semaine (p={p_shift:.4f})")
+break_res = {'level_shift': round(level_shift,1), 'p_shift': round(p_shift,4),
+             'slope_before': round(m.params[1],2), 'slope_change': round(m.params[3],2), 'p_slope_change': round(m.pvalues[3],4)}
+
+json.dump({'weeks': [f"{w[0]}-W{w[1]:02d}" for w in weeks], 'week_rev':[round(week_rev[w],2) for w in weeks],
+           'week_n':[week_n[w] for w in weeks],
+           'xcorr': xcorr, 'best_lag': best_lag, 'break_test': break_res},
+          open('d1_timeseries.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-d2_diffindiff.py"><summary><code>d2_diffindiff.py</code> · Différence de différences : effet propre de la hausse de prix des bougies gourmandes.</summary><div class="corps"><p class="meta">72 lignes · <a href="d2_diffindiff.txt" download>télécharger le fichier</a></p><pre class="code"><code>import json, csv
+from datetime import datetime
+from collections import defaultdict
+import numpy as np
+import statsmodels.api as sm
+
+orders = []
+with open('../DONNEES/orders.csv', encoding='utf-8') as f:
+    r = csv.DictReader(f)
+    cur = None
+    for row in r:
+        if row['Total']:
+            cur = {'r': row, 'items': []}
+            orders.append(cur)
+        if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+
+EVENT = datetime(2025,11,1).date()
+WINDOW_DAYS = 45  # fenêtre symétrique autour de l'événement
+
+def fam(name):
+    if name.startswith('BOUGIE GOURMANDE'): return 'treated'   # +1€ vers le 1er nov. 2025
+    if name.startswith('FONDANT') or name.startswith('BOX DE FONDANTS') or name.startswith('BOUQUET DE FONDANTS') or name.startswith('TABLETTE'):
+        return 'control'  # prix stable sur la période
+    return None
+
+rows = []
+for o in orders:
+    dt = datetime.strptime(o['r']['Created at'][:10], "%Y-%m-%d").date()
+    if abs((dt-EVENT).days) &gt; WINDOW_DAYS: continue
+    post = 1 if dt &gt;= EVENT else 0
+    for i in o['items']:
+        n = i['Lineitem name']
+        if not n or n=='Tip': continue
+        f = fam(n)
+        if f is None: continue
+        rows.append({'date':dt, 'post':post, 'treated':1 if f=='treated' else 0,
+                     'qty': int(i['Lineitem quantity'])})
+
+print(f"lignes dans la fenêtre de {WINDOW_DAYS}j autour du 1er nov. 2025: {len(rows)}")
+# agrégation par semaine x groupe pour le graphique
+week_agg = defaultdict(lambda: {'treated':0,'control':0})
+for r in rows:
+    wk = r['date'].isocalendar()[:2]
+    key = 'treated' if r['treated'] else 'control'
+    week_agg[wk][key] += r['qty']
+weeks = sorted(week_agg.keys())
+print("par semaine (traité / témoin):")
+for w in weeks:
+    print(f"  {w}: {week_agg[w]['treated']:4d} / {week_agg[w]['control']:4d}")
+
+# régression DiD au niveau ligne (comptage -&gt; on utilise OLS sur qty, HC3 ; Poisson en robustesse)
+X = np.array([[1, r['treated'], r['post'], r['treated']*r['post']] for r in rows], dtype=float)
+y = np.array([r['qty'] for r in rows], dtype=float)
+m = sm.OLS(y, X).fit(cov_type='HC3')
+print(m.summary().tables[1])
+did = m.params[3]; p_did = m.pvalues[3]
+print(f"Estimateur DiD (effet propre de la hausse de prix) : {did:+.4f} article/ligne (p={p_did:.4f})")
+
+# vérification tendances parallèles : pente avant l'événement, par groupe (test simple)
+before = [r for r in rows if r['post']==0]
+tr_before = sum(1 for r in before if r['treated'])
+ct_before = sum(1 for r in before if not r['treated'])
+print(f"lignes avant l'événement : traité={tr_before} témoin={ct_before}")
+
+json.dump({'weeks': [f"{w[0]}-W{w[1]:02d}" for w in weeks],
+           'treated': [week_agg[w]['treated'] for w in weeks],
+           'control': [week_agg[w]['control'] for w in weeks],
+           'did': round(did,4), 'p_did': round(p_did,4), 'n': len(rows),
+           'coef_treated': round(m.params[1],4), 'coef_post': round(m.params[2],4)},
+          open('d2_diffindiff.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-e1_rentree_explication.py"><summary><code>e1_rentree_explication.py</code> · Explication du chiffre d’affaires de septembre 2026 ; fidélité des acheteurs de lancement.</summary><div class="corps"><p class="meta">88 lignes · <a href="e1_rentree_explication.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Explique la hausse de CA de septembre 2026 vs septembre 2025, et teste si les
+acheteurs des jours de lancement deviennent des clients fidèles."""
+import csv
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+from scipy.stats import poisson
+import numpy as np
+
+orders = []
+cur = None
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total']:
+        cur = {'r': row, 'items': []}
+        orders.append(cur)
+    if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['d'] = o['r']['Created at'][:10]
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+
+byday = defaultdict(float)
+for o in orders: byday[o['d']] += o['tot']
+
+d25 = [byday.get(f'2025-09-{d:02d}', 0.0) for d in range(1, 21)]
+d26 = [byday.get(f'2026-09-{d:02d}', 0.0) for d in range(1, 21)]
+t, p = stats.ttest_rel(d26, d25)
+d26_ex = [byday.get(f'2026-09-{d:02d}', 0.0) for d in range(1, 21) if d not in (6, 20)]
+d25_ex = [byday.get(f'2025-09-{d:02d}', 0.0) for d in range(1, 21) if d not in (6, 20)]
+t2, p2 = stats.ttest_rel(d26_ex, d25_ex)
+surplus_total = sum(d26) - sum(d25)
+surplus_hors = sum(d26_ex) - sum(d25_ex)
+part_2jours = (surplus_total - surplus_hors) / surplus_total * 100
+
+n_other = [sum(1 for o in orders if o['d'] == f'2026-09-{d:02d}') for d in range(1, 21) if d != 6]
+mean_n = float(np.mean(n_other))
+n6 = sum(1 for o in orders if o['d'] == '2026-09-06')
+p_extreme = 1 - poisson.cdf(n6 - 1, mean_n)
+
+# fidélité des acheteurs des jours de lancement
+LAUNCH_DAYS = {'2025-09-07', '2025-11-01', '2026-09-06', '2026-09-20'}
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o: o['d'])
+
+REF = datetime(2026, 9, 21)
+rows_all, rows_90j = [], []
+for k, os_ in cust.items():
+    first = os_[0]
+    is_launch = 1 if first['d'] in LAUNCH_DAYS else 0
+    is_repeat = 1 if len(os_) &gt;= 2 else 0
+    rows_all.append((is_launch, is_repeat))
+    if (REF - datetime.strptime(first['d'], '%Y-%m-%d')).days &gt;= 90:
+        rows_90j.append((is_launch, is_repeat))
+
+def khi2(rows):
+    tbl = [[sum(1 for l, r in rows if l == L and r == R) for R in (1, 0)] for L in (1, 0)]
+    chi2, p_, dof, _ = stats.chi2_contingency(tbl)
+    n = sum(sum(r) for r in tbl)
+    rl = tbl[0][0] / (tbl[0][0] + tbl[0][1]) if (tbl[0][0] + tbl[0][1]) else None
+    ro = tbl[1][0] / (tbl[1][0] + tbl[1][1])
+    return {'table': tbl, 'chi2': round(chi2, 3), 'p': round(p_, 4), 'n': n,
+            'reachat_launch': round(rl * 100, 1) if rl is not None else None,
+            'reachat_autre': round(ro * 100, 1), 'n_launch': tbl[0][0] + tbl[0][1]}
+
+res_all = khi2(rows_all)
+res_90j = khi2(rows_90j)
+
+print(f"Sept 2025 (1-20): {sum(d25):.0f} EUR | Sept 2026 (1-20): {sum(d26):.0f} EUR | surplus: {surplus_total:.0f} EUR")
+print(f"Sans le 6 et le 20 sept 2026 : sept25={sum(d25_ex):.0f} sept26={sum(d26_ex):.0f} -&gt; {'hausse' if surplus_hors&gt;0 else 'BAISSE'} de {surplus_hors:.0f} EUR")
+print(f"Part du surplus total venant de ces 2 jours : {part_2jours:.1f}%")
+print(f"6 sept 2026 : {n6} commandes vs rythme moyen {mean_n:.1f}/jour -&gt; p(Poisson)={p_extreme:.2e}")
+print("Fidélité (tous) :", res_all)
+print("Fidélité (&gt;=90j de recul) :", res_90j)
+
+import json
+json.dump({
+    'sept25_total': round(sum(d25), 2), 'sept26_total': round(sum(d26), 2),
+    'sept25_hors2j': round(sum(d25_ex), 2), 'sept26_hors2j': round(sum(d26_ex), 2),
+    'surplus_total': round(surplus_total, 2), 'surplus_hors2j': round(surplus_hors, 2),
+    'part_2jours_pct': round(part_2jours, 1),
+    'n6': n6, 'mean_n_other': round(mean_n, 2), 'p_poisson': p_extreme,
+    'fidelite_tous': res_all, 'fidelite_90j': res_90j,
+}, open('./e1_rentree_explication.json', 'w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-f1_launch_deep.py"><summary><code>f1_launch_deep.py</code> · Fidélité des acheteurs de lancement, sur les lancements ayant assez de recul.</summary><div class="corps"><p class="meta">94 lignes · <a href="f1_launch_deep.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Approfondit le test 'acheteurs de lancement' : au lieu d'un oui/non de réachat,
+on regarde (a) uniquement les lancements matures (assez de recul), et (b) pour ceux
+qui reviennent, leur fréquence et leur valeur par rapport aux clients organiques."""
+import csv, json
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+import numpy as np
+
+orders = []
+cur = None
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total']:
+        cur = {'r': row, 'items': []}; orders.append(cur)
+    if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['d'] = o['r']['Created at'][:10]
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o: o['d'])
+
+REF = datetime(2026, 9, 21)
+MATURE_LAUNCHES = {'2025-09-07', '2025-11-01'}   # &gt;= 10 mois de recul : fiable pour juger la fidélité
+RECENT_LAUNCHES = {'2026-09-06', '2026-09-20'}
+
+def build(keys_first_date_filter):
+    launch, organic = [], []
+    for k, os_ in cust.items():
+        first = os_[0]
+        if keys_first_date_filter(first['d']):
+            launch.append(os_)
+        else:
+            organic.append(os_)
+    return launch, organic
+
+# ---- 1) UNIQUEMENT les lancements matures (&gt;=10 mois de recul), comparés aux clients "organiques" ayant le même recul minimum
+launch_m, organic_m = [], []
+for k, os_ in cust.items():
+    first = os_[0]
+    recul = (REF - datetime.strptime(first['d'], '%Y-%m-%d')).days
+    if recul &lt; 300:  # &gt;= ~10 mois, comparable au recul des lancements matures
+        continue
+    if first['d'] in MATURE_LAUNCHES:
+        launch_m.append(os_)
+    elif first['d'] not in MATURE_LAUNCHES | RECENT_LAUNCHES:
+        organic_m.append(os_)
+
+rep_launch_m = sum(1 for os_ in launch_m if len(os_) &gt;= 2)
+rep_organic_m = sum(1 for os_ in organic_m if len(os_) &gt;= 2)
+tbl = [[rep_launch_m, len(launch_m)-rep_launch_m], [rep_organic_m, len(organic_m)-rep_organic_m]]
+chi2, p, dof, _ = stats.chi2_contingency(tbl)
+print(f"=== Lancements MATURES seuls (recul &gt;= 300j, n_launch={len(launch_m)}, n_organic={len(organic_m)}) ===")
+print(f"  réachat lancement: {rep_launch_m}/{len(launch_m)} = {rep_launch_m/len(launch_m)*100:.1f}%")
+print(f"  réachat organique: {rep_organic_m}/{len(organic_m)} = {rep_organic_m/len(organic_m)*100:.1f}%")
+print(f"  chi2={chi2:.3f} p={p:.4f}")
+
+# ---- 2) Pour ceux qui REVIENNENT : fréquence totale et valeur totale, lancement vs organique (même filtre de recul)
+freq_launch = [len(os_) for os_ in launch_m if len(os_) &gt;= 2]
+freq_organic = [len(os_) for os_ in organic_m if len(os_) &gt;= 2]
+mon_launch = [sum(o['tot'] for o in os_) for os_ in launch_m if len(os_) &gt;= 2]
+mon_organic = [sum(o['tot'] for o in os_) for os_ in organic_m if len(os_) &gt;= 2]
+print(f"\n=== Parmi ceux qui reviennent (recul &gt;= 300j) : fréquence et valeur totale ===")
+if len(freq_launch) &gt;= 5:
+    u, pu = stats.mannwhitneyu(freq_launch, freq_organic, alternative='two-sided')
+    print(f"  fréquence (nb commandes total) -- lancement: n={len(freq_launch)} médiane={np.median(freq_launch):.0f} moyenne={np.mean(freq_launch):.2f} | organique: n={len(freq_organic)} médiane={np.median(freq_organic):.0f} moyenne={np.mean(freq_organic):.2f}")
+    print(f"  Mann-Whitney U={u:.1f} p={pu:.4f}")
+    tm, pm = stats.ttest_ind(mon_launch, mon_organic, equal_var=False)
+    print(f"  valeur totale -- lancement: moyenne={np.mean(mon_launch):.2f}€ | organique: moyenne={np.mean(mon_organic):.2f}€")
+    print(f"  Welch t={tm:.3f} p={pm:.4f}")
+else:
+    u=pu=tm=pm=None
+    print(f"  Trop peu de clients de lancement revenus avec ce recul (n={len(freq_launch)}) pour un test fiable.")
+
+json.dump({
+ 'mature': {'n_launch': len(launch_m), 'n_organic': len(organic_m),
+            'rep_launch': rep_launch_m, 'rep_organic': rep_organic_m,
+            'rate_launch': round(rep_launch_m/len(launch_m)*100,1), 'rate_organic': round(rep_organic_m/len(organic_m)*100,1),
+            'chi2': round(chi2,3), 'p': round(p,4)},
+ 'among_returners': None if len(freq_launch)&lt;5 else {
+   'n_launch': len(freq_launch), 'n_organic': len(freq_organic),
+   'freq_med_launch': float(np.median(freq_launch)), 'freq_med_organic': float(np.median(freq_organic)),
+   'freq_mean_launch': round(float(np.mean(freq_launch)),2), 'freq_mean_organic': round(float(np.mean(freq_organic)),2),
+   'mannwhitney_u': round(float(u),1), 'mannwhitney_p': round(float(pu),4),
+   'mon_mean_launch': round(float(np.mean(mon_launch)),2), 'mon_mean_organic': round(float(np.mean(mon_organic)),2),
+   'welch_t': round(float(tm),3), 'welch_p': round(float(pm),4),
+ }
+}, open('f1_launch_deep.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-f2_concentration.py"><summary><code>f2_concentration.py</code> · La concentration du chiffre d’affaires sur les jours de lancement : cas isolé ou systématique ?</summary><div class="corps"><p class="meta">42 lignes · <a href="f2_concentration.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Généralise le constat de septembre 2026 : la concentration du CA sur les jours de
+lancement est-elle systématique à chaque sortie de collection, ou un cas isolé ?"""
+import csv, json
+from collections import defaultdict
+from datetime import datetime, timedelta
+
+orders = []
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total'] and not row.get('Cancelled at'):
+        orders.append(row)
+byday = defaultdict(float)
+byday_n = defaultdict(int)
+for o in orders:
+    d = o['Created at'][:10]
+    byday[d] += float(o['Total'])
+    byday_n[d] += 1
+
+LAUNCHES = ['2025-09-07', '2025-11-01', '2026-09-06', '2026-09-20']
+WINDOW = 30  # mois calendaire (fenêtre glissante autour du lancement, +/- 15j)
+
+results = []
+for L in LAUNCHES:
+    Ld = datetime.strptime(L, '%Y-%m-%d')
+    start = Ld - timedelta(days=15)
+    end = Ld + timedelta(days=14)
+    days = [(start + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(30)]
+    window_ca = sum(byday.get(d, 0.0) for d in days)
+    launch_ca = byday.get(L, 0.0)
+    window_n = sum(byday_n.get(d, 0) for d in days)
+    launch_n = byday_n.get(L, 0)
+    part_ca = launch_ca / window_ca * 100 if window_ca else 0
+    part_n = launch_n / window_n * 100 if window_n else 0
+    results.append({'launch': L, 'window_ca': round(window_ca,2), 'launch_ca': round(launch_ca,2),
+                     'part_ca_pct': round(part_ca,1), 'window_n': window_n, 'launch_n': launch_n,
+                     'part_n_pct': round(part_n,1)})
+    print(f"{L}: CA du jour={launch_ca:.0f}€ sur {window_ca:.0f}€ en 30j ({part_ca:.1f}%) | {launch_n} cmd sur {window_n} ({part_n:.1f}%)")
+
+avg_part = sum(r['part_ca_pct'] for r in results) / len(results)
+print(f"\nMoyenne : le jour de lancement pèse {avg_part:.1f}% du CA des 30 jours autour de lui, sur les {len(LAUNCHES)} lancements documentés.")
+json.dump({'results': results, 'avg_part_ca_pct': round(avg_part,1)}, open('f2_concentration.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-f3_multifamille.py"><summary><code>f3_multifamille.py</code> · Acheter plusieurs familles de produits fait-il grossir le panier ?</summary><div class="corps"><p class="meta">64 lignes · <a href="f3_multifamille.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Approfondit l'ANOVA panier x famille : teste si acheter plusieurs familles de
+produits dans la même commande (vente croisée) fait vraiment grossir le panier,
+au-delà du simple effet 'les bougies coûtent plus cher'."""
+import csv, json
+from collections import defaultdict
+from scipy import stats
+import numpy as np
+
+orders = []
+cur = None
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total']:
+        cur = {'r': row, 'items': []}; orders.append(cur)
+    if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+
+def fam(name):
+    if name.startswith('BOUGIE GOURMANDE'): return 'Bougies gourmandes'
+    if name.startswith(('BOUGIE SIGNATURE','BOUGIE FANTAISIE','BOUGIE PARFUMEE','BOUGIE AMBASSADRICE')): return 'Autres bougies'
+    if name.startswith('ELIXIR'): return 'Élixirs'
+    if name.startswith(('FONDANT','BOX DE FONDANTS','BOUQUET DE FONDANTS','TABLETTE')): return 'Fondants'
+    if name.startswith(('BRULE-PARFUM','DIFFUSEUR','SUSPENSION','COUPELLE','ETEIGNOIR','POT ')): return 'Accessoires'
+    if name.startswith('POUDRE'): return 'Poudre'
+    if 'Pack' in name or 'Consulting' in name or name.startswith('Réglementation'): return 'Formation'
+    return None
+
+rows = []
+for o in orders:
+    fams = set()
+    for i in o['items']:
+        n_ = i['Lineitem name']
+        if not n_ or n_ == 'Tip': continue
+        f = fam(n_)
+        if f: fams.add(f)
+    if not fams: continue
+    rows.append({'nfam': len(fams), 'tot': float(o['r']['Total'])})
+
+groups = defaultdict(list)
+for r in rows:
+    k = min(r['nfam'], 4)  # 4 = "4 et plus"
+    groups[k].append(r['tot'])
+for k in sorted(groups):
+    lbl = f"{k} famille{'s' if k&gt;1 else ''}" + (" et plus" if k==4 else "")
+    print(f"  {lbl}: n={len(groups[k])} panier_moyen={np.mean(groups[k]):.2f} médiane={np.median(groups[k]):.2f}")
+
+nfam = [r['nfam'] for r in rows]
+tot = [r['tot'] for r in rows]
+r_corr, p_corr = stats.pearsonr(nfam, tot)
+print(f"\nCorrélation nb de familles distinctes &lt;-&gt; montant de la commande : r={r_corr:.3f} p={p_corr:.2e} (n={len(rows)})")
+
+g1 = groups[1]; g2plus = [x for k in groups if k&gt;=2 for x in groups[k]]
+t, p = stats.ttest_ind(g2plus, g1, equal_var=False)
+print(f"1 seule famille (n={len(g1)}, moy={np.mean(g1):.2f}€) vs 2+ familles (n={len(g2plus)}, moy={np.mean(g2plus):.2f}€) : Welch t={t:.3f} p={p:.4f}")
+print(f"écart : +{np.mean(g2plus)-np.mean(g1):.2f} € en moyenne quand la commande mélange au moins 2 familles")
+
+json.dump({
+ 'by_nfam': {str(k): {'n': len(v), 'mean': round(np.mean(v),2), 'median': round(np.median(v),2)} for k,v in groups.items()},
+ 'corr_r': round(r_corr,3), 'corr_p': p_corr,
+ 'g1_mean': round(np.mean(g1),2), 'g2plus_mean': round(np.mean(g2plus),2),
+ 'g1_n': len(g1), 'g2plus_n': len(g2plus),
+ 't': round(t,3), 'p': round(p,4),
+}, open('f3_multifamille.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-f4_seuil_livraison.py"><summary><code>f4_seuil_livraison.py</code> · Effet de seuil à 79 € : commandes juste sous et juste au-dessus du seuil de livraison offerte.</summary><div class="corps"><p class="meta">66 lignes · <a href="f4_seuil_livraison.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Teste formellement l'hypothèse d'un effet de seuil à 79€ de livraison gratuite :
+si des clients complètent leur panier pour l'atteindre, on doit voir moins de
+commandes juste EN DESSOUS de 79€ que juste AU-DESSUS (discontinuité de densité),
+et le mode de règlement des frais de port doit basculer net à 79€."""
+import csv, json
+from collections import defaultdict
+from scipy import stats
+import numpy as np
+
+orders = []
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total'] and not row.get('Cancelled at'):
+        orders.append(row)
+
+fr = [o for o in orders if (o['Shipping Country'] or o['Billing Country']) == 'FR'
+      and (o['Shipping Method'] or '').strip() and ('Mondial' in o['Shipping Method'] or 'Chronopost' in o['Shipping Method'])]
+subs = [float(o['Subtotal']) for o in fr]
+print(f"commandes FR en relais (Mondial Relay/Chronopost, seuil de gratuité applicable): n={len(fr)}")
+
+# 1) vérifier où bascule réellement la gratuité (déjà vu : 79€ dans les frais)
+ship_by_band = defaultdict(list)
+for o in fr:
+    s = float(o['Subtotal'])
+    band = int(s // 2) * 2
+    ship_by_band[band].append(float(o['Shipping']))
+print("frais de port moyens autour de 79€ (tranches de 2€) :")
+for b in range(70, 90, 2):
+    v = ship_by_band.get(b, [])
+    if v: print(f"  [{b}-{b+2}) n={len(v)} frais_moyen={np.mean(v):.2f}")
+
+# 2) test de discontinuité de densité (McCrary simplifié) : compare le nb de commandes juste sous vs juste au-dessus de 79
+for bw in (5, 8, 10):
+    below = sum(1 for s in subs if 79-bw &lt;= s &lt; 79)
+    above = sum(1 for s in subs if 79 &lt;= s &lt; 79+bw)
+    # test binomial : sous H0 (pas de discontinuité), on attend autant des deux côtés
+    n = below + above
+    bt = stats.binomtest(below, n, 0.5)
+    print(f"bande ±{bw}€ autour de 79€ : en dessous={below} au-dessus={above} (total={n}) -&gt; test binomial p={bt.pvalue:.4f}")
+
+# 3) comparer avec un faux seuil (69€, où il ne devrait rien se passer) pour vérifier que ce n'est pas un artefact général de la distribution des prix
+for fake in (69, 89, 59):
+    for bw in (8,):
+        below = sum(1 for s in subs if fake-bw &lt;= s &lt; fake)
+        above = sum(1 for s in subs if fake &lt;= s &lt; fake+bw)
+        n = below+above
+        bt = stats.binomtest(below, n, 0.5)
+        print(f"[témoin] seuil fictif {fake}€ ±{bw}€ : en dessous={below} au-dessus={above} -&gt; p={bt.pvalue:.4f}")
+
+# 4) répartition fine 60-100 pour graphique
+bins = list(range(55, 105, 3))
+hist = []
+for i in range(len(bins)-1):
+    c = sum(1 for s in subs if bins[i] &lt;= s &lt; bins[i+1])
+    hist.append({'lo': bins[i], 'hi': bins[i+1], 'n': c})
+
+below8 = sum(1 for s in subs if 71 &lt;= s &lt; 79); above8 = sum(1 for s in subs if 79 &lt;= s &lt; 87)
+bt_main = stats.binomtest(below8, below8+above8, 0.5)
+
+json.dump({
+ 'n_fr_relais': len(fr),
+ 'hist': hist,
+ 'below8': below8, 'above8': above8, 'p_main': round(bt_main.pvalue,4),
+ 'shipping_by_band': {str(k): round(np.mean(v),2) for k,v in sorted(ship_by_band.items()) if 60&lt;=k&lt;=100},
+}, open('f4_seuil_livraison.json','w'), ensure_ascii=False)
+</code></pre></div></details><details class="pli" name="code-f5_local_et_premier_panier.py"><summary><code>f5_local_et_premier_panier.py</code> · Le retrait local fidélise-t-il ? La taille de la 1re commande prédit-elle le retour ?</summary><div class="corps"><p class="meta">103 lignes · <a href="f5_local_et_premier_panier.txt" download>télécharger le fichier</a></p><pre class="code"><code># encoding: utf-8
+"""Deux tests supplémentaires : (A) le retrait local favorise-t-il la fidélité ?
+(B) la taille de la 1re commande prédit-elle le réachat ?"""
+import csv, json, re
+from datetime import datetime
+from collections import defaultdict
+from scipy import stats
+import numpy as np
+
+orders = []
+cur = None
+for row in csv.DictReader(open('../DONNEES/orders.csv', encoding='utf-8')):
+    if row['Total']:
+        cur = {'r': row, 'items': []}; orders.append(cur)
+    if cur: cur['items'].append(row)
+orders = [o for o in orders if not o['r'].get('Cancelled at')]
+for o in orders:
+    o['d'] = o['r']['Created at'][:10]
+    o['tot'] = float(o['r']['Total'])
+    o['key'] = o['r']['customer_key'].strip()
+    sm = o['r']['Shipping Method'] or ''
+    o['is_local'] = 1 if re.match(r'^\d|otissement', sm) else 0
+    o['qty'] = sum(int(i['Lineitem quantity']) for i in o['items'] if i['Lineitem name'] and i['Lineitem name'] != 'Tip')
+
+cust = defaultdict(list)
+for o in orders:
+    if o['key']: cust[o['key']].append(o)
+for v in cust.values(): v.sort(key=lambda o: o['d'])
+
+REF = datetime(2026, 9, 21)
+
+# ================= A) retrait local x fidélité (au 1er achat local vs pas local, avec recul &gt;= 90j pour comparer équitablement)
+rows = []
+for k, os_ in cust.items():
+    first = os_[0]
+    recul = (REF - datetime.strptime(first['d'], '%Y-%m-%d')).days
+    if recul &lt; 90: continue
+    rows.append((first['is_local'], 1 if len(os_) &gt;= 2 else 0))
+tbl = [[sum(1 for l, r in rows if l == L and r == R) for R in (1, 0)] for L in (1, 0)]
+chi2, p, dof, _ = stats.chi2_contingency(tbl)
+n = sum(sum(r) for r in tbl)
+rl = tbl[0][0] / (tbl[0][0] + tbl[0][1]); ro = tbl[1][0] / (tbl[1][0] + tbl[1][1])
+print(f"=== Retrait local (1re commande) x fidélité (recul &gt;= 90j, n={n}) ===")
+print(f"  table: {tbl}")
+print(f"  réachat local: {rl*100:.1f}% (n={tbl[0][0]+tbl[0][1]}) | réachat non-local: {ro*100:.1f}% (n={tbl[1][0]+tbl[1][1]})")
+print(f"  chi2={chi2:.3f} p={p:.4f}")
+
+# nb de commandes moyen (fréquence) chez les clients locaux vs non-locaux, parmi les récurrents
+freq_local = [len(os_) for os_ in cust.values() if os_[0]['is_local'] and len(os_) &gt;= 2]
+freq_nonlocal = [len(os_) for os_ in cust.values() if not os_[0]['is_local'] and len(os_) &gt;= 2]
+if len(freq_local) &gt;= 5:
+    u, pu = stats.mannwhitneyu(freq_local, freq_nonlocal, alternative='two-sided')
+    print(f"  parmi les récurrents : fréquence locale médiane={np.median(freq_local):.0f} (n={len(freq_local)}) vs non-locale médiane={np.median(freq_nonlocal):.0f} (n={len(freq_nonlocal)}) -&gt; Mann-Whitney p={pu:.4f}")
+else:
+    u=pu=None
+
+# ================= B) taille de la 1re commande (qty et montant) x devient récurrent
+rows2 = []
+for k, os_ in cust.items():
+    first = os_[0]
+    recul = (REF - datetime.strptime(first['d'], '%Y-%m-%d')).days
+    if recul &lt; 90: continue
+    rows2.append({'qty': first['qty'], 'tot': first['tot'], 'repeat': 1 if len(os_) &gt;= 2 else 0})
+
+q_rep = [r['qty'] for r in rows2 if r['repeat']]
+q_norep = [r['qty'] for r in rows2 if not r['repeat']]
+u2, pu2 = stats.mannwhitneyu(q_rep, q_norep, alternative='two-sided')
+print(f"\n=== Taille (qté) de la 1re commande x devient récurrent (recul &gt;= 90j, n={len(rows2)}) ===")
+print(f"  qté médiane -- devient récurrent: {np.median(q_rep):.0f} (moy {np.mean(q_rep):.2f}, n={len(q_rep)}) | reste à 1 commande: {np.median(q_norep):.0f} (moy {np.mean(q_norep):.2f}, n={len(q_norep)})")
+print(f"  Mann-Whitney U={u2:.1f} p={pu2:.4f}")
+
+t_rep = [r['tot'] for r in rows2 if r['repeat']]
+t_norep = [r['tot'] for r in rows2 if not r['repeat']]
+t3, p3 = stats.ttest_ind(t_rep, t_norep, equal_var=False)
+print(f"  montant moyen -- devient récurrent: {np.mean(t_rep):.2f}€ | reste à 1 commande: {np.mean(t_norep):.2f}€ -&gt; Welch t={t3:.3f} p={p3:.4f}")
+
+# régression logistique simple : qty et tot de la 1re commande prédisent-ils le réachat (contrôlés l'un pour l'autre) ?
+import statsmodels.api as sm
+X = sm.add_constant(np.array([[r['qty'], r['tot']] for r in rows2], dtype=float))
+y = np.array([r['repeat'] for r in rows2], dtype=float)
+logit = sm.Logit(y, X).fit(disp=0)
+print(f"\nRégression logistique (réachat ~ qté 1re cmd + montant 1re cmd) :")
+print(logit.summary())
+
+json.dump({
+ 'local': {'table': tbl, 'chi2': round(chi2,3), 'p': round(p,4), 'n': n,
+           'rate_local': round(rl*100,1), 'rate_nonlocal': round(ro*100,1),
+           'n_local': tbl[0][0]+tbl[0][1], 'n_nonlocal': tbl[1][0]+tbl[1][1],
+           'freq_med_local': (float(np.median(freq_local)) if freq_local else None),
+           'freq_med_nonlocal': (float(np.median(freq_nonlocal)) if freq_nonlocal else None),
+           'freq_p': (round(float(pu),4) if pu is not None else None)},
+ 'first_order_size': {'n': len(rows2),
+   'q_med_rep': float(np.median(q_rep)), 'q_med_norep': float(np.median(q_norep)),
+   'q_mean_rep': round(float(np.mean(q_rep)),2), 'q_mean_norep': round(float(np.mean(q_norep)),2),
+   'mw_p': round(float(pu2),4),
+   't_mean_rep': round(float(np.mean(t_rep)),2), 't_mean_norep': round(float(np.mean(t_norep)),2),
+   'welch_p': round(float(p3),4),
+   'logit_coef_qty': round(float(logit.params[1]),4), 'logit_p_qty': round(float(logit.pvalues[1]),4),
+   'logit_coef_tot': round(float(logit.params[2]),4), 'logit_p_tot': round(float(logit.pvalues[2]),4),
+   'logit_pseudo_r2': round(float(logit.prsquared),4),
+ }
+}, open('f5_local_et_premier_panier.json','w'), ensure_ascii=False)
+</code></pre></div></details></div></div></details>
+</main>
+<footer><div class="wrap"><p>Données pseudonymisées de la boutique Lumineva, remises par convention dans le cadre du module Smart Data Marketing (IAE Clermont Auvergne). Seuls des agrégats sont affichés. Ne pas diffuser.</p><p>Version de travail du 12 novembre 2026. Rendu : 18 novembre 2026.</p></div></footer>
+</body>
+</html>

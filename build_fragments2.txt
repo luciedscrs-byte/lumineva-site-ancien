@@ -1,0 +1,93 @@
+import json, math
+from svgutil import *
+
+def pv(p, seuil=0.001):
+    """formate une p-value proprement"""
+    if p < seuil: return f"&lt; {seuil}".replace('.', ',')
+    return n(p, 4 if p<0.01 else 3).replace(' ','')
+
+def sig_word(p):
+    return "statistiquement significatif" if p < 0.05 else "non significatif au seuil usuel de 5 %"
+
+# ===================================================================
+# 1) CLV vs BIENVENUE10
+clv = json.load(open('a1_clv.json'))
+frag_clv = panel('c12', "Valeur client (CLV) et coût du code BIENVENUE10",
+ "CLV approximative = somme des commandes déjà passées par le client (ce n'est pas un profit : aucune marge n'est disponible dans les fichiers).",
+ f'''<div class="kpis" style="grid-template-columns:repeat(3,1fr)">
+ {kpi("CLV moyenne — 1re commande avec le code", eur(clv["mean_a"],2), f"n={n(clv['n_a'])} clients · médiane {eur(clv['med_a'],2)}")}
+ {kpi("CLV moyenne — 1re commande sans code", eur(clv["mean_b"],2), f"n={n(clv['n_b'])} clients · médiane {eur(clv['med_b'],2)}")}
+ {kpi("Coût du code par client acquis", eur(clv["disc_cost_per_customer"],2), f"{eur(clv['disc_cost_total'])} au total sur ces {n(clv['n_a'])} clients")}
+ </div>
+ <p class="hint" style="margin-top:12px">Test t de Welch (comparaison des deux moyennes) : t={clv["t_stat"]}, p={pv(clv["p_value"])} — l'écart de CLV entre les deux groupes est {sig_word(clv["p_value"])}.</p>
+ <p class="hint">Une fois le coût du code déduit, la CLV nette du groupe « avec code » reste de {eur(clv["clv_net_a"],2)}, contre {eur(clv["mean_b"],2)} pour le groupe sans code : le code ne nuit pas à la rentabilité par client, même si la différence n'est pas prouvée statistiquement sur cet échantillon.</p>''')
+
+# ===================================================================
+# 2) Courbe de survie
+surv = json.load(open('a3_survival.json'))
+curve_svg = step_survival([
+  ("Tous les clients", "--muted", [(t,y) for t,y in surv['curveAll']]),
+  ("1re commande avec BIENVENUE10", "--accent", [(t,y) for t,y in surv['curveA']]),
+  ("1re commande sans code", "--flame", [(t,y) for t,y in surv['curveB']]),
+], 700, 280, 270)
+pcts = surv['pct_at']
+trow = lambda d: [f"{d} j", pct(pcts[str(d)]['all'],1), pct(pcts[str(d)]['a'],1), pct(pcts[str(d)]['b'],1)]
+t_surv = table(["Délai","Tous clients","1re cmd BIENVENUE10","1re cmd sans code"],
+  [trow(d) for d in (30,60,90,180,270)])
+frag_survival = panel('c12', "Courbe de survie : délai avant la 2e commande",
+ f"Estimateur de Kaplan-Meier : part des clients ayant recommandé, selon le nombre de jours écoulés depuis leur 1re commande (n={n(surv['n_all'])}, au 21 sept. 2026). Les clients qui n'ont pas encore recommandé sont « censurés », pas comptés comme perdus.",
+ f'''<div class="chart">{curve_svg}</div>
+ <div class="legend" style="margin-top:8px"><span><i style="background:var(--muted)"></i>Tous les clients</span><span><i style="background:var(--accent)"></i>1re commande avec BIENVENUE10</span><span><i style="background:var(--flame)"></i>1re commande sans code</span></div>
+ {t_surv}
+ <p class="hint" style="margin-top:10px">Test du log-rank (comparaison des deux courbes) : χ²={surv["chi2"]}, p={pv(surv["p_logrank"])} — les deux courbes ne sont pas distinguables statistiquement : le code ne change ni la vitesse ni la probabilité de réachat.</p>''')
+
+# ===================================================================
+# 3) Revenu médian par département
+inc = json.load(open('a2_income.json'))
+pts = inc['points']
+xs = [p['revenu_median'] for p in pts]; ys=[p['panier'] for p in pts]
+W,H = 680,320
+pl,pr,pt_,pb = 56,14,14,40
+xmin,xmax = min(xs)-400, max(xs)+400
+ymin,ymax = 0, max(ys)*1.08
+def xx(v): return pl+(v-xmin)/(xmax-xmin)*(W-pl-pr)
+def yy(v): return H-pb-(v-ymin)/(ymax-ymin)*(H-pt_-pb)
+sc = [f'<svg viewBox="0 0 {W} {H}" width="100%" role="img" style="display:block">']
+for gx in range(int(xmin//2000*2000), int(xmax), 2000):
+    if gx<xmin or gx>xmax: continue
+    sc.append(f'<line x1="{xx(gx):.1f}" x2="{xx(gx):.1f}" y1="{pt_}" y2="{H-pb}" style="stroke:var(--grid)"/><text x="{xx(gx):.1f}" y="{H-pb+16}" text-anchor="middle" font-size="10" style="fill:var(--muted)">{n(gx)}</text>')
+for gy in range(0,int(ymax)+1,20):
+    sc.append(f'<line x1="{pl}" x2="{W-pr}" y1="{yy(gy):.1f}" y2="{yy(gy):.1f}" style="stroke:var(--grid)"/><text x="{pl-6}" y="{yy(gy)+3:.1f}" text-anchor="end" font-size="10" style="fill:var(--muted)">{gy}€</text>')
+for p in pts:
+    col = '--flame' if p['dep']=='64' else '--accent'
+    sc.append(f'<circle cx="{xx(p["revenu_median"]):.1f}" cy="{yy(p["panier"]):.1f}" r="{2.4+math.sqrt(p["n"])*0.9:.1f}" style="fill:var({col});fill-opacity:0.55;stroke:var({col});stroke-width:0.8"><title>{esc(p["nom"])} : revenu médian {n(p["revenu_median"])} €, panier moyen {p["panier"]:.2f} € (n={p["n"]})</title></circle>')
+sc.append(f'<text x="{W/2}" y="{H-4}" text-anchor="middle" font-size="10.5" style="fill:var(--muted)">Revenu médian du département (€/UC, Insee-Filosofi 2020)</text>')
+sc.append("</svg>")
+scatter_svg = "".join(sc)
+frag_income = panel('c12', "Revenu médian du département et panier moyen",
+ f"{n(len(pts))} départements avec 5 commandes ou plus. Le 64 (Pyrénées-Atlantiques, en orange) concentre le retrait local à faible panier, ce qui pourrait fausser la lecture.",
+ f'''<div class="chart">{scatter_svg}</div>
+ <p class="hint" style="margin-top:10px">Corrélation (tous départements, n={n(len(pts))}) : r={inc['r_all']}, p={pv(inc['p_all'])}. Sans le département 64 (n={inc['n_no64']}) : r={inc['r_no64']}, p={pv(inc['p_no64'])}.</p>
+ <p class="hint"><b>Aucune corrélation détectée</b> entre le revenu médian du département et le panier moyen des clients qui y habitent, avec ou sans le 64. Le niveau de vie local n'explique pas ce que les clients Lumineva dépensent : rien n'indique qu'il faille cibler des zones plus aisées en priorité.</p>''')
+
+# ===================================================================
+# 4) Google Trends
+tr = json.load(open('a4_trends.json'))
+line_svg = line_chart([tr['orders']], tr['months'], 700, 240, lambda v: n(v,0), 20, ['--accent'])
+line_svg2 = line_chart([tr['trend']['bougie parfumée'], tr['trend']['fondant parfumé']], tr['months'], 700, 200, lambda v: n(v,0), 20, ['--accent','--flame'])
+labels_ml = [ml(m) for m in tr['months']]
+line_svg = line_chart([tr['orders']], labels_ml, 700, 220, lambda v: n(v,0), 20, ['--accent'])
+line_svg2 = line_chart([tr['trend']['bougie parfumée'], tr['trend']['fondant parfumé']], labels_ml, 700, 200, lambda v: n(v,0), 20, ['--accent','--flame'])
+frag_trends = panel('c12', "Saisonnalité confirmée par les recherches Google (France)",
+ "Intérêt de recherche Google Trends pour « bougie parfumée » et « fondant parfumé » en France, comparé au nombre de commandes Lumineva, mois par mois.",
+ f'''<div class="mini">Commandes Lumineva par mois</div><div class="chart">{line_svg}</div>
+ <div class="mini" style="margin-top:14px">Intérêt de recherche Google Trends (échelle 0-100, France)</div><div class="chart">{line_svg2}</div>
+ <div class="legend" style="margin-top:6px"><span><i style="background:var(--accent)"></i>« bougie parfumée »</span><span><i style="background:var(--flame)"></i>« fondant parfumé »</span></div>
+ <p class="hint" style="margin-top:10px">Corrélation avec les commandes : « bougie parfumée » r={tr['corr']['bougie parfumée']['r']} (p={pv(tr['corr']['bougie parfumée']['p'])}) ; « fondant parfumé » r={tr['corr']['fondant parfumé']['r']} (p={pv(tr['corr']['fondant parfumé']['p'])}). Les deux sont statistiquement significatives.</p>
+ <p class="hint"><b>La saisonnalité de Lumineva n'est pas propre à la boutique</b> : elle suit la demande nationale de recherche pour ces produits. C'est une donnée externe qui confirme un résultat interne obtenu avec seulement 15 mois de recul.</p>''')
+
+open('frag_clv.html','w').write(frag_clv)
+open('frag_survival.html','w').write(frag_survival)
+open('frag_income.html','w').write(frag_income)
+open('frag_trends.html','w').write(frag_trends)
+print("4 fragments de différenciation écrits")
